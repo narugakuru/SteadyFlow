@@ -17,8 +17,10 @@ export async function GET() {
   // Read global thresholds from settings
   const warnRow = db.select().from(settings).where(eq(settings.key, "warning_threshold")).get();
   const dangerRow = db.select().from(settings).where(eq(settings.key, "danger_threshold")).get();
+  const colorRow = db.select().from(settings).where(eq(settings.key, "color_mode")).get();
   const warningThreshold = warnRow ? parseFloat(warnRow.value) : 3;
   const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 5;
+  const colorMode = (colorRow?.value === "us" ? "us" : "cn") as "cn" | "us";
 
   const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
 
@@ -132,6 +134,6 @@ export async function GET() {
     totalAssetCny: +totalAssetCny.toFixed(2),
     allocation,
     rates: ratesResult,
-    settings: { warningThreshold, dangerThreshold },
+    settings: { warningThreshold, dangerThreshold, colorMode },
   });
 }

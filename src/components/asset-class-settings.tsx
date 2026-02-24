@@ -20,7 +20,7 @@ interface AssetClassSettingsProps {
 
 export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSettingsProps) {
   const [classes, setClasses] = useState<AssetClass[]>([]);
-  const [settings, setSettings] = useState<Settings>({ warningThreshold: 3, dangerThreshold: 5 });
+  const [settings, setSettings] = useState<Settings>({ warningThreshold: 3, dangerThreshold: 5, colorMode: "cn" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [newClassName, setNewClassName] = useState("");
@@ -151,7 +151,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
             <p className="text-sm font-medium mb-3">全局偏离阈值（所有类别共用）</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">⚠️ 警告阈值 (%)</Label>
+                <Label className="text-xs mb-2 block">⚠️ 警告阈值 (%)</Label>
                 <Input
                   type="number"
                   value={settings.warningThreshold}
@@ -159,13 +159,38 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 />
               </div>
               <div>
-                <Label className="text-xs">🔴 危险阈值 (%)</Label>
+                <Label className="text-xs mb-2 block">🔴 危险阈值 (%)</Label>
                 <Input
                   type="number"
                   value={settings.dangerThreshold}
                   onChange={(e) => setSettings((s) => ({ ...s, dangerThreshold: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Color mode */}
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium mb-3">盈亏颜色模式</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={settings.colorMode === "cn" ? "default" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setSettings((s) => ({ ...s, colorMode: "cn" }))}
+              >
+                🇨🇳 正红负绿（A股）
+              </Button>
+              <Button
+                type="button"
+                variant={settings.colorMode === "us" ? "default" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setSettings((s) => ({ ...s, colorMode: "us" }))}
+              >
+                🇺🇸 正绿负红（美股）
+              </Button>
             </div>
           </div>
 

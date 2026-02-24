@@ -12,12 +12,13 @@ export async function GET() {
   return NextResponse.json({
     warningThreshold: parseFloat(result.warning_threshold ?? "3"),
     dangerThreshold: parseFloat(result.danger_threshold ?? "5"),
+    colorMode: result.color_mode ?? "cn",
   });
 }
 
 export async function PUT(request: Request) {
   const body = await request.json();
-  const { warningThreshold, dangerThreshold } = body;
+  const { warningThreshold, dangerThreshold, colorMode } = body;
 
   if (warningThreshold == null || dangerThreshold == null) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -39,5 +40,15 @@ export async function PUT(request: Request) {
     db.insert(settings).values({ key: "danger_threshold", value: String(dangerThreshold) }).run();
   }
 
-  return NextResponse.json({ warningThreshold, dangerThreshold });
+  // Upsert color_mode
+  if (colorMode) {
+    const existingColor = db.select().from(settings).where(eq(settings.key, "color_mode")).get();
+    if (existingColor) {
+      db.update(settings).set({ value: String(colorMode) }).where(eq(settings.key, "color_mode")).run();
+    } else {
+      db.insert(settings).values({ key: "color_mode", value: String(colorMode) }).run();
+    }
+  }
+
+  return NextResponse.json({ warningThreshold, dangerThreshold, colorMode: colorMode ?? "cn" });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AllocationItem, AllocationHolding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
+import { AllocationItem, AllocationHolding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,10 +23,11 @@ import { Pencil } from "lucide-react";
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
+  colorMode: "cn" | "us";
   onDataChange: () => void;
 }
 
-export function DisciplineTable({ allocation, onDataChange }: DisciplineTableProps) {
+export function DisciplineTable({ allocation, colorMode, onDataChange }: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [editHolding, setEditHolding] = useState<AllocationHolding | null>(null);
 
@@ -109,7 +110,7 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                     {item.name === "现金" ? (
                       <span className="text-muted-foreground">--</span>
                     ) : (
-                      <span className={item.totalPnl > 0 ? "text-green-600" : item.totalPnl < 0 ? "text-red-600" : "text-muted-foreground"}>
+                      <span className={pnlColorClass(item.totalPnl, colorMode)}>
                         {item.totalPnl > 0 ? "+" : ""}{item.totalPnl !== 0 ? `¥${item.totalPnl.toLocaleString()}` : "--"}
                       </span>
                     )}
@@ -149,15 +150,7 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                                     ¥{h.marketValueCny.toLocaleString()}
                                   </span>
                                   {!isCash && h.returnRate !== null && (
-                                    <span
-                                      className={
-                                        h.returnRate > 0
-                                          ? "text-green-600"
-                                          : h.returnRate < 0
-                                          ? "text-red-600"
-                                          : "text-muted-foreground"
-                                      }
-                                    >
+                                    <span className={pnlColorClass(h.returnRate, colorMode)}>
                                       {h.returnRate > 0 ? "+" : ""}
                                       {h.returnRate.toFixed(2)}%
                                     </span>

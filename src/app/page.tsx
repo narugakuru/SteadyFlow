@@ -64,6 +64,7 @@ export default function Dashboard() {
           account={selectedAccount}
           totalAssetCny={allocation.totalAssetCny}
           rates={rates}
+          colorMode={allocation.settings.colorMode}
           onBack={() => {
             setSelectedAccount(null);
             fetchAll();
@@ -117,7 +118,7 @@ export default function Dashboard() {
       {/* Discipline Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
-        <DisciplineTable allocation={allocation.allocation} onDataChange={fetchAll} />
+        <DisciplineTable allocation={allocation.allocation} colorMode={allocation.settings.colorMode} onDataChange={fetchAll} />
         <DeviationChart allocation={allocation.allocation} />
       </div>
 
@@ -125,6 +126,7 @@ export default function Dashboard() {
       <RebalancePanel
         allocation={allocation.allocation}
         warningThreshold={allocation.settings.warningThreshold}
+        colorMode={allocation.settings.colorMode}
       />
 
       {/* Account List (no tabs) */}

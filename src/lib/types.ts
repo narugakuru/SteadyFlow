@@ -30,6 +30,7 @@ export interface AssetClass {
 export interface Settings {
   warningThreshold: number;
   dangerThreshold: number;
+  colorMode: "cn" | "us";
 }
 
 export interface AllocationHolding {
@@ -88,3 +89,12 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: "$",
   HKD: "HK$",
 };
+
+/** 根据 colorMode 返回盈亏颜色 class。cn=正红负绿（A股），us=正绿负红（美股） */
+export function pnlColorClass(value: number, colorMode: "cn" | "us"): string {
+  if (value === 0) return "text-muted-foreground";
+  if (colorMode === "cn") {
+    return value > 0 ? "text-red-600" : "text-green-600";
+  }
+  return value > 0 ? "text-green-600" : "text-red-600";
+}

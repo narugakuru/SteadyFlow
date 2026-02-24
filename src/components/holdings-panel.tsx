@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Holding, Account, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
+import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { useFetch } from "@/lib/hooks";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
 
@@ -141,11 +141,12 @@ interface HoldingsPanelProps {
   account: Account;
   totalAssetCny: number;
   rates: Record<string, number>;
+  colorMode: "cn" | "us";
   onBack: () => void;
   onDataChange: () => void;
 }
 
-export function HoldingsPanel({ account, totalAssetCny, rates, onBack, onDataChange }: HoldingsPanelProps) {
+export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack, onDataChange }: HoldingsPanelProps) {
   const { data: allHoldings, refetch } = useFetch<Holding[]>("/api/holdings");
   const [createOpen, setCreateOpen] = useState(false);
   const [editHolding, setEditHolding] = useState<Holding | null>(null);
@@ -232,7 +233,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, onBack, onDataCha
                     {" · "}占总资产 {pctOfTotal}%
                   </p>
                   {returnRate !== null && (
-                    <p className={`text-sm mt-0.5 ${returnRate > 0 ? "text-green-600" : returnRate < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                    <p className={`text-sm mt-0.5 ${pnlColorClass(returnRate, colorMode)}`}>
                       收益率 {returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%
                     </p>
                   )}

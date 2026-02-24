@@ -1,13 +1,14 @@
 "use client";
 
-import { AllocationItem } from "@/lib/types";
+import { AllocationItem, pnlColorClass } from "@/lib/types";
 
 interface RebalancePanelProps {
   allocation: AllocationItem[];
   warningThreshold: number;
+  colorMode: "cn" | "us";
 }
 
-export function RebalancePanel({ allocation, warningThreshold }: RebalancePanelProps) {
+export function RebalancePanel({ allocation, warningThreshold, colorMode }: RebalancePanelProps) {
   const items = allocation.filter(
     (item) => Math.abs(item.deviation) >= warningThreshold
   );
@@ -32,7 +33,7 @@ export function RebalancePanel({ allocation, warningThreshold }: RebalancePanelP
                     {item.deviation > 0 ? `超配 +${item.deviation}%` : `低配 ${item.deviation}%`}
                   </span>
                 </div>
-                <span className={`text-sm font-medium ${isBuy ? "text-green-600" : "text-red-600"}`}>
+                <span className={`text-sm font-medium ${pnlColorClass(item.adjustAmount, colorMode)}`}>
                   {isBuy ? "建议买入" : "建议卖出"} ¥{absAmount.toLocaleString()}
                 </span>
               </div>
