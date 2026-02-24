@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Account, CURRENCY_SYMBOLS } from "@/lib/types";
+import { Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Pencil, Trash2 } from "lucide-react";
 
 interface AccountFormProps {
@@ -45,6 +45,9 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
   const [totalBalance, setTotalBalance] = useState(
     account?.totalBalance?.toString() ?? ""
   );
+  const [totalCost, setTotalCost] = useState(
+    account?.totalCost?.toString() ?? "0"
+  );
   const [saving, setSaving] = useState(false);
   const isEdit = !!account;
 
@@ -58,6 +61,7 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
         name,
         currency,
         totalBalance: parseFloat(totalBalance) || 0,
+        totalCost: parseFloat(totalCost) || 0,
       }),
     });
     setSaving(false);
@@ -88,11 +92,20 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
             </Select>
           </div>
           <div>
-            <Label>账户总额 ({CURRENCY_SYMBOLS[currency]})</Label>
+            <Label>账户市值/总额 ({CURRENCY_SYMBOLS[currency]})</Label>
             <Input
               type="number"
               value={totalBalance}
               onChange={(e) => setTotalBalance(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <Label>账户本金 ({CURRENCY_SYMBOLS[currency]})（选填）</Label>
+            <Input
+              type="number"
+              value={totalCost}
+              onChange={(e) => setTotalCost(e.target.value)}
               placeholder="0"
             />
           </div>
@@ -107,11 +120,12 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
 
 interface AccountListProps {
   accounts: Account[];
+  colorMode: "cn" | "us";
   onRefresh: () => void;
   onSelectAccount: (account: Account) => void;
 }
 
-export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountListProps) {
+export function AccountList({ accounts, colorMode, onRefresh, onSelectAccount }: AccountListProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
 
@@ -136,9 +150,10 @@ export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountLis
             <thead className="bg-muted/50">
               <tr>
                 <th className="text-left p-3 font-medium">账户</th>
-                <th className="text-right p-3 font-medium">总额</th>
+                <th className="text-right p-3 font-medium">市值</th>
+                <th className="text-right p-3 font-medium">本金</th>
+                <th className="text-right p-3 font-medium">盈亏</th>
                 <th className="text-right p-3 font-medium">现金</th>
-                <th className="text-right p-3 font-medium">持仓</th>
                 <th className="text-right p-3 font-medium">持仓数</th>
                 <th className="text-center p-3 font-medium w-20">操作</th>
               </tr>
@@ -146,6 +161,8 @@ export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountLis
             <tbody>
               {accounts.map((a) => {
                 const sym = CURRENCY_SYMBOLS[a.currency];
+                const pnl = a.totalCost > 0 ? a.totalBalance - a.totalCost : 0;
+                const pnlPct = a.totalCost > 0 ? ((pnl / a.totalCost) * 100).toFixed(2) : null;
                 return (
                   <tr
                     key={a.id}
@@ -159,8 +176,16 @@ export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountLis
                       </div>
                     </td>
                     <td className="p-3 text-right font-semibold">{sym}{a.totalBalance.toLocaleString()}</td>
+                    <td className="p-3 text-right">{sym}{a.totalCost.toLocaleString()}</td>
+                    <td className={`p-3 text-right ${a.totalCost > 0 ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
+                      {a.totalCost > 0 ? (
+                        <>
+                          {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
+                          {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
+                        </>
+                      ) : "--"}
+                    </td>
                     <td className="p-3 text-right">{sym}{a.cash.toLocaleString()}</td>
-                    <td className="p-3 text-right">{sym}{a.holdingsValue.toLocaleString()}</td>
                     <td className="p-3 text-right">{a.holdingsCount}</td>
                     <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-center gap-0.5">
@@ -182,7 +207,7 @@ export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountLis
                             <AlertDialogHeader>
                               <AlertDialogTitle>确认删除</AlertDialogTitle>
                               <AlertDialogDescription>
-                                将同时删除"{a.name}"下的所有持仓，此操作不可撤销。
+                                将同时删除"{a.name}"下的所有持仓和交易记录，此操作不可撤销。
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

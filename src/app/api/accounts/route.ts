@@ -10,6 +10,7 @@ export async function GET() {
       name: accounts.name,
       currency: accounts.currency,
       totalBalance: accounts.totalBalance,
+      totalCost: accounts.totalCost,
       createdAt: accounts.createdAt,
       updatedAt: accounts.updatedAt,
       holdingsValue: sql<number>`coalesce(sum(${holdings.marketValue}), 0)`,
@@ -30,7 +31,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, currency, totalBalance } = body;
+  const { name, currency, totalBalance, totalCost } = body;
 
   if (!name || !currency || totalBalance == null) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -38,7 +39,12 @@ export async function POST(request: Request) {
 
   const result = db
     .insert(accounts)
-    .values({ name, currency, totalBalance })
+    .values({
+      name,
+      currency,
+      totalBalance,
+      totalCost: totalCost != null ? parseFloat(totalCost) : 0,
+    })
     .returning()
     .get();
 

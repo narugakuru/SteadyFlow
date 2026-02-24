@@ -18,7 +18,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { name, cost, marketValue, assetClass } = body;
+  const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass } = body;
 
   if (assetClass !== undefined) {
     const validClasses = getValidAssetClasses();
@@ -27,22 +27,41 @@ export async function PUT(
     }
   }
 
+  // Build update set
+  const updateSet: Record<string, any> = {
+    updatedAt: new Date().toISOString(),
+  };
+  if (name !== undefined) updateSet.name = name;
+  if (ticker !== undefined) updateSet.ticker = ticker || null;
+  if (valuationMode !== undefined) updateSet.valuationMode = valuationMode;
+  if (cost !== undefined) updateSet.cost = parseFloat(cost);
+  if (assetClass !== undefined) updateSet.assetClass = assetClass;
+
+  // For shares mode: if shares or price updated, recalculate marketValue
+  if (shares !== undefined) updateSet.shares = parseFloat(shares);
+  if (price !== undefined) updateSet.price = parseFloat(price);
+
+  // Get current holding to determine mode for auto-calc
+  const current = db.select().from(holdings).where(eq(holdings.id, Number(id))).get();
+  if (!current) {
+    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
+
+  const effectiveMode = valuationMode ?? current.valuationMode;
+  if (effectiveMode === "shares") {
+    const effectiveShares = shares !== undefined ? parseFloat(shares) : current.shares;
+    const effectivePrice = price !== undefined ? parseFloat(price) : current.price;
+    updateSet.marketValue = effectiveShares * effectivePrice;
+  } else if (marketValue !== undefined) {
+    updateSet.marketValue = parseFloat(marketValue);
+  }
+
   const result = db
     .update(holdings)
-    .set({
-      ...(name !== undefined && { name }),
-      ...(cost !== undefined && { cost: parseFloat(cost) }),
-      ...(marketValue !== undefined && { marketValue: parseFloat(marketValue) }),
-      ...(assetClass !== undefined && { assetClass }),
-      updatedAt: new Date().toISOString(),
-    })
+    .set(updateSet)
     .where(eq(holdings.id, Number(id)))
     .returning()
     .get();
-
-  if (!result) {
-    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
-  }
 
   return NextResponse.json(result);
 }

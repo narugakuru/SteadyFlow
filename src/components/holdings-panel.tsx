@@ -44,8 +44,12 @@ interface HoldingFormProps {
 
 function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved }: HoldingFormProps) {
   const [name, setName] = useState(holding?.name ?? "");
+  const [ticker, setTicker] = useState(holding?.ticker ?? "");
+  const [valuationMode, setValuationMode] = useState<"amount" | "shares">(holding?.valuationMode ?? "amount");
   const [cost, setCost] = useState(holding?.cost?.toString() ?? "");
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
+  const [shares, setShares] = useState(holding?.shares?.toString() ?? "");
+  const [price, setPrice] = useState(holding?.price?.toString() ?? "");
   const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "");
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
@@ -66,22 +70,37 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     }
   }, [open]);
 
+  const computedMarketValue = valuationMode === "shares"
+    ? ((parseFloat(shares) || 0) * (parseFloat(price) || 0)).toFixed(2)
+    : null;
+
   const handleSubmit = async () => {
     setSaving(true);
     const costVal = parseFloat(cost) || 0;
-    const mvVal = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
+
+    const payload: Record<string, any> = {
+      ...(isEdit ? {} : { accountId }),
+      name,
+      ticker: ticker || null,
+      valuationMode,
+      cost: costVal,
+      assetClass,
+    };
+
+    if (valuationMode === "shares") {
+      payload.shares = parseFloat(shares) || 0;
+      payload.price = parseFloat(price) || 0;
+      // marketValue auto-calculated by API
+    } else {
+      const mvVal = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
+      if (mvVal !== undefined) payload.marketValue = mvVal;
+    }
 
     const url = isEdit ? `/api/holdings/${holding.id}` : "/api/holdings";
     await fetch(url, {
       method: isEdit ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...(isEdit ? {} : { accountId }),
-        name,
-        cost: costVal,
-        ...(mvVal !== undefined ? { marketValue: mvVal } : {}),
-        assetClass,
-      }),
+      body: JSON.stringify(payload),
     });
     setSaving(false);
     onOpenChange(false);
@@ -95,9 +114,38 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
           <DialogTitle>{isEdit ? "编辑持仓" : "添加持仓"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <Label>持仓名称</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>持仓名称</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
+            </div>
+            <div>
+              <Label>股票代码（选填）</Label>
+              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>估值模式</Label>
+              <Select value={valuationMode} onValueChange={(v) => setValuationMode(v as "amount" | "shares")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="amount">金额模式（手动市值）</SelectItem>
+                  <SelectItem value="shares">份额模式（股价×份额）</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>资产类别</Label>
+              <Select value={assetClass} onValueChange={setAssetClass}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {assetClasses.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div>
             <Label>本金 ({sym})</Label>
@@ -108,26 +156,45 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
               placeholder="0"
             />
           </div>
-          <div>
-            <Label>市值 ({sym})（选填，不填则等于本金）</Label>
-            <Input
-              type="number"
-              value={marketValue}
-              onChange={(e) => setMarketValue(e.target.value)}
-              placeholder="不填则等于本金"
-            />
-          </div>
-          <div>
-            <Label>资产类别</Label>
-            <Select value={assetClass} onValueChange={setAssetClass}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {assetClasses.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {valuationMode === "shares" ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>份额</Label>
+                  <Input
+                    type="number"
+                    value={shares}
+                    onChange={(e) => setShares(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>股价 ({sym})</Label>
+                  <Input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              {computedMarketValue && (
+                <p className="text-sm text-muted-foreground">
+                  市值（自动计算）：{sym}{parseFloat(computedMarketValue).toLocaleString()}
+                </p>
+              )}
+            </>
+          ) : (
+            <div>
+              <Label>市值 ({sym})（选填，不填则等于本金）</Label>
+              <Input
+                type="number"
+                value={marketValue}
+                onChange={(e) => setMarketValue(e.target.value)}
+                placeholder="不填则等于本金"
+              />
+            </div>
+          )}
           <Button onClick={handleSubmit} disabled={saving || !name || !cost} className="w-full">
             {saving ? "保存中..." : "保存"}
           </Button>
@@ -222,8 +289,12 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{h.name}</span>
+                    {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
                     <Badge variant="secondary" className={getAssetClassColor(h.assetClass)}>
                       {h.assetClass}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {h.valuationMode === "shares" ? "份额" : "金额"}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -232,6 +303,12 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
                     {account.currency !== "CNY" && ` ≈ ¥${valueCny.toLocaleString()}`}
                     {" · "}占总资产 {pctOfTotal}%
                   </p>
+                  {h.valuationMode === "shares" && (
+                    <p className="text-sm text-muted-foreground">
+                      份额 {h.shares.toLocaleString()} · 股价 {sym}{h.price}
+                      {h.shares > 0 && ` · 均价 ${sym}${(h.cost / h.shares).toFixed(4)}`}
+                    </p>
+                  )}
                   {returnRate !== null && (
                     <p className={`text-sm mt-0.5 ${pnlColorClass(returnRate, colorMode)}`}>
                       收益率 {returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%

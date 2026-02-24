@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { accounts } from "@/db/schema";
+import { accounts, transactions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function PUT(
@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { name, currency, totalBalance } = body;
+  const { name, currency, totalBalance, totalCost } = body;
 
   const result = db
     .update(accounts)
@@ -17,6 +17,7 @@ export async function PUT(
       ...(name !== undefined && { name }),
       ...(currency !== undefined && { currency }),
       ...(totalBalance !== undefined && { totalBalance }),
+      ...(totalCost !== undefined && { totalCost: parseFloat(totalCost) }),
       updatedAt: new Date().toISOString(),
     })
     .where(eq(accounts.id, Number(id)))
@@ -35,11 +36,14 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const numId = Number(id);
 
-  // Holdings are cascade-deleted via foreign key
+  // Manually delete transactions (cascade handles holdings)
+  db.delete(transactions).where(eq(transactions.accountId, numId)).run();
+
   const result = db
     .delete(accounts)
-    .where(eq(accounts.id, Number(id)))
+    .where(eq(accounts.id, numId))
     .returning()
     .get();
 

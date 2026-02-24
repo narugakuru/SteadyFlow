@@ -4,34 +4,20 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DisciplineTable } from "@/components/discipline-table";
-import { AccountList } from "@/components/account-list";
-import { HoldingsPanel } from "@/components/holdings-panel";
 import { PortfolioChart } from "@/components/portfolio-chart";
 import { DeviationChart } from "@/components/deviation-chart";
 import { RebalancePanel } from "@/components/rebalance-panel";
-import { AssetClassSettings } from "@/components/asset-class-settings";
-import { Account, AllocationData } from "@/lib/types";
-import Link from "next/link";
+import { AllocationData } from "@/lib/types";
 
 export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [allocRes, accRes] = await Promise.all([
-      fetch("/api/asset-allocation"),
-      fetch("/api/accounts"),
-    ]);
-    const [allocData, accData] = await Promise.all([
-      allocRes.json(),
-      accRes.json(),
-    ]);
+    const allocRes = await fetch("/api/asset-allocation");
+    const allocData = await allocRes.json();
     setAllocation(allocData);
-    setAccounts(accData);
     setLoading(false);
   }, []);
 
@@ -48,7 +34,7 @@ export default function Dashboard() {
 
   if (loading || !allocation) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <p className="text-muted-foreground">加载中...</p>
       </div>
     );
@@ -56,44 +42,14 @@ export default function Dashboard() {
 
   const rates = allocation.rates.rates;
 
-  // If viewing a specific account's holdings
-  if (selectedAccount) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <HoldingsPanel
-          account={selectedAccount}
-          totalAssetCny={allocation.totalAssetCny}
-          rates={rates}
-          colorMode={allocation.settings.colorMode}
-          onBack={() => {
-            setSelectedAccount(null);
-            fetchAll();
-          }}
-          onDataChange={fetchAll}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">📊 资产组合管理</h1>
-        <div className="flex gap-2">
-          <Link href="/batch-update">
-            <Button variant="outline" size="sm">✏️ 批量更新</Button>
-          </Link>
-          <Link href="/snapshots">
-            <Button variant="outline" size="sm">📋 快照历史</Button>
-          </Link>
-          <Button variant="outline" size="sm" onClick={handleRefreshSnapshot}>
-            📸 刷新快照
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
-            ⚙️ 配置
-          </Button>
-        </div>
+        <h1 className="text-2xl font-bold">资产总览</h1>
+        <Button variant="outline" size="sm" onClick={handleRefreshSnapshot}>
+          📸 刷新快照
+        </Button>
       </div>
 
       {/* Total Asset Card */}
@@ -127,20 +83,6 @@ export default function Dashboard() {
         allocation={allocation.allocation}
         warningThreshold={allocation.settings.warningThreshold}
         colorMode={allocation.settings.colorMode}
-      />
-
-      {/* Account List (no tabs) */}
-      <AccountList
-        accounts={accounts}
-        onRefresh={fetchAll}
-        onSelectAccount={setSelectedAccount}
-      />
-
-      {/* Settings Dialog */}
-      <AssetClassSettings
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        onSaved={fetchAll}
       />
     </div>
   );

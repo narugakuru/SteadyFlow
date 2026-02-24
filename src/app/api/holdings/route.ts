@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { accountId, name, cost, marketValue, assetClass } = body;
+  const { accountId, name, ticker, valuationMode = "amount", cost, marketValue, shares: inputShares, price: inputPrice, assetClass } = body;
 
   if (!accountId || !name || cost == null || !assetClass) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -30,11 +30,25 @@ export async function POST(request: Request) {
   }
 
   const finalCost = parseFloat(cost) || 0;
-  const finalMarketValue = marketValue != null ? parseFloat(marketValue) : finalCost;
+  const finalShares = parseFloat(inputShares) || 0;
+  const finalPrice = parseFloat(inputPrice) || 0;
+  const finalMarketValue = valuationMode === "shares"
+    ? finalShares * finalPrice
+    : (marketValue != null ? parseFloat(marketValue) : finalCost);
 
   const result = db
     .insert(holdings)
-    .values({ accountId, name, cost: finalCost, marketValue: finalMarketValue, assetClass })
+    .values({
+      accountId,
+      name,
+      ticker: ticker || null,
+      valuationMode,
+      cost: finalCost,
+      marketValue: finalMarketValue,
+      shares: finalShares,
+      price: finalPrice,
+      assetClass,
+    })
     .returning()
     .get();
 
