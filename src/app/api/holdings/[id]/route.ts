@@ -9,13 +9,14 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { name, marketValue, assetClass } = body;
+  const { name, cost, marketValue, assetClass } = body;
 
   const result = db
     .update(holdings)
     .set({
       ...(name !== undefined && { name }),
-      ...(marketValue !== undefined && { marketValue }),
+      ...(cost !== undefined && { cost: parseFloat(cost) }),
+      ...(marketValue !== undefined && { marketValue: parseFloat(marketValue) }),
       ...(assetClass !== undefined && { assetClass }),
       updatedAt: new Date().toISOString(),
     })

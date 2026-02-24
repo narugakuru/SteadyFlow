@@ -49,13 +49,18 @@ interface HoldingFormProps {
 
 function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved }: HoldingFormProps) {
   const [name, setName] = useState(holding?.name ?? "");
+  const [cost, setCost] = useState(holding?.cost?.toString() ?? "");
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
   const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "股票基金");
   const [saving, setSaving] = useState(false);
   const isEdit = !!holding;
+  const sym = CURRENCY_SYMBOLS[currency];
 
   const handleSubmit = async () => {
     setSaving(true);
+    const costVal = parseFloat(cost) || 0;
+    const mvVal = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
+
     const url = isEdit ? `/api/holdings/${holding.id}` : "/api/holdings";
     await fetch(url, {
       method: isEdit ? "PUT" : "POST",
@@ -63,7 +68,8 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
       body: JSON.stringify({
         ...(isEdit ? {} : { accountId }),
         name,
-        marketValue: parseFloat(marketValue) || 0,
+        cost: costVal,
+        ...(mvVal !== undefined ? { marketValue: mvVal } : {}),
         assetClass,
       }),
     });
@@ -84,12 +90,21 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
           </div>
           <div>
-            <Label>市值 ({CURRENCY_SYMBOLS[currency]})</Label>
+            <Label>本金 ({sym})</Label>
+            <Input
+              type="number"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <Label>市值 ({sym})（选填，不填则等于本金）</Label>
             <Input
               type="number"
               value={marketValue}
               onChange={(e) => setMarketValue(e.target.value)}
-              placeholder="0"
+              placeholder="不填则等于本金"
             />
           </div>
           <div>
@@ -103,7 +118,7 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">
+          <Button onClick={handleSubmit} disabled={saving || !name || !cost} className="w-full">
             {saving ? "保存中..." : "保存"}
           </Button>
         </div>
@@ -147,12 +162,20 @@ export function HoldingsPanel({ account, totalAssetCny, rates, onBack, onDataCha
   const holdingsTotal = holdings.reduce((s, h) => s + h.marketValue, 0);
   const cash = Math.max(0, account.totalBalance - holdingsTotal);
 
+  const calcReturn = (h: Holding) => {
+    if (h.cost <= 0) return null;
+    return +(((h.marketValue - h.cost) / h.cost) * 100).toFixed(2);
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>← 返回</Button>
-        <h2 className="text-lg font-semibold">{account.name}</h2>
-        <Badge variant="outline">{account.currency}</Badge>
+      {/* Header: title left, back button right */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">{account.name}</h2>
+          <Badge variant="outline">{account.currency}</Badge>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onBack}>返回 →</Button>
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm">
@@ -182,6 +205,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, onBack, onDataCha
           {holdings.map((h) => {
             const valueCny = toCny(h.marketValue);
             const pctOfTotal = totalAssetCny > 0 ? ((valueCny / totalAssetCny) * 100).toFixed(2) : "0";
+            const returnRate = calcReturn(h);
             return (
               <div key={h.id} className="border rounded-lg p-3 flex items-center justify-between">
                 <div>
@@ -192,10 +216,16 @@ export function HoldingsPanel({ account, totalAssetCny, rates, onBack, onDataCha
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {sym}{h.marketValue.toLocaleString()}
+                    本金 {sym}{h.cost.toLocaleString()}
+                    {" · "}市值 {sym}{h.marketValue.toLocaleString()}
                     {account.currency !== "CNY" && ` ≈ ¥${valueCny.toLocaleString()}`}
                     {" · "}占总资产 {pctOfTotal}%
                   </p>
+                  {returnRate !== null && (
+                    <p className={`text-sm mt-0.5 ${returnRate > 0 ? "text-green-600" : returnRate < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                      收益率 {returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setEditHolding(h)}>编辑</Button>

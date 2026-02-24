@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -30,6 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Account, CURRENCY_SYMBOLS } from "@/lib/types";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface AccountFormProps {
   account?: Account;
@@ -104,72 +105,6 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
   );
 }
 
-interface AccountCardProps {
-  account: Account;
-  onRefresh: () => void;
-  onSelect: (account: Account) => void;
-}
-
-function AccountCard({ account, onRefresh, onSelect }: AccountCardProps) {
-  const [editOpen, setEditOpen] = useState(false);
-  const sym = CURRENCY_SYMBOLS[account.currency];
-
-  const handleDelete = async () => {
-    await fetch(`/api/accounts/${account.id}`, { method: "DELETE" });
-    onRefresh();
-  };
-
-  return (
-    <div
-      className="border rounded-lg p-4 hover:bg-accent/50 cursor-pointer transition-colors"
-      onClick={() => onSelect(account)}
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-medium">{account.name}</h3>
-          <p className="text-sm text-muted-foreground">{account.currency}</p>
-        </div>
-        <div className="text-right">
-          <p className="font-semibold">{sym}{account.totalBalance.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground">
-            现金: {sym}{account.cash.toLocaleString()} · {account.holdingsCount} 个持仓
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-          编辑
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="sm" className="text-destructive">
-              删除
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认删除</AlertDialogTitle>
-              <AlertDialogDescription>
-                将同时删除"{account.name}"下的所有持仓，此操作不可撤销。
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>确认删除</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-      <AccountForm
-        account={account}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        onSaved={onRefresh}
-      />
-    </div>
-  );
-}
-
 interface AccountListProps {
   accounts: Account[];
   onRefresh: () => void;
@@ -178,9 +113,15 @@ interface AccountListProps {
 
 export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountListProps) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
+
+  const handleDelete = async (id: number) => {
+    await fetch(`/api/accounts/${id}`, { method: "DELETE" });
+    onRefresh();
+  };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">账户列表</h2>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -190,11 +131,71 @@ export function AccountList({ accounts, onRefresh, onSelectAccount }: AccountLis
       {accounts.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无账户，点击上方添加</p>
       ) : (
-        accounts.map((a) => (
-          <AccountCard key={a.id} account={a} onRefresh={onRefresh} onSelect={onSelectAccount} />
-        ))
+        <div className="border rounded-lg divide-y">
+          {accounts.map((a) => {
+            const sym = CURRENCY_SYMBOLS[a.currency];
+            return (
+              <div
+                key={a.id}
+                className="flex items-center justify-between px-3 py-2 hover:bg-accent/50 cursor-pointer transition-colors"
+                onClick={() => onSelectAccount(a)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{a.name}</span>
+                  <Badge variant="outline" className="text-xs">{a.currency}</Badge>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold">{sym}{a.totalBalance.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground">
+                    现金 {sym}{a.cash.toLocaleString()}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {a.holdingsCount}个持仓
+                  </span>
+                  <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setEditAccount(a)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>确认删除</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            将同时删除"{a.name}"下的所有持仓，此操作不可撤销。
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(a.id)}>确认删除</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
       <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />
+      {editAccount && (
+        <AccountForm
+          account={editAccount}
+          open={!!editAccount}
+          onOpenChange={(open) => !open && setEditAccount(null)}
+          onSaved={onRefresh}
+        />
+      )}
     </div>
   );
 }

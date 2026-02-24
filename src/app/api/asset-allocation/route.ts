@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { accounts, holdings, assetClasses } from "@/db/schema";
+import { accounts, holdings, assetClasses, settings } from "@/db/schema";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   const [ratesResult, allAccounts, allHoldings, allClasses] = await Promise.all([
@@ -13,7 +14,12 @@ export async function GET() {
 
   const rates = ratesResult.rates;
 
-  // Build account currency map
+  // Read global thresholds from settings
+  const warnRow = db.select().from(settings).where(eq(settings.key, "warning_threshold")).get();
+  const dangerRow = db.select().from(settings).where(eq(settings.key, "danger_threshold")).get();
+  const warningThreshold = warnRow ? parseFloat(warnRow.value) : 3;
+  const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 5;
+
   const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
 
   // Calculate total asset in CNY
@@ -22,36 +28,78 @@ export async function GET() {
     0
   );
 
-  // Calculate holdings value per asset class in CNY
+  // Group holdings by asset class with details
+  const classHoldings: Record<string, typeof allHoldings> = {};
   const classValues: Record<string, number> = {};
   for (const h of allHoldings) {
     const account = accountMap.get(h.accountId);
     if (!account) continue;
     const valueCny = convertToCNY(h.marketValue, account.currency, rates);
     classValues[h.assetClass] = (classValues[h.assetClass] || 0) + valueCny;
+    if (!classHoldings[h.assetClass]) classHoldings[h.assetClass] = [];
+    classHoldings[h.assetClass].push(h);
   }
 
-  // Calculate total cash in CNY
-  const totalCashCny = allAccounts.reduce((sum, a) => {
-    const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
-    const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
+  // Calculate total cash in CNY and per-account cash
+  const accountCash: { accountId: number; accountName: string; currency: string; cash: number; cashCny: number }[] = [];
+  let totalCashCny = 0;
+  for (const a of allAccounts) {
+    const accHoldings = allHoldings.filter((h) => h.accountId === a.id);
+    const holdingsTotal = accHoldings.reduce((s, h) => s + h.marketValue, 0);
     const cash = Math.max(0, a.totalBalance - holdingsTotal);
-    return sum + convertToCNY(cash, a.currency, rates);
-  }, 0);
+    const cashCny = convertToCNY(cash, a.currency, rates);
+    totalCashCny += cashCny;
+    if (cash > 0) {
+      accountCash.push({ accountId: a.id, accountName: a.name, currency: a.currency, cash, cashCny });
+    }
+  }
 
   // Build allocation result
   const allocation = allClasses.map((cls) => {
-    const actualValue = cls.name === "现金" ? totalCashCny : (classValues[cls.name] || 0);
+    const isCash = cls.name === "现金";
+    const actualValue = isCash ? totalCashCny : (classValues[cls.name] || 0);
     const actualPct = totalAssetCny > 0 ? +((actualValue / totalAssetCny) * 100).toFixed(2) : 0;
     const deviation = +(actualPct - cls.targetPct).toFixed(2);
     const absDeviation = Math.abs(deviation);
 
     let status: "normal" | "warning" | "danger" = "normal";
-    if (absDeviation >= cls.dangerThreshold) {
+    if (absDeviation >= dangerThreshold) {
       status = "danger";
-    } else if (absDeviation >= cls.warningThreshold) {
+    } else if (absDeviation >= warningThreshold) {
       status = "warning";
     }
+
+    // Build holdings list for this class
+    const holdingsList = isCash
+      ? accountCash.map((ac) => ({
+          id: -ac.accountId,
+          name: `${ac.accountName} 现金`,
+          accountId: ac.accountId,
+          accountName: ac.accountName,
+          currency: ac.currency,
+          cost: ac.cash,
+          marketValue: ac.cash,
+          marketValueCny: ac.cashCny,
+          returnRate: null as number | null,
+          pctOfTotal: totalAssetCny > 0 ? +((ac.cashCny / totalAssetCny) * 100).toFixed(2) : 0,
+        }))
+      : (classHoldings[cls.name] || []).map((h) => {
+          const account = accountMap.get(h.accountId)!;
+          const valueCny = convertToCNY(h.marketValue, account.currency, rates);
+          const returnRate = h.cost > 0 ? +(((h.marketValue - h.cost) / h.cost) * 100).toFixed(2) : null;
+          return {
+            id: h.id,
+            name: h.name,
+            accountId: h.accountId,
+            accountName: account.name,
+            currency: account.currency,
+            cost: h.cost,
+            marketValue: h.marketValue,
+            marketValueCny: +valueCny.toFixed(2),
+            returnRate,
+            pctOfTotal: totalAssetCny > 0 ? +((valueCny / totalAssetCny) * 100).toFixed(2) : 0,
+          };
+        });
 
     return {
       id: cls.id,
@@ -61,8 +109,7 @@ export async function GET() {
       actualValue: +actualValue.toFixed(2),
       deviation,
       status,
-      warningThreshold: cls.warningThreshold,
-      dangerThreshold: cls.dangerThreshold,
+      holdings: holdingsList,
     };
   });
 
@@ -70,5 +117,6 @@ export async function GET() {
     totalAssetCny: +totalAssetCny.toFixed(2),
     allocation,
     rates: ratesResult,
+    settings: { warningThreshold, dangerThreshold },
   });
 }

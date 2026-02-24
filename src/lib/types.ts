@@ -14,6 +14,7 @@ export interface Holding {
   id: number;
   accountId: number;
   name: string;
+  cost: number;
   marketValue: number;
   assetClass: "股票基金" | "黄金" | "债券";
   createdAt: string;
@@ -24,8 +25,24 @@ export interface AssetClass {
   id: number;
   name: string;
   targetPct: number;
+}
+
+export interface Settings {
   warningThreshold: number;
   dangerThreshold: number;
+}
+
+export interface AllocationHolding {
+  id: number;
+  name: string;
+  accountId: number;
+  accountName: string;
+  currency: string;
+  cost: number;
+  marketValue: number;
+  marketValueCny: number;
+  returnRate: number | null;
+  pctOfTotal: number;
 }
 
 export interface AllocationItem {
@@ -36,8 +53,7 @@ export interface AllocationItem {
   actualValue: number;
   deviation: number;
   status: "normal" | "warning" | "danger";
-  warningThreshold: number;
-  dangerThreshold: number;
+  holdings: AllocationHolding[];
 }
 
 export interface AllocationData {
@@ -48,6 +64,7 @@ export interface AllocationData {
     updatedAt: string;
     source: string;
   };
+  settings: Settings;
 }
 
 export interface Snapshot {

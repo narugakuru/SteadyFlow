@@ -9,15 +9,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { accountId, name, marketValue, assetClass } = body;
+  const { accountId, name, cost, marketValue, assetClass } = body;
 
-  if (!accountId || !name || marketValue == null || !assetClass) {
+  if (!accountId || !name || cost == null || !assetClass) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  const finalCost = parseFloat(cost) || 0;
+  const finalMarketValue = marketValue != null ? parseFloat(marketValue) : finalCost;
+
   const result = db
     .insert(holdings)
-    .values({ accountId, name, marketValue, assetClass })
+    .values({ accountId, name, cost: finalCost, marketValue: finalMarketValue, assetClass })
     .returning()
     .get();
 

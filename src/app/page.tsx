@@ -2,39 +2,34 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DisciplineTable } from "@/components/discipline-table";
 import { AccountList } from "@/components/account-list";
 import { HoldingsPanel } from "@/components/holdings-panel";
-import { AssetClassView } from "@/components/asset-class-view";
+import { PortfolioChart } from "@/components/portfolio-chart";
 import { AssetClassSettings } from "@/components/asset-class-settings";
-import { Account, Holding, AllocationData } from "@/lib/types";
+import { Account, AllocationData } from "@/lib/types";
 import Link from "next/link";
 
 export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [allocRes, accRes, holdRes] = await Promise.all([
+    const [allocRes, accRes] = await Promise.all([
       fetch("/api/asset-allocation"),
       fetch("/api/accounts"),
-      fetch("/api/holdings"),
     ]);
-    const [allocData, accData, holdData] = await Promise.all([
+    const [allocData, accData] = await Promise.all([
       allocRes.json(),
       accRes.json(),
-      holdRes.json(),
     ]);
     setAllocation(allocData);
     setAccounts(accData);
-    setHoldings(holdData);
     setLoading(false);
   }, []);
 
@@ -111,35 +106,21 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
+      {/* Portfolio Chart */}
+      <PortfolioChart allocation={allocation.allocation} />
+
       {/* Discipline Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
-        <DisciplineTable allocation={allocation.allocation} />
+        <DisciplineTable allocation={allocation.allocation} onDataChange={fetchAll} />
       </div>
 
-      {/* Two Views */}
-      <Tabs defaultValue="accounts">
-        <TabsList>
-          <TabsTrigger value="accounts">🏦 账户视角</TabsTrigger>
-          <TabsTrigger value="classes">📈 资产类别视角</TabsTrigger>
-        </TabsList>
-        <TabsContent value="accounts" className="mt-4">
-          <AccountList
-            accounts={accounts}
-            onRefresh={fetchAll}
-            onSelectAccount={setSelectedAccount}
-          />
-        </TabsContent>
-        <TabsContent value="classes" className="mt-4">
-          <AssetClassView
-            allocation={allocation.allocation}
-            holdings={holdings}
-            accounts={accounts}
-            rates={rates}
-            totalAssetCny={allocation.totalAssetCny}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Account List (no tabs) */}
+      <AccountList
+        accounts={accounts}
+        onRefresh={fetchAll}
+        onSelectAccount={setSelectedAccount}
+      />
 
       {/* Settings Dialog */}
       <AssetClassSettings

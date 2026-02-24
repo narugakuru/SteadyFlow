@@ -11,12 +11,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   const body = await request.json();
   const { classes } = body as {
-    classes: {
-      id: number;
-      targetPct: number;
-      warningThreshold: number;
-      dangerThreshold: number;
-    }[];
+    classes: { id: number; targetPct: number }[];
   };
 
   if (!classes || !Array.isArray(classes)) {
@@ -34,11 +29,7 @@ export async function PUT(request: Request) {
 
   for (const cls of classes) {
     db.update(assetClasses)
-      .set({
-        targetPct: cls.targetPct,
-        warningThreshold: cls.warningThreshold,
-        dangerThreshold: cls.dangerThreshold,
-      })
+      .set({ targetPct: cls.targetPct })
       .where(eq(assetClasses.id, cls.id))
       .run();
   }
