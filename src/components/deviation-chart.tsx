@@ -29,7 +29,7 @@ export function DeviationChart({ allocation }: DeviationChartProps) {
   const domain = [-bound, bound];
 
   return (
-    <div className="mb-4">
+    <div className="mt-4">
       <ResponsiveContainer width="100%" height={40 * data.length + 30}>
         <BarChart data={data} layout="vertical" margin={{ left: 60, right: 40, top: 5, bottom: 5 }}>
           <XAxis

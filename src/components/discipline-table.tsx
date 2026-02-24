@@ -46,8 +46,7 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
           <tr>
             <th className="text-left p-3 font-medium w-8"></th>
             <th className="text-left p-3 font-medium">资产类别</th>
-            <th className="text-right p-3 font-medium">目标</th>
-            <th className="text-right p-3 font-medium">实际</th>
+            <th className="text-right p-3 font-medium">目标 / 实际</th>
             <th className="text-right p-3 font-medium">金额 (¥)</th>
             <th className="text-center p-3 font-medium">状态</th>
           </tr>
@@ -83,7 +82,6 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                     {isExpanded ? "▼" : "▶"}
                   </td>
                   <td className="p-3 font-medium">{item.name}</td>
-                  <td className="p-3 text-right">{item.targetPct}%</td>
                   <td className="p-3">
                     <div className="flex items-center gap-2 justify-end">
                       <div className="relative w-20 h-4 bg-muted rounded overflow-hidden flex-shrink-0">
@@ -102,7 +100,7 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                           style={{ left: `${Math.min(item.targetPct, 100)}%` }}
                         />
                       </div>
-                      <span className="text-sm tabular-nums w-10 text-right">{item.actualPct}%</span>
+                      <span className="text-sm tabular-nums whitespace-nowrap">{item.actualPct}% / {item.targetPct}%</span>
                     </div>
                   </td>
                   <td className="p-3 text-right">¥{item.actualValue.toLocaleString()}</td>
@@ -114,7 +112,7 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                 </tr>
                 {isExpanded && (
                   <tr key={`${item.id}-detail`}>
-                    <td colSpan={6} className="bg-muted/20 px-6 py-2">
+                    <td colSpan={5} className="bg-muted/20 px-6 py-2">
                       {item.holdings.length === 0 ? (
                         <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
                       ) : (
