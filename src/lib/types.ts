@@ -3,6 +3,7 @@ export interface Account {
   name: string;
   currency: "CNY" | "USD" | "HKD";
   totalBalance: number;
+  totalCost: number;
   createdAt: string;
   updatedAt: string;
   holdingsValue: number;
@@ -14,11 +15,34 @@ export interface Holding {
   id: number;
   accountId: number;
   name: string;
+  ticker: string | null;
+  valuationMode: "amount" | "shares";
   cost: number;
   marketValue: number;
+  shares: number;
+  price: number;
   assetClass: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Transaction {
+  id: number;
+  accountId: number;
+  holdingId: number | null;
+  type: "buy" | "sell" | "dividend" | "deposit" | "withdraw";
+  date: string;
+  amount: number;
+  shares: number | null;
+  price: number | null;
+  fee: number;
+  affectBalance: boolean;
+  note: string | null;
+  createdAt: string;
+  // joined fields for display
+  accountName?: string;
+  accountCurrency?: string;
+  holdingName?: string;
 }
 
 export interface AssetClass {
