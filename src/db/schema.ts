@@ -1,0 +1,48 @@
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+
+export const accounts = sqliteTable("accounts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
+  totalBalance: real("total_balance").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const holdings = sqliteTable("holdings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  accountId: integer("account_id")
+    .notNull()
+    .references(() => accounts.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  marketValue: real("market_value").notNull().default(0),
+  assetClass: text("asset_class", {
+    enum: ["股票基金", "黄金", "债券"],
+  }).notNull(),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const assetClasses = sqliteTable("asset_classes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  targetPct: real("target_pct").notNull().default(0),
+  warningThreshold: real("warning_threshold").notNull().default(3),
+  dangerThreshold: real("danger_threshold").notNull().default(5),
+});
+
+export const exchangeRates = sqliteTable("exchange_rates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  currencyPair: text("currency_pair").notNull().unique(),
+  rate: real("rate").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+});
+
+export const snapshots = sqliteTable("snapshots", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  date: text("date").notNull().unique(),
+  totalAssetCny: real("total_asset_cny").notNull(),
+  dataJson: text("data_json").notNull(),
+  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+});
