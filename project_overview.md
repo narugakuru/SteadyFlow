@@ -36,7 +36,8 @@ src/
 │   ├── portfolio-chart.tsx          # 资产分布双环饼图
 │   ├── deviation-chart.tsx          # 偏离度柱状图
 │   ├── snapshot-charts.tsx          # 快照走势图表（折线图+面积图）
-│   ├── discipline-table.tsx        # 投资纪律表（含进度条）
+│   ├── discipline-table.tsx        # 投资纪律表（含进度条+盈亏列）
+│   ├── rebalance-panel.tsx         # 再平衡建议面板
 │   ├── asset-class-view.tsx        # 资产类别视图
 │   └── asset-class-settings.tsx    # 配置设置
 ├── db/
@@ -66,7 +67,7 @@ src/
 
 详见 `docs/improvement-proposals.md`，按优先级排列：
 - P0：资产类别动态化（当前 enum 硬编码）、批量更新市值
-- P1：再平衡建议、成本基础+盈亏计算、~~可视化图表~~（已完成）
+- P1：~~再平衡建议~~（已完成）、~~成本基础+盈亏计算~~（已完成）、~~可视化图表~~（已完成）
 - P2：收益率追踪、现金处理优化、快照历史增强、币种动态化
 - P3：移动端优化、汇率来源冗余、数据导入导出
 
@@ -77,3 +78,4 @@ src/
 - [2025-02-24] 新增 UI 改进提案（`docs/improvement-proposals.md`），梳理 12 项改进建议及优先级
 - [2025-02-24] 新增 `project_overview.md`，建立多终端协作规范
 - [2025-07-15] 完成可视化图表（P1 #6）：双环饼图、偏离度柱状图、纪律表进度条、总资产走势折线图、资产占比堆叠面积图；新增 chart-colors.ts、deviation-chart.tsx、snapshot-charts.tsx，改造 portfolio-chart.tsx 和 discipline-table.tsx
+- [2025-07-15] 完成再平衡建议（P1 #2）+ 盈亏展示补全（P1 #4）：新增 rebalance-panel.tsx，纪律表增加盈亏列，API 返回 adjustAmount/totalCost/totalPnl/pnlAmount 等字段

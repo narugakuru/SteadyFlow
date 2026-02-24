@@ -42,6 +42,8 @@ export interface AllocationHolding {
   marketValue: number;
   marketValueCny: number;
   returnRate: number | null;
+  pnlAmount: number;
+  pnlAmountCny: number;
   pctOfTotal: number;
 }
 
@@ -53,6 +55,9 @@ export interface AllocationItem {
   actualValue: number;
   deviation: number;
   status: "normal" | "warning" | "danger";
+  adjustAmount: number;
+  totalCost: number;
+  totalPnl: number;
   holdings: AllocationHolding[];
 }
 

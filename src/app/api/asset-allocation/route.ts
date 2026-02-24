@@ -81,12 +81,17 @@ export async function GET() {
           marketValue: ac.cash,
           marketValueCny: ac.cashCny,
           returnRate: null as number | null,
+          pnlAmount: 0,
+          pnlAmountCny: 0,
           pctOfTotal: totalAssetCny > 0 ? +((ac.cashCny / totalAssetCny) * 100).toFixed(2) : 0,
         }))
       : (classHoldings[cls.name] || []).map((h) => {
           const account = accountMap.get(h.accountId)!;
           const valueCny = convertToCNY(h.marketValue, account.currency, rates);
           const returnRate = h.cost > 0 ? +(((h.marketValue - h.cost) / h.cost) * 100).toFixed(2) : null;
+          const pnlAmount = h.cost > 0 ? +(h.marketValue - h.cost) : 0;
+          const costCny = convertToCNY(h.cost, account.currency, rates);
+          const pnlAmountCny = h.cost > 0 ? +(valueCny - costCny) : 0;
           return {
             id: h.id,
             name: h.name,
@@ -97,9 +102,16 @@ export async function GET() {
             marketValue: h.marketValue,
             marketValueCny: +valueCny.toFixed(2),
             returnRate,
+            pnlAmount: +pnlAmount.toFixed(2),
+            pnlAmountCny: +pnlAmountCny.toFixed(2),
             pctOfTotal: totalAssetCny > 0 ? +((valueCny / totalAssetCny) * 100).toFixed(2) : 0,
           };
         });
+
+    // Category-level cost, P&L, and rebalance adjustment
+    const totalCost = isCash ? 0 : holdingsList.reduce((s, h) => s + convertToCNY(h.cost, h.currency, rates), 0);
+    const totalPnl = isCash ? 0 : +(actualValue - totalCost).toFixed(2);
+    const adjustAmount = +((cls.targetPct / 100) * totalAssetCny - actualValue).toFixed(2);
 
     return {
       id: cls.id,
@@ -109,6 +121,9 @@ export async function GET() {
       actualValue: +actualValue.toFixed(2),
       deviation,
       status,
+      adjustAmount,
+      totalCost: +totalCost.toFixed(2),
+      totalPnl,
       holdings: holdingsList,
     };
   });

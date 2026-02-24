@@ -46,8 +46,9 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
           <tr>
             <th className="text-left p-3 font-medium w-8"></th>
             <th className="text-left p-3 font-medium">资产类别</th>
-            <th className="text-right p-3 font-medium">目标 / 实际</th>
+            <th className="text-right p-3 font-medium">实际 / 目标</th>
             <th className="text-right p-3 font-medium">金额 (¥)</th>
+            <th className="text-right p-3 font-medium">盈亏</th>
             <th className="text-center p-3 font-medium">状态</th>
           </tr>
         </thead>
@@ -104,6 +105,15 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                     </div>
                   </td>
                   <td className="p-3 text-right">¥{item.actualValue.toLocaleString()}</td>
+                  <td className="p-3 text-right">
+                    {item.name === "现金" ? (
+                      <span className="text-muted-foreground">--</span>
+                    ) : (
+                      <span className={item.totalPnl > 0 ? "text-green-600" : item.totalPnl < 0 ? "text-red-600" : "text-muted-foreground"}>
+                        {item.totalPnl > 0 ? "+" : ""}{item.totalPnl !== 0 ? `¥${item.totalPnl.toLocaleString()}` : "--"}
+                      </span>
+                    )}
+                  </td>
                   <td className="p-3 text-center">
                     <Badge variant="secondary" className={statusStyle}>
                       {statusIcon} {deviationLabel}
@@ -112,7 +122,7 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                 </tr>
                 {isExpanded && (
                   <tr key={`${item.id}-detail`}>
-                    <td colSpan={5} className="bg-muted/20 px-6 py-2">
+                    <td colSpan={6} className="bg-muted/20 px-6 py-2">
                       {item.holdings.length === 0 ? (
                         <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
                       ) : (

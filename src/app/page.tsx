@@ -8,6 +8,7 @@ import { AccountList } from "@/components/account-list";
 import { HoldingsPanel } from "@/components/holdings-panel";
 import { PortfolioChart } from "@/components/portfolio-chart";
 import { DeviationChart } from "@/components/deviation-chart";
+import { RebalancePanel } from "@/components/rebalance-panel";
 import { AssetClassSettings } from "@/components/asset-class-settings";
 import { Account, AllocationData } from "@/lib/types";
 import Link from "next/link";
@@ -119,6 +120,12 @@ export default function Dashboard() {
         <DisciplineTable allocation={allocation.allocation} onDataChange={fetchAll} />
         <DeviationChart allocation={allocation.allocation} />
       </div>
+
+      {/* Rebalance Suggestions */}
+      <RebalancePanel
+        allocation={allocation.allocation}
+        warningThreshold={allocation.settings.warningThreshold}
+      />
 
       {/* Account List (no tabs) */}
       <AccountList
