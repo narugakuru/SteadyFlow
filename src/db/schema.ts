@@ -18,9 +18,7 @@ export const holdings = sqliteTable("holdings", {
   name: text("name").notNull(),
   cost: real("cost").notNull().default(0),
   marketValue: real("market_value").notNull().default(0),
-  assetClass: text("asset_class", {
-    enum: ["股票基金", "黄金", "债券"],
-  }).notNull(),
+  assetClass: text("asset_class").notNull(),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 });

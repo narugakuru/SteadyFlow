@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,14 +29,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Holding, Account, CURRENCY_SYMBOLS } from "@/lib/types";
+import { Holding, Account, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
 import { useFetch } from "@/lib/hooks";
-
-const ASSET_CLASS_COLORS: Record<string, string> = {
-  股票基金: "bg-blue-100 text-blue-800",
-  黄金: "bg-yellow-100 text-yellow-800",
-  债券: "bg-green-100 text-green-800",
-};
+import { getAssetClassColor } from "@/lib/asset-class-colors";
 
 interface HoldingFormProps {
   holding?: Holding;
@@ -51,10 +46,25 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
   const [name, setName] = useState(holding?.name ?? "");
   const [cost, setCost] = useState(holding?.cost?.toString() ?? "");
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
-  const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "股票基金");
+  const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "");
+  const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
   const isEdit = !!holding;
   const sym = CURRENCY_SYMBOLS[currency];
+
+  useEffect(() => {
+    if (open) {
+      fetch("/api/asset-classes")
+        .then((r) => r.json())
+        .then((data: AssetClass[]) => {
+          const filtered = data.filter((c) => c.name !== "现金");
+          setAssetClasses(filtered);
+          if (!assetClass && filtered.length > 0) {
+            setAssetClass(filtered[0].name);
+          }
+        });
+    }
+  }, [open]);
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -112,9 +122,9 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
             <Select value={assetClass} onValueChange={setAssetClass}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="股票基金">股票基金</SelectItem>
-                <SelectItem value="黄金">黄金</SelectItem>
-                <SelectItem value="债券">债券</SelectItem>
+                {assetClasses.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -211,7 +221,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, onBack, onDataCha
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{h.name}</span>
-                    <Badge variant="secondary" className={ASSET_CLASS_COLORS[h.assetClass]}>
+                    <Badge variant="secondary" className={getAssetClassColor(h.assetClass)}>
                       {h.assetClass}
                     </Badge>
                   </div>

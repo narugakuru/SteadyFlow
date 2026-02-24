@@ -16,7 +16,7 @@ export interface Holding {
   name: string;
   cost: number;
   marketValue: number;
-  assetClass: "股票基金" | "黄金" | "债券";
+  assetClass: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -23,17 +23,21 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
   const [settings, setSettings] = useState<Settings>({ warningThreshold: 3, dangerThreshold: 5 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [newClassName, setNewClassName] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const fetchClasses = () => {
+    Promise.all([
+      fetch("/api/asset-classes").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
+    ]).then(([classData, settingsData]) => {
+      setClasses(classData);
+      setSettings(settingsData);
+    });
+  };
 
   useEffect(() => {
-    if (open) {
-      Promise.all([
-        fetch("/api/asset-classes").then((r) => r.json()),
-        fetch("/api/settings").then((r) => r.json()),
-      ]).then(([classData, settingsData]) => {
-        setClasses(classData);
-        setSettings(settingsData);
-      });
-    }
+    if (open) fetchClasses();
   }, [open]);
 
   const total = classes.reduce((s, c) => s + c.targetPct, 0);
@@ -43,6 +47,24 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
       prev.map((c) => (c.id === id ? { ...c, targetPct: value } : c))
     );
     setError("");
+  };
+
+  const handleAddClass = async () => {
+    if (!newClassName.trim()) return;
+    setAdding(true);
+    const res = await fetch("/api/asset-classes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newClassName.trim() }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error || "添加失败");
+    } else {
+      setNewClassName("");
+      fetchClasses();
+    }
+    setAdding(false);
   };
 
   const handleSave = async () => {
@@ -103,6 +125,20 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
               </div>
             </div>
           ))}
+
+          {/* Add new class */}
+          <div className="flex items-center gap-2">
+            <Input
+              className="flex-1"
+              placeholder="新增资产类别名称"
+              value={newClassName}
+              onChange={(e) => { setNewClassName(e.target.value); setError(""); }}
+              onKeyDown={(e) => e.key === "Enter" && handleAddClass()}
+            />
+            <Button variant="outline" size="sm" onClick={handleAddClass} disabled={adding || !newClassName.trim()}>
+              {adding ? "添加中..." : "+ 添加"}
+            </Button>
+          </div>
 
           <div className="flex items-center justify-between text-sm">
             <span className={Math.abs(total - 100) > 0.01 ? "text-destructive font-medium" : "text-muted-foreground"}>

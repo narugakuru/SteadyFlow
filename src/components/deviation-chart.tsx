@@ -24,11 +24,9 @@ export function DeviationChart({ allocation }: DeviationChartProps) {
     color: getClassColor(item.name),
   }));
 
-  const maxAbs = Math.max(
-    ...data.map((d) => Math.abs(d.deviation)),
-    5 // 最小范围 ±5%
-  );
-  const domain = [-Math.ceil(maxAbs), Math.ceil(maxAbs)];
+  const maxAbs = Math.max(...data.map((d) => Math.abs(d.deviation)), 1);
+  const bound = Math.ceil(maxAbs / 10) * 10; // 以 10% 为尺度向上取整
+  const domain = [-bound, bound];
 
   return (
     <div className="mb-4">

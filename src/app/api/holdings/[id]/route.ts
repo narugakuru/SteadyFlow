@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { holdings } from "@/db/schema";
+import { holdings, assetClasses } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+function getValidAssetClasses(): string[] {
+  return db
+    .select({ name: assetClasses.name })
+    .from(assetClasses)
+    .all()
+    .map((r) => r.name)
+    .filter((n) => n !== "现金");
+}
 
 export async function PUT(
   request: Request,
@@ -10,6 +19,13 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
   const { name, cost, marketValue, assetClass } = body;
+
+  if (assetClass !== undefined) {
+    const validClasses = getValidAssetClasses();
+    if (!validClasses.includes(assetClass)) {
+      return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
+    }
+  }
 
   const result = db
     .update(holdings)

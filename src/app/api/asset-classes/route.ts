@@ -8,6 +8,33 @@ export async function GET() {
   return NextResponse.json(rows);
 }
 
+export async function POST(request: Request) {
+  const body = await request.json();
+  const { name } = body as { name: string };
+
+  if (!name || !name.trim()) {
+    return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
+  }
+
+  const existing = db
+    .select()
+    .from(assetClasses)
+    .where(eq(assetClasses.name, name.trim()))
+    .get();
+
+  if (existing) {
+    return NextResponse.json({ error: "该类别已存在" }, { status: 400 });
+  }
+
+  const result = db
+    .insert(assetClasses)
+    .values({ name: name.trim(), targetPct: 0 })
+    .returning()
+    .get();
+
+  return NextResponse.json(result, { status: 201 });
+}
+
 export async function PUT(request: Request) {
   const body = await request.json();
   const { classes } = body as {

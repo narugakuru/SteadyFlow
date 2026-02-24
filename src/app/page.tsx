@@ -116,8 +116,8 @@ export default function Dashboard() {
       {/* Discipline Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
-        <DeviationChart allocation={allocation.allocation} />
         <DisciplineTable allocation={allocation.allocation} onDataChange={fetchAll} />
+        <DeviationChart allocation={allocation.allocation} />
       </div>
 
       {/* Account List (no tabs) */}
