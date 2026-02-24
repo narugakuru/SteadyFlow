@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AllocationItem, AllocationHolding, CURRENCY_SYMBOLS } from "@/lib/types";
+import { useState, useEffect } from "react";
+import { AllocationItem, AllocationHolding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +84,27 @@ export function DisciplineTable({ allocation, onDataChange }: DisciplineTablePro
                   </td>
                   <td className="p-3 font-medium">{item.name}</td>
                   <td className="p-3 text-right">{item.targetPct}%</td>
-                  <td className="p-3 text-right">{item.actualPct}%</td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2 justify-end">
+                      <div className="relative w-20 h-4 bg-muted rounded overflow-hidden flex-shrink-0">
+                        {/* 填充条 */}
+                        <div
+                          className="absolute inset-y-0 left-0 rounded"
+                          style={{
+                            width: `${Math.min(item.actualPct, 100)}%`,
+                            backgroundColor: item.status === "danger" ? "#ef4444" : item.status === "warning" ? "#eab308" : "#22c55e",
+                            opacity: 0.6,
+                          }}
+                        />
+                        {/* 目标标记线 */}
+                        <div
+                          className="absolute inset-y-0 w-0.5 bg-foreground/70"
+                          style={{ left: `${Math.min(item.targetPct, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-sm tabular-nums w-10 text-right">{item.actualPct}%</span>
+                    </div>
+                  </td>
                   <td className="p-3 text-right">¥{item.actualValue.toLocaleString()}</td>
                   <td className="p-3 text-center">
                     <Badge variant="secondary" className={statusStyle}>
@@ -189,8 +209,28 @@ function InlineEditDialog({ holding, onClose, onSaved }: InlineEditDialogProps) 
   const [name, setName] = useState(holding.name);
   const [cost, setCost] = useState(holding.cost.toString());
   const [marketValue, setMarketValue] = useState(holding.marketValue.toString());
-  const [assetClass, setAssetClass] = useState("股票基金");
+  const [assetClass, setAssetClass] = useState(holding.accountName); // placeholder, will be set below
+  const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/asset-classes")
+      .then((r) => r.json())
+      .then((data: AssetClass[]) => {
+        const filtered = data.filter((c) => c.name !== "现金");
+        setAssetClasses(filtered);
+      });
+  }, []);
+
+  // We need the actual assetClass from the holding's API data
+  useEffect(() => {
+    fetch(`/api/holdings`)
+      .then((r) => r.json())
+      .then((data: { id: number; assetClass: string }[]) => {
+        const h = data.find((d) => d.id === holding.id);
+        if (h) setAssetClass(h.assetClass);
+      });
+  }, [holding.id]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -240,9 +280,9 @@ function InlineEditDialog({ holding, onClose, onSaved }: InlineEditDialogProps) 
             <Select value={assetClass} onValueChange={setAssetClass}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="股票基金">股票基金</SelectItem>
-                <SelectItem value="黄金">黄金</SelectItem>
-                <SelectItem value="债券">债券</SelectItem>
+                {assetClasses.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

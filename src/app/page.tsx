@@ -7,6 +7,7 @@ import { DisciplineTable } from "@/components/discipline-table";
 import { AccountList } from "@/components/account-list";
 import { HoldingsPanel } from "@/components/holdings-panel";
 import { PortfolioChart } from "@/components/portfolio-chart";
+import { DeviationChart } from "@/components/deviation-chart";
 import { AssetClassSettings } from "@/components/asset-class-settings";
 import { Account, AllocationData } from "@/lib/types";
 import Link from "next/link";
@@ -78,6 +79,9 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">📊 资产组合管理</h1>
         <div className="flex gap-2">
+          <Link href="/batch-update">
+            <Button variant="outline" size="sm">✏️ 批量更新</Button>
+          </Link>
           <Link href="/snapshots">
             <Button variant="outline" size="sm">📋 快照历史</Button>
           </Link>
@@ -112,6 +116,7 @@ export default function Dashboard() {
       {/* Discipline Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
+        <DeviationChart allocation={allocation.allocation} />
         <DisciplineTable allocation={allocation.allocation} onDataChange={fetchAll} />
       </div>
 

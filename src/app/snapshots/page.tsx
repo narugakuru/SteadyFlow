@@ -3,6 +3,7 @@
 import { useFetch } from "@/lib/hooks";
 import { Snapshot } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { SnapshotCharts } from "@/components/snapshot-charts";
 import Link from "next/link";
 
 export default function SnapshotsPage() {
@@ -28,7 +29,9 @@ export default function SnapshotsPage() {
       {!snapshots || snapshots.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无快照记录</p>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <>
+          <SnapshotCharts snapshots={snapshots} />
+          <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
@@ -61,6 +64,7 @@ export default function SnapshotsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
