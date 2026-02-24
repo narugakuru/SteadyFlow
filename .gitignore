@@ -1,0 +1,109 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+/.pnp
+.pnp.js
+
+# ========================
+# Build / Output
+# ========================
+dist/
+dist-electron/
+out/
+build/
+release/
+*.unpacked
+
+# ========================
+# Electron
+# ========================
+# Electron-builder output
+dist_electron/
+
+# ========================
+# Vue
+# ========================
+*.local
+
+# ========================
+# Python Backend
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+.eggs/
+*.whl
+venv/
+.venv/
+env/
+.env.local
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ========================
+# Node Backend
+# ========================
+workers/*/node_modules/
+workers/*/.wrangler/
+
+# ========================
+# Env & Secrets
+# ========================
+.env
+.env*.local
+*.pem
+
+# ========================
+# Testing & Coverage
+# ========================
+coverage/
+*.lcov
+.nyc_output/
+
+# ========================
+# TypeScript
+# ========================
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ========================
+# IDE & Editor
+# ========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ========================
+# OS Files
+# ========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+nul
+
+# ========================
+# Misc
+# ========================
+.claude/
+.codex/
+.opencode/
+.halo/
+.plasmo/
