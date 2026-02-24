@@ -16,6 +16,7 @@ export const holdings = sqliteTable("holdings", {
     .notNull()
     .references(() => accounts.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  cost: real("cost").notNull().default(0),
   marketValue: real("market_value").notNull().default(0),
   assetClass: text("asset_class", {
     enum: ["股票基金", "黄金", "债券"],
@@ -28,8 +29,12 @@ export const assetClasses = sqliteTable("asset_classes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().unique(),
   targetPct: real("target_pct").notNull().default(0),
-  warningThreshold: real("warning_threshold").notNull().default(3),
-  dangerThreshold: real("danger_threshold").notNull().default(5),
+});
+
+export const settings = sqliteTable("settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
 });
 
 export const exchangeRates = sqliteTable("exchange_rates", {
