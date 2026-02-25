@@ -6,8 +6,9 @@
 
 ## 多终端协作规范
 
-**openspec\specs**：存放着项目的每个子模块的细节
-**project_overview.md**：存放项目核心信息和进展
+- **openspec\specs**：存放着项目的每个子模块的细节
+- 每次调用 /opsx:archive 指令归档时都要把change信息同步到主spec
+- **project_overview.md**：存放项目核心信息和进展
 
 项目通过 `project_overview.md` 维护核心状态，确保多终端间信息同步：
 
