@@ -45,8 +45,8 @@ interface AccountFormProps {
 function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps) {
   const [name, setName] = useState(account?.name ?? "");
   const [currency, setCurrency] = useState<string>(account?.currency ?? "CNY");
-  const [totalBalance, setTotalBalance] = useState(account?.totalBalance?.toString() ?? "");
-  const [totalCost, setTotalCost] = useState(account?.totalCost?.toString() ?? "0");
+  const [cashBalance, setCashBalance] = useState(account?.cashBalance?.toString() ?? "");
+  const [totalCost, setTotalCost] = useState(account?.totalCost?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const isEdit = !!account;
 
@@ -59,7 +59,7 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
       body: JSON.stringify({
         name,
         currency,
-        totalBalance: parseFloat(totalBalance) || 0,
+        cashBalance: parseFloat(cashBalance) || 0,
         totalCost: parseFloat(totalCost) || 0,
       }),
     });
@@ -91,12 +91,12 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
             </Select>
           </div>
           <div>
-            <Label>账户市值/总额 ({CURRENCY_SYMBOLS[currency]})</Label>
-            <Input type="number" value={totalBalance} onChange={(e) => setTotalBalance(e.target.value)} placeholder="0" />
+            <Label>{isEdit ? "现金余额" : "初始现金"} ({CURRENCY_SYMBOLS[currency]})</Label>
+            <Input type="number" value={cashBalance} onChange={(e) => setCashBalance(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <Label>账户本金 ({CURRENCY_SYMBOLS[currency]})（选填）</Label>
-            <Input type="number" value={totalCost} onChange={(e) => setTotalCost(e.target.value)} placeholder="0" />
+            <Label>账户本金 ({CURRENCY_SYMBOLS[currency]})（选填，不填则等于现金）</Label>
+            <Input type="number" value={totalCost} onChange={(e) => setTotalCost(e.target.value)} placeholder="不填则等于现金" />
           </div>
           <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">
             {saving ? "保存中..." : "保存"}
@@ -267,7 +267,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
               <tr>
                 <th className="text-left p-3 font-medium w-8"></th>
                 <th className="text-left p-3 font-medium">账户</th>
-                <th className="text-right p-3 font-medium">市值</th>
+                <th className="text-right p-3 font-medium">总价值</th>
                 <th className="text-right p-3 font-medium">本金</th>
                 <th className="text-right p-3 font-medium">盈亏</th>
                 <th className="text-right p-3 font-medium">现金</th>
@@ -278,12 +278,11 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
             <tbody>
               {accounts.map((a) => {
                 const sym = CURRENCY_SYMBOLS[a.currency];
-                const pnl = a.totalCost > 0 ? a.totalBalance - a.totalCost : 0;
+                const pnl = a.totalCost > 0 ? a.accountValue - a.totalCost : 0;
                 const pnlPct = a.totalCost > 0 ? ((pnl / a.totalCost) * 100).toFixed(2) : null;
                 const isExpanded = expanded.has(a.id);
                 const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
                 const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
-                const cash = Math.max(0, a.totalBalance - holdingsTotal);
 
                 return (
                   <>
@@ -301,7 +300,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                           <Badge variant="outline" className="text-xs">{a.currency}</Badge>
                         </div>
                       </td>
-                      <td className="p-3 text-right font-semibold">{sym}{a.totalBalance.toLocaleString()}</td>
+                      <td className="p-3 text-right font-semibold">{sym}{a.accountValue.toLocaleString()}</td>
                       <td className="p-3 text-right">{sym}{a.totalCost.toLocaleString()}</td>
                       <td className={`p-3 text-right ${a.totalCost > 0 ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
                         {a.totalCost > 0 ? (
@@ -311,7 +310,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                           </>
                         ) : "--"}
                       </td>
-                      <td className="p-3 text-right">{sym}{cash.toLocaleString()}</td>
+                      <td className="p-3 text-right">{sym}{a.cashBalance.toLocaleString()}</td>
                       <td className="p-3 text-right">{a.holdingsCount}</td>
                       <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-center gap-0.5">
@@ -345,9 +344,9 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                         <td colSpan={8} className="bg-muted/20 px-4 py-3">
                           {/* Account summary */}
                           <div className="flex items-center gap-6 text-sm mb-3">
-                            <span>总额 <span className="font-semibold">{sym}{a.totalBalance.toLocaleString()}</span></span>
+                            <span>总价值 <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span></span>
                             <span>持仓 <span className="font-semibold">{sym}{holdingsTotal.toLocaleString()}</span></span>
-                            <span>现金 <span className="font-semibold">{sym}{cash.toLocaleString()}</span></span>
+                            <span>现金 <span className="font-semibold">{sym}{a.cashBalance.toLocaleString()}</span></span>
                             <div className="flex-1" />
                             <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>✏️ 编辑账户</Button>
                             <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>+ 新建持仓</Button>

@@ -272,7 +272,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
   };
 
   const holdingsTotal = holdings.reduce((s, h) => s + h.marketValue, 0);
-  const cash = Math.max(0, account.totalBalance - holdingsTotal);
+  const cash = account.cashBalance;
 
   const calcReturn = (h: Holding) => {
     if (h.cost <= 0) return null;
@@ -293,7 +293,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div className="border rounded p-3">
           <p className="text-muted-foreground">总额</p>
-          <p className="font-semibold">{sym}{account.totalBalance.toLocaleString()}</p>
+          <p className="font-semibold">{sym}{account.accountValue.toLocaleString()}</p>
         </div>
         <div className="border rounded p-3">
           <p className="text-muted-foreground">持仓</p>

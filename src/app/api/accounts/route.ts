@@ -9,7 +9,7 @@ export async function GET() {
       id: accounts.id,
       name: accounts.name,
       currency: accounts.currency,
-      totalBalance: accounts.totalBalance,
+      cashBalance: accounts.cashBalance,
       totalCost: accounts.totalCost,
       createdAt: accounts.createdAt,
       updatedAt: accounts.updatedAt,
@@ -23,7 +23,7 @@ export async function GET() {
 
   const result = rows.map((row) => ({
     ...row,
-    cash: Math.max(0, row.totalBalance - row.holdingsValue),
+    accountValue: row.cashBalance + row.holdingsValue,
   }));
 
   return NextResponse.json(result);
@@ -31,19 +31,21 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, currency, totalBalance, totalCost } = body;
+  const { name, currency, cashBalance, totalCost } = body;
 
-  if (!name || !currency || totalBalance == null) {
+  if (!name || !currency || cashBalance == null) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
+
+  const cashVal = parseFloat(cashBalance) || 0;
 
   const result = db
     .insert(accounts)
     .values({
       name,
       currency,
-      totalBalance,
-      totalCost: totalCost != null ? parseFloat(totalCost) : 0,
+      cashBalance: cashVal,
+      totalCost: totalCost != null ? parseFloat(totalCost) : cashVal,
     })
     .returning()
     .get();

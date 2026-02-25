@@ -5,7 +5,7 @@ export const accounts = sqliteTable("accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
-  totalBalance: real("total_balance").notNull().default(0),
+  cashBalance: real("cash_balance").notNull().default(0),
   totalCost: real("total_cost").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),

@@ -64,7 +64,7 @@ src/
 
 | 表名 | 用途 | 关键字段 |
 |------|------|----------|
-| accounts | 投资账户 | name, currency(CNY/USD/HKD), totalBalance, totalCost |
+| accounts | 投资账户 | name, currency(CNY/USD/HKD), cashBalance(现金余额), totalCost(累计本金) |
 | holdings | 持仓明细 | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass |
 | transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectBalance |
 | assetClasses | 资产类别配置 | name, targetPct(目标百分比) |
@@ -77,7 +77,7 @@ src/
 详见 `docs/improvement-proposals.md`，按优先级排列：
 - P0：资产类别动态化（当前 enum 硬编码）、批量更新市值 （均已完成）
 - P1：~~再平衡建议~~（已完成）、~~成本基础+盈亏计算~~（已完成）、~~可视化图表~~（已完成）
-- P2：收益率追踪、现金处理优化、快照历史增强、币种动态化
+- P2：收益率追踪、~~现金处理优化~~（已完成）、快照历史增强、币种动态化
 - P3：移动端优化、汇率来源冗余、数据导入导出
 
 ## 进展日志
@@ -93,3 +93,4 @@ src/
 - [2026-02-25] 统一持仓与交易 UX：新增 useTriFieldLinked hook（三字段联动编辑）和 HoldingEditDialog 共享组件；纪律表编辑弹窗升级为模式感知（区分 amount/shares）；账户详情页持仓编辑支持三字段联动；TransactionForm 提取为独立共享组件并增加快捷交易入口（买入/卖出按钮）；交易表单内可直接新建持仓；账户页和交易页支持 URL 参数预选；页面间增加交叉导航链接
 - [2026-02-25] 统一持仓展示与账户展开模式：新增 HoldingRow 共享组件（两行布局：核心信息+详细信息，支持 compact/full 操作模式）；纪律表展开区域升级为 HoldingRow（含交易+编辑按钮）；账户页从跳转子页面改为展开/折叠模式（内嵌持仓列表+编辑账户+添加持仓）；holdings-panel.tsx 不再被引用
 - [2026-02-25] 新建持仓/编辑持仓移除本金字段：本金由交易记录自动累积，不再支持手动填写；影响 HoldingEditDialog、HoldingForm（holdings-panel/account-list）、TransactionForm 内联新建持仓、holdings POST API（cost 改为可选默认0）
+- [2026-02-25] 重构账户模型：totalBalance 改为 cashBalance（现金余额），账户总价值改为实时计算（cashBalance + holdingsValue）；修复盈亏计算、资产配置总资产计算、快照数据；批量更新页面移除账户总额编辑只保留持仓市值更新；新建账户改为只填初始现金

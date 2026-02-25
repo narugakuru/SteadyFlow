@@ -32,8 +32,18 @@ export async function POST() {
   const rates = ratesResult.rates;
   const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
 
+  // Calculate holdings value per account
+  const accountHoldingsValue: Record<number, number> = {};
+  for (const h of allHoldings) {
+    accountHoldingsValue[h.accountId] = (accountHoldingsValue[h.accountId] || 0) + h.marketValue;
+  }
+
+  // Total asset = Σ(cashBalance + holdingsValue) per account in CNY
   const totalAssetCny = allAccounts.reduce(
-    (sum, a) => sum + convertToCNY(a.totalBalance, a.currency, rates),
+    (sum, a) => {
+      const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
+      return sum + convertToCNY(accountValue, a.currency, rates);
+    },
     0
   );
 
@@ -46,12 +56,9 @@ export async function POST() {
     classValues[h.assetClass] = (classValues[h.assetClass] || 0) + valueCny;
   }
 
-  // Cash per account
+  // Cash per account — directly from cashBalance
   const totalCashCny = allAccounts.reduce((sum, a) => {
-    const accHoldings = allHoldings.filter((h) => h.accountId === a.id);
-    const holdingsTotal = accHoldings.reduce((s, h) => s + h.marketValue, 0);
-    const cash = Math.max(0, a.totalBalance - holdingsTotal);
-    return sum + convertToCNY(cash, a.currency, rates);
+    return sum + convertToCNY(a.cashBalance, a.currency, rates);
   }, 0);
 
   const data = {
@@ -61,14 +68,13 @@ export async function POST() {
       return { name: cls.name, actualValue: +actualValue.toFixed(2), actualPct };
     }),
     accounts: allAccounts.map((a) => {
-      const accHoldings = allHoldings.filter((h) => h.accountId === a.id);
-      const holdingsTotal = accHoldings.reduce((s, h) => s + h.marketValue, 0);
-      const cash = Math.max(0, a.totalBalance - holdingsTotal);
+      const holdingsVal = accountHoldingsValue[a.id] || 0;
+      const accountValue = a.cashBalance + holdingsVal;
       return {
         name: a.name,
         currency: a.currency,
-        totalCny: +convertToCNY(a.totalBalance, a.currency, rates).toFixed(2),
-        cashCny: +convertToCNY(cash, a.currency, rates).toFixed(2),
+        totalCny: +convertToCNY(accountValue, a.currency, rates).toFixed(2),
+        cashCny: +convertToCNY(a.cashBalance, a.currency, rates).toFixed(2),
       };
     }),
     rates: ratesResult.rates,

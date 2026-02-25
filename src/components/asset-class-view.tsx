@@ -48,17 +48,14 @@ export function AssetClassView({ allocation, holdings, accounts, rates, totalAss
               <div className="border-t px-3 pb-3 pt-2 space-y-1">
                 {isCash ? (
                   accounts.map((a) => {
-                    const accHoldings = holdings.filter((h) => h.accountId === a.id);
-                    const holdingsTotal = accHoldings.reduce((s, h) => s + h.marketValue, 0);
-                    const cash = Math.max(0, a.totalBalance - holdingsTotal);
-                    const cashCny = toCny(cash, a.currency);
-                    if (cash === 0) return null;
+                    const cashCny = toCny(a.cashBalance, a.currency);
+                    if (a.cashBalance === 0) return null;
                     const sym = CURRENCY_SYMBOLS[a.currency];
                     return (
                       <div key={a.id} className="flex items-center justify-between text-sm py-1">
                         <span>{a.name}</span>
                         <span>
-                          {sym}{cash.toLocaleString()}
+                          {sym}{a.cashBalance.toLocaleString()}
                           {a.currency !== "CNY" && ` ≈ ¥${cashCny.toLocaleString()}`}
                         </span>
                       </div>

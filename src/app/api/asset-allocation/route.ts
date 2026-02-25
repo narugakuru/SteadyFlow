@@ -24,9 +24,18 @@ export async function GET() {
 
   const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
 
-  // Calculate total asset in CNY
+  // Calculate holdings value per account for total asset calculation
+  const accountHoldingsValue: Record<number, number> = {};
+  for (const h of allHoldings) {
+    accountHoldingsValue[h.accountId] = (accountHoldingsValue[h.accountId] || 0) + h.marketValue;
+  }
+
+  // Calculate total asset in CNY: Σ(cashBalance + holdingsValue) per account
   const totalAssetCny = allAccounts.reduce(
-    (sum, a) => sum + convertToCNY(a.totalBalance, a.currency, rates),
+    (sum, a) => {
+      const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
+      return sum + convertToCNY(accountValue, a.currency, rates);
+    },
     0
   );
 
@@ -42,17 +51,14 @@ export async function GET() {
     classHoldings[h.assetClass].push(h);
   }
 
-  // Calculate total cash in CNY and per-account cash
+  // Calculate total cash in CNY directly from cashBalance
   const accountCash: { accountId: number; accountName: string; currency: string; cash: number; cashCny: number }[] = [];
   let totalCashCny = 0;
   for (const a of allAccounts) {
-    const accHoldings = allHoldings.filter((h) => h.accountId === a.id);
-    const holdingsTotal = accHoldings.reduce((s, h) => s + h.marketValue, 0);
-    const cash = Math.max(0, a.totalBalance - holdingsTotal);
-    const cashCny = convertToCNY(cash, a.currency, rates);
+    const cashCny = convertToCNY(a.cashBalance, a.currency, rates);
     totalCashCny += cashCny;
-    if (cash > 0) {
-      accountCash.push({ accountId: a.id, accountName: a.name, currency: a.currency, cash, cashCny });
+    if (a.cashBalance > 0) {
+      accountCash.push({ accountId: a.id, accountName: a.name, currency: a.currency, cash: a.cashBalance, cashCny });
     }
   }
 

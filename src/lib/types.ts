@@ -2,13 +2,13 @@ export interface Account {
   id: number;
   name: string;
   currency: "CNY" | "USD" | "HKD";
-  totalBalance: number;
+  cashBalance: number;
   totalCost: number;
   createdAt: string;
   updatedAt: string;
   holdingsValue: number;
   holdingsCount: number;
-  cash: number;
+  accountValue: number;
 }
 
 export interface Holding {

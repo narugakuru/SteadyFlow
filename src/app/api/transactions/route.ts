@@ -153,9 +153,9 @@ export async function POST(request: Request) {
             .where(eq(holdings.id, holdingId))
             .run();
         }
-        // account: totalBalance -= (amount + fee)
+        // account: cashBalance -= (amount + fee)
         db.update(accounts)
-          .set({ totalBalance: account.totalBalance - finalAmount - feeVal, updatedAt: now })
+          .set({ cashBalance: account.cashBalance - finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountId))
           .run();
         break;
@@ -190,29 +190,29 @@ export async function POST(request: Request) {
             .where(eq(holdings.id, holdingId))
             .run();
         }
-        // account: totalBalance += (amount - fee)
+        // account: cashBalance += (amount - fee)
         db.update(accounts)
-          .set({ totalBalance: account.totalBalance + finalAmount - feeVal, updatedAt: now })
+          .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountId))
           .run();
         break;
       }
 
       case "dividend": {
-        // account: totalBalance += (amount - fee)
+        // account: cashBalance += (amount - fee)
         db.update(accounts)
-          .set({ totalBalance: account.totalBalance + finalAmount - feeVal, updatedAt: now })
+          .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountId))
           .run();
         break;
       }
 
       case "deposit": {
-        // account: totalCost += amount, totalBalance += amount
+        // account: totalCost += amount, cashBalance += amount
         db.update(accounts)
           .set({
             totalCost: account.totalCost + finalAmount,
-            totalBalance: account.totalBalance + finalAmount,
+            cashBalance: account.cashBalance + finalAmount,
             updatedAt: now,
           })
           .where(eq(accounts.id, accountId))
@@ -221,11 +221,11 @@ export async function POST(request: Request) {
       }
 
       case "withdraw": {
-        // account: totalCost -= amount, totalBalance -= amount
+        // account: totalCost -= amount, cashBalance -= amount
         db.update(accounts)
           .set({
             totalCost: account.totalCost - finalAmount,
-            totalBalance: account.totalBalance - finalAmount,
+            cashBalance: account.cashBalance - finalAmount,
             updatedAt: now,
           })
           .where(eq(accounts.id, accountId))

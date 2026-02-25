@@ -9,14 +9,13 @@ import { getAssetClassColor } from "@/lib/asset-class-colors";
 import Link from "next/link";
 
 interface EditState {
-  accounts: Record<number, number>;
   holdings: Record<number, number>;
 }
 
 export default function BatchUpdatePage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [edits, setEdits] = useState<EditState>({ accounts: {}, holdings: {} });
+  const [edits, setEdits] = useState<EditState>({ holdings: {} });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +31,7 @@ export default function BatchUpdatePage() {
     ]);
     setAccounts(accData);
     setHoldings(holdData);
-    setEdits({ accounts: {}, holdings: {} });
+    setEdits({ holdings: {} });
     setLoading(false);
   }, []);
 
@@ -40,23 +39,7 @@ export default function BatchUpdatePage() {
     fetchData();
   }, [fetchData]);
 
-  const hasChanges =
-    Object.keys(edits.accounts).length > 0 ||
-    Object.keys(edits.holdings).length > 0;
-
-  const handleAccountChange = (id: number, original: number, value: string) => {
-    const num = parseFloat(value);
-    if (isNaN(num)) return;
-    setEdits((prev) => {
-      const next = { ...prev, accounts: { ...prev.accounts } };
-      if (num === original) {
-        delete next.accounts[id];
-      } else {
-        next.accounts[id] = num;
-      }
-      return next;
-    });
-  };
+  const hasChanges = Object.keys(edits.holdings).length > 0;
 
   const handleHoldingChange = (id: number, original: number, value: string) => {
     const num = parseFloat(value);
@@ -78,10 +61,6 @@ export default function BatchUpdatePage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        accounts: Object.entries(edits.accounts).map(([id, totalBalance]) => ({
-          id: Number(id),
-          totalBalance,
-        })),
         holdings: Object.entries(edits.holdings).map(([id, marketValue]) => ({
           id: Number(id),
           marketValue,
@@ -116,7 +95,7 @@ export default function BatchUpdatePage() {
 
       {hasChanges && (
         <p className="text-sm text-muted-foreground">
-          已修改 {Object.keys(edits.accounts).length} 个账户、{Object.keys(edits.holdings).length} 个持仓
+          已修改 {Object.keys(edits.holdings).length} 个持仓
         </p>
       )}
 
@@ -127,7 +106,6 @@ export default function BatchUpdatePage() {
           {accounts.map((acc) => {
             const sym = CURRENCY_SYMBOLS[acc.currency] || "¥";
             const accHoldings = holdings.filter((h) => h.accountId === acc.id);
-            const isAccModified = acc.id in edits.accounts;
 
             return (
               <div key={acc.id} className="border rounded-lg p-4 space-y-3">
@@ -136,14 +114,9 @@ export default function BatchUpdatePage() {
                     <span className="font-semibold">{acc.name}</span>
                     <Badge variant="outline">{acc.currency}</Badge>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">账户总额 ({sym})</span>
-                    <Input
-                      type="number"
-                      className={`w-36 text-right ${isAccModified ? "border-blue-400 bg-blue-50" : ""}`}
-                      defaultValue={acc.totalBalance}
-                      onChange={(e) => handleAccountChange(acc.id, acc.totalBalance, e.target.value)}
-                    />
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>总价值 {sym}{acc.accountValue.toLocaleString()}</span>
+                    <span>现金 {sym}{acc.cashBalance.toLocaleString()}</span>
                   </div>
                 </div>
 
