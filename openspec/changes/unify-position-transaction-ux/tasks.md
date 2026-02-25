@@ -19,7 +19,7 @@
 
 ## 5. 交叉导航
 
-- [ ] 5.1 改造 `accounts/page.tsx` 支持 URL 参数 `accountId`，页面加载时自动选中对应账户并展示持仓详情
-- [ ] 5.2 改造 `transactions/page.tsx` 支持 URL 参数 `accountId` 预设筛选条件，页面加载时自动应用筛选
-- [ ] 5.3 在 `holdings-panel.tsx` 的持仓卡片中增加"交易记录 →"链接，跳转到 `/transactions?accountId=X`
-- [ ] 5.4 在 `transactions/page.tsx` 的交易记录中，将持仓名称渲染为可点击链接，跳转到 `/accounts?accountId=X`
+- [x] 5.1 改造 `accounts/page.tsx` 支持 URL 参数 `accountId`，页面加载时自动选中对应账户并展示持仓详情
+- [x] 5.2 改造 `transactions/page.tsx` 支持 URL 参数 `accountId` 预设筛选条件，页面加载时自动应用筛选
+- [x] 5.3 在 `holdings-panel.tsx` 的持仓卡片中增加"交易记录 →"链接，跳转到 `/transactions?accountId=X`
+- [x] 5.4 在 `transactions/page.tsx` 的交易记录中，将持仓名称渲染为可点击链接，跳转到 `/accounts?accountId=X`

@@ -1,25 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AllocationItem, AllocationHolding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
+import { AllocationItem, AllocationHolding, Holding, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Pencil } from "lucide-react";
+import { HoldingEditDialog } from "@/components/holding-edit-dialog";
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
@@ -29,7 +15,19 @@ interface DisciplineTableProps {
 
 export function DisciplineTable({ allocation, colorMode, onDataChange }: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [editHolding, setEditHolding] = useState<AllocationHolding | null>(null);
+  const [editHoldingFull, setEditHoldingFull] = useState<Holding | null>(null);
+  const [editHoldingCurrency, setEditHoldingCurrency] = useState<string>("CNY");
+
+  const handleEditHolding = async (h: AllocationHolding) => {
+    // Fetch full holding data to get valuationMode/shares/price
+    const res = await fetch("/api/holdings");
+    const all: Holding[] = await res.json();
+    const full = all.find((item) => item.id === h.id);
+    if (full) {
+      setEditHoldingCurrency(h.currency);
+      setEditHoldingFull(full);
+    }
+  };
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -165,7 +163,7 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
                                       className="h-7 w-7"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setEditHolding(h);
+                                        handleEditHolding(h);
                                       }}
                                     >
                                       <Pencil className="h-3.5 w-3.5" />
@@ -186,112 +184,25 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
         </tbody>
       </table>
 
-      {editHolding && (
-        <InlineEditDialog
-          holding={editHolding}
-          onClose={() => setEditHolding(null)}
+      {editHoldingFull && (
+        <HoldingEditDialog
+          holdingId={editHoldingFull.id}
+          name={editHoldingFull.name}
+          cost={editHoldingFull.cost}
+          marketValue={editHoldingFull.marketValue}
+          valuationMode={editHoldingFull.valuationMode}
+          shares={editHoldingFull.shares}
+          price={editHoldingFull.price}
+          assetClass={editHoldingFull.assetClass}
+          currency={editHoldingCurrency}
+          open={!!editHoldingFull}
+          onClose={() => setEditHoldingFull(null)}
           onSaved={() => {
-            setEditHolding(null);
+            setEditHoldingFull(null);
             onDataChange();
           }}
         />
       )}
     </div>
-  );
-}
-
-interface InlineEditDialogProps {
-  holding: AllocationHolding;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function InlineEditDialog({ holding, onClose, onSaved }: InlineEditDialogProps) {
-  const [name, setName] = useState(holding.name);
-  const [cost, setCost] = useState(holding.cost.toString());
-  const [marketValue, setMarketValue] = useState(holding.marketValue.toString());
-  const [assetClass, setAssetClass] = useState(holding.accountName); // placeholder, will be set below
-  const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/asset-classes")
-      .then((r) => r.json())
-      .then((data: AssetClass[]) => {
-        const filtered = data.filter((c) => c.name !== "现金");
-        setAssetClasses(filtered);
-      });
-  }, []);
-
-  // We need the actual assetClass from the holding's API data
-  useEffect(() => {
-    fetch(`/api/holdings`)
-      .then((r) => r.json())
-      .then((data: { id: number; assetClass: string }[]) => {
-        const h = data.find((d) => d.id === holding.id);
-        if (h) setAssetClass(h.assetClass);
-      });
-  }, [holding.id]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    await fetch(`/api/holdings/${holding.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        cost: parseFloat(cost) || 0,
-        marketValue: parseFloat(marketValue) || 0,
-        assetClass,
-      }),
-    });
-    setSaving(false);
-    onSaved();
-  };
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>编辑持仓</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>持仓名称</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label>本金 ({CURRENCY_SYMBOLS[holding.currency]})</Label>
-            <Input
-              type="number"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>市值 ({CURRENCY_SYMBOLS[holding.currency]})</Label>
-            <Input
-              type="number"
-              value={marketValue}
-              onChange={(e) => setMarketValue(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>资产类别</Label>
-            <Select value={assetClass} onValueChange={setAssetClass}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {assetClasses.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleSave} disabled={saving || !name} className="w-full">
-            {saving ? "保存中..." : "保存"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

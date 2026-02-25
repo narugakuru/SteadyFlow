@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { AccountList } from "@/components/account-list";
 import { HoldingsPanel } from "@/components/holdings-panel";
 import { Account, AllocationData } from "@/lib/types";
 
 export default function AccountsPage() {
+  const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
+  const [urlHandled, setUrlHandled] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -24,11 +27,22 @@ export default function AccountsPage() {
     setAccounts(accData);
     setAllocation(allocData);
     setLoading(false);
+    return accData as Account[];
   }, []);
 
   useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+    fetchAll().then((accData) => {
+      // Auto-select account from URL param
+      if (!urlHandled) {
+        const accountIdParam = searchParams.get("accountId");
+        if (accountIdParam) {
+          const target = accData.find((a: Account) => a.id === Number(accountIdParam));
+          if (target) setSelectedAccount(target);
+        }
+        setUrlHandled(true);
+      }
+    });
+  }, [fetchAll, searchParams, urlHandled]);
 
   if (loading || !allocation) {
     return (

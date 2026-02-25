@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,8 +31,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
-import { useFetch } from "@/lib/hooks";
+import { useFetch, useTriFieldLinked } from "@/lib/hooks";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
+import { TransactionForm } from "@/components/transaction-form";
 
 interface HoldingFormProps {
   holding?: Holding;
@@ -48,6 +50,7 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
   const [valuationMode, setValuationMode] = useState<"amount" | "shares">(holding?.valuationMode ?? "amount");
   const [cost, setCost] = useState(holding?.cost?.toString() ?? "");
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
+  // For create mode (non-linked)
   const [shares, setShares] = useState(holding?.shares?.toString() ?? "");
   const [price, setPrice] = useState(holding?.price?.toString() ?? "");
   const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "");
@@ -55,6 +58,14 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
   const [saving, setSaving] = useState(false);
   const isEdit = !!holding;
   const sym = CURRENCY_SYMBOLS[currency];
+
+  // Tri-field linked editing for shares mode in edit mode
+  const tri = useTriFieldLinked({
+    price: holding?.price ?? 0,
+    shares: holding?.shares ?? 0,
+    marketValue: holding?.marketValue ?? 0,
+  });
+  const useLinked = isEdit && valuationMode === "shares";
 
   useEffect(() => {
     if (open) {
@@ -70,7 +81,7 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     }
   }, [open]);
 
-  const computedMarketValue = valuationMode === "shares"
+  const computedMarketValue = !useLinked && valuationMode === "shares"
     ? ((parseFloat(shares) || 0) * (parseFloat(price) || 0)).toFixed(2)
     : null;
 
@@ -88,9 +99,14 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     };
 
     if (valuationMode === "shares") {
-      payload.shares = parseFloat(shares) || 0;
-      payload.price = parseFloat(price) || 0;
-      // marketValue auto-calculated by API
+      if (useLinked) {
+        payload.shares = parseFloat(tri.shares) || 0;
+        payload.price = parseFloat(tri.price) || 0;
+        payload.marketValue = parseFloat(tri.marketValue) || 0;
+      } else {
+        payload.shares = parseFloat(shares) || 0;
+        payload.price = parseFloat(price) || 0;
+      }
     } else {
       const mvVal = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
       if (mvVal !== undefined) payload.marketValue = mvVal;
@@ -106,6 +122,8 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     onOpenChange(false);
     onSaved();
   };
+
+  const computedStyle = "text-muted-foreground italic";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -157,33 +175,76 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
             />
           </div>
           {valuationMode === "shares" ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>份额</Label>
-                  <Input
-                    type="number"
-                    value={shares}
-                    onChange={(e) => setShares(e.target.value)}
-                    placeholder="0"
-                  />
+            useLinked ? (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label className={tri.computedField === "price" ? computedStyle : ""}>
+                      股价 ({sym}) {tri.computedField === "price" && "·自动"}
+                    </Label>
+                    <Input
+                      type="number"
+                      value={tri.price}
+                      onChange={(e) => tri.onPriceChange(e.target.value)}
+                      className={tri.computedField === "price" ? "italic text-muted-foreground" : ""}
+                    />
+                  </div>
+                  <div>
+                    <Label className={tri.computedField === "shares" ? computedStyle : ""}>
+                      份额 {tri.computedField === "shares" && "·自动"}
+                    </Label>
+                    <Input
+                      type="number"
+                      value={tri.shares}
+                      onChange={(e) => tri.onSharesChange(e.target.value)}
+                      className={tri.computedField === "shares" ? "italic text-muted-foreground" : ""}
+                    />
+                  </div>
+                  <div>
+                    <Label className={tri.computedField === "marketValue" ? computedStyle : ""}>
+                      市值 ({sym}) {tri.computedField === "marketValue" && "·自动"}
+                    </Label>
+                    <Input
+                      type="number"
+                      value={tri.marketValue}
+                      onChange={(e) => tri.onMarketValueChange(e.target.value)}
+                      className={tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label>股价 ({sym})</Label>
-                  <Input
-                    type="number"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              {computedMarketValue && (
-                <p className="text-sm text-muted-foreground">
-                  市值（自动计算）：{sym}{parseFloat(computedMarketValue).toLocaleString()}
+                <p className="text-xs text-muted-foreground">
+                  编辑任意两个字段，第三个自动计算（标记为"·自动"）
                 </p>
-              )}
-            </>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>份额</Label>
+                    <Input
+                      type="number"
+                      value={shares}
+                      onChange={(e) => setShares(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label>股价 ({sym})</Label>
+                    <Input
+                      type="number"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                {computedMarketValue && (
+                  <p className="text-sm text-muted-foreground">
+                    市值（自动计算）：{sym}{parseFloat(computedMarketValue).toLocaleString()}
+                  </p>
+                )}
+              </>
+            )
           ) : (
             <div>
               <Label>市值 ({sym})（选填，不填则等于本金）</Label>
@@ -217,6 +278,11 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
   const { data: allHoldings, refetch } = useFetch<Holding[]>("/api/holdings");
   const [createOpen, setCreateOpen] = useState(false);
   const [editHolding, setEditHolding] = useState<Holding | null>(null);
+  // Quick transaction state
+  const [txOpen, setTxOpen] = useState(false);
+  const [txDefaultType, setTxDefaultType] = useState<string>("buy");
+  const [txDefaultHoldingId, setTxDefaultHoldingId] = useState<number | undefined>();
+  const [txAccounts, setTxAccounts] = useState<Account[]>([]);
 
   const holdings = (allHoldings ?? []).filter((h) => h.accountId === account.id);
   const sym = CURRENCY_SYMBOLS[account.currency];
@@ -230,6 +296,16 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
   const handleSaved = () => {
     refetch();
     onDataChange();
+  };
+
+  const openQuickTx = async (type: "buy" | "sell", holdingId: number) => {
+    // Fetch accounts list for TransactionForm
+    const res = await fetch("/api/accounts");
+    const accs: Account[] = await res.json();
+    setTxAccounts(accs);
+    setTxDefaultType(type);
+    setTxDefaultHoldingId(holdingId);
+    setTxOpen(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -316,7 +392,12 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
                   )}
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="text-blue-600" onClick={() => openQuickTx("buy", h.id)}>买入</Button>
+                  <Button variant="outline" size="sm" className="text-orange-600" onClick={() => openQuickTx("sell", h.id)}>卖出</Button>
                   <Button variant="outline" size="sm" onClick={() => setEditHolding(h)}>编辑</Button>
+                  <Link href={`/transactions?accountId=${account.id}`}>
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">交易记录 →</Button>
+                  </Link>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm" className="text-destructive">删除</Button>
@@ -356,6 +437,17 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
           onSaved={handleSaved}
         />
       )}
+
+      <TransactionForm
+        open={txOpen}
+        onOpenChange={setTxOpen}
+        onSaved={handleSaved}
+        accounts={txAccounts}
+        holdings={allHoldings ?? []}
+        defaultType={txDefaultType}
+        defaultAccountId={account.id}
+        defaultHoldingId={txDefaultHoldingId}
+      />
     </div>
   );
 }

@@ -37,7 +37,9 @@ src/
 │   ├── ui/                         # shadcn 基础组件
 │   ├── navbar.tsx                  # 全局导航栏
 │   ├── account-list.tsx            # 账户列表（含本金/盈亏）
-│   ├── holdings-panel.tsx          # 持仓面板（支持双估值模式）
+│   ├── holdings-panel.tsx          # 持仓面板（支持双估值模式+快捷交易）
+│   ├── holding-edit-dialog.tsx     # 持仓编辑弹窗（三字段联动，共享组件）
+│   ├── transaction-form.tsx        # 交易表单（共享组件，支持预填+内联新建持仓）
 │   ├── portfolio-chart.tsx          # 资产分布双环饼图
 │   ├── deviation-chart.tsx          # 偏离度柱状图
 │   ├── snapshot-charts.tsx          # 快照走势图表（折线图+面积图）
@@ -87,3 +89,4 @@ src/
 - [2026-02-25] 完成再平衡建议（P1 #2）+ 盈亏展示补全（P1 #4）：新增 rebalance-panel.tsx，纪律表增加盈亏列，API 返回 adjustAmount/totalCost/totalPnl/pnlAmount 等字段
 - [2026-02-25] 完成交易系统+多页导航重构：新增 transactions 表和交易 API（买入/卖出/股息/现金存取，含副作用逻辑和 affectBalance 开关）；holdings 新增 ticker/valuationMode/shares/price 字段支持双估值模式；accounts 新增 totalCost 字段支持账户盈亏；重构为多页导航（总览/账户/交易/快照/股价更新），新增全局导航栏；总览页精简，账户管理和交易记录独立为新页面
 - [2026-02-25] 新增 Windows 独立打包能力：next.config.ts 启用 standalone 输出，新增 server.js 启动脚本（端口检测+自动开浏览器）、启动.bat 用户入口、scripts/package.js 打包脚本（构建+组装+嵌入 node.exe+zip），业务代码零改动
+- [2026-02-25] 统一持仓与交易 UX：新增 useTriFieldLinked hook（三字段联动编辑）和 HoldingEditDialog 共享组件；纪律表编辑弹窗升级为模式感知（区分 amount/shares）；账户详情页持仓编辑支持三字段联动；TransactionForm 提取为独立共享组件并增加快捷交易入口（买入/卖出按钮）；交易表单内可直接新建持仓；账户页和交易页支持 URL 参数预选；页面间增加交叉导航链接
