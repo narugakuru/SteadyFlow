@@ -13,5 +13,5 @@
 
 ## 4. 验证
 
-- [ ] 4.1 执行 `npm run build` 确认 standalone 产物正常生成
+- [x] 4.1 执行 `npm run build` 确认 standalone 产物正常生成
 - [ ] 4.2 在输出目录中手动测试 `node server.js` 能否正常启动并打开浏览器

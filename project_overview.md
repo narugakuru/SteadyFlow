@@ -86,3 +86,4 @@ src/
 - [2025-07-15] 完成可视化图表（P1 #6）：双环饼图、偏离度柱状图、纪律表进度条、总资产走势折线图、资产占比堆叠面积图；新增 chart-colors.ts、deviation-chart.tsx、snapshot-charts.tsx，改造 portfolio-chart.tsx 和 discipline-table.tsx
 - [2025-07-15] 完成再平衡建议（P1 #2）+ 盈亏展示补全（P1 #4）：新增 rebalance-panel.tsx，纪律表增加盈亏列，API 返回 adjustAmount/totalCost/totalPnl/pnlAmount 等字段
 - [2025-07-16] 完成交易系统+多页导航重构：新增 transactions 表和交易 API（买入/卖出/股息/现金存取，含副作用逻辑和 affectBalance 开关）；holdings 新增 ticker/valuationMode/shares/price 字段支持双估值模式；accounts 新增 totalCost 字段支持账户盈亏；重构为多页导航（总览/账户/交易/快照/股价更新），新增全局导航栏；总览页精简，账户管理和交易记录独立为新页面
+- [2025-07-16] 新增 Windows 独立打包能力：next.config.ts 启用 standalone 输出，新增 server.js 启动脚本（端口检测+自动开浏览器）、启动.bat 用户入口、scripts/package.js 打包脚本（构建+组装+嵌入 node.exe+zip），业务代码零改动
