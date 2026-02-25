@@ -121,18 +121,13 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [valuationMode, setValuationMode] = useState<"amount" | "shares">("amount");
-  const [marketValue, setMarketValue] = useState("");
-  const [shares, setShares] = useState("");
-  const [price, setPrice] = useState("");
   const [assetClass, setAssetClass] = useState("");
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
-  const sym = CURRENCY_SYMBOLS[currency];
 
   useEffect(() => {
     if (open) {
       setName(""); setTicker(""); setValuationMode("amount");
-      setMarketValue(""); setShares(""); setPrice("");
       fetch("/api/asset-classes")
         .then((r) => r.json())
         .then((data: AssetClass[]) => {
@@ -143,26 +138,14 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
     }
   }, [open]);
 
-  const computedMV = valuationMode === "shares"
-    ? ((parseFloat(shares) || 0) * (parseFloat(price) || 0)).toFixed(2) : null;
-
   const handleSubmit = async () => {
     setSaving(true);
-    const payload: Record<string, any> = {
-      accountId, name, ticker: ticker || null, valuationMode,
-      assetClass,
-    };
-    if (valuationMode === "shares") {
-      payload.shares = parseFloat(shares) || 0;
-      payload.price = parseFloat(price) || 0;
-    } else {
-      const mv = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
-      if (mv !== undefined) payload.marketValue = mv;
-    }
     await fetch("/api/holdings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        accountId, name, ticker: ticker || null, valuationMode, assetClass,
+      }),
     });
     setSaving(false);
     onOpenChange(false);
@@ -172,13 +155,19 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>添加持仓</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>新建持仓</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div><Label>持仓名称</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" /></div>
-            <div><Label>股票代码（选填）</Label><Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>名称</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
+            </div>
+            <div>
+              <Label>代码（选填）</Label>
+              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>估值模式</Label>
               <Select value={valuationMode} onValueChange={(v) => setValuationMode(v as "amount" | "shares")}>
@@ -199,18 +188,7 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
               </Select>
             </div>
           </div>
-          {valuationMode === "shares" ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>份额</Label><Input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0" /></div>
-                <div><Label>股价 ({sym})</Label><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" /></div>
-              </div>
-              {computedMV && <p className="text-sm text-muted-foreground">市值（自动计算）：{sym}{parseFloat(computedMV).toLocaleString()}</p>}
-            </>
-          ) : (
-            <div><Label>市值 ({sym})（选填）</Label><Input type="number" value={marketValue} onChange={(e) => setMarketValue(e.target.value)} placeholder="0" /></div>
-          )}
-          <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">{saving ? "保存中..." : "保存"}</Button>
+          <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">{saving ? "保存中..." : "创建"}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -372,7 +350,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                             <span>现金 <span className="font-semibold">{sym}{cash.toLocaleString()}</span></span>
                             <div className="flex-1" />
                             <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>✏️ 编辑账户</Button>
-                            <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>+ 添加持仓</Button>
+                            <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>+ 新建持仓</Button>
                           </div>
                           {/* Holdings list */}
                           {accountHoldings.length === 0 ? (

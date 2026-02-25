@@ -49,9 +49,6 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
   const [ticker, setTicker] = useState(holding?.ticker ?? "");
   const [valuationMode, setValuationMode] = useState<"amount" | "shares">(holding?.valuationMode ?? "amount");
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
-  // For create mode (non-linked)
-  const [shares, setShares] = useState(holding?.shares?.toString() ?? "");
-  const [price, setPrice] = useState(holding?.price?.toString() ?? "");
   const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "");
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
@@ -64,7 +61,6 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     shares: holding?.shares ?? 0,
     marketValue: holding?.marketValue ?? 0,
   });
-  const useLinked = isEdit && valuationMode === "shares";
 
   useEffect(() => {
     if (open) {
@@ -80,41 +76,43 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     }
   }, [open]);
 
-  const computedMarketValue = !useLinked && valuationMode === "shares"
-    ? ((parseFloat(shares) || 0) * (parseFloat(price) || 0)).toFixed(2)
-    : null;
-
   const handleSubmit = async () => {
     setSaving(true);
 
-    const payload: Record<string, any> = {
-      ...(isEdit ? {} : { accountId }),
-      name,
-      ticker: ticker || null,
-      valuationMode,
-      assetClass,
-    };
+    if (isEdit) {
+      // Edit mode: send full payload with values
+      const payload: Record<string, any> = {
+        name,
+        ticker: ticker || null,
+        valuationMode,
+        assetClass,
+      };
 
-    if (valuationMode === "shares") {
-      if (useLinked) {
+      if (valuationMode === "shares") {
         payload.shares = parseFloat(tri.shares) || 0;
         payload.price = parseFloat(tri.price) || 0;
         payload.marketValue = parseFloat(tri.marketValue) || 0;
       } else {
-        payload.shares = parseFloat(shares) || 0;
-        payload.price = parseFloat(price) || 0;
+        const mvVal = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
+        if (mvVal !== undefined) payload.marketValue = mvVal;
       }
+
+      await fetch(`/api/holdings/${holding.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
     } else {
-      const mvVal = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
-      if (mvVal !== undefined) payload.marketValue = mvVal;
+      // Create mode: only basic fields
+      await fetch("/api/holdings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId, name, ticker: ticker || null, valuationMode, assetClass,
+        }),
+      });
     }
 
-    const url = isEdit ? `/api/holdings/${holding.id}` : "/api/holdings";
-    await fetch(url, {
-      method: isEdit ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
     setSaving(false);
     onOpenChange(false);
     onSaved();
@@ -126,27 +124,27 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑持仓" : "添加持仓"}</DialogTitle>
+          <DialogTitle>{isEdit ? "编辑持仓" : "新建持仓"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>持仓名称</Label>
+              <Label>名称</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
             </div>
             <div>
-              <Label>股票代码（选填）</Label>
+              <Label>代码（选填）</Label>
               <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>估值模式</Label>
               <Select value={valuationMode} onValueChange={(v) => setValuationMode(v as "amount" | "shares")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="amount">金额模式（手动市值）</SelectItem>
-                  <SelectItem value="shares">份额模式（股价×份额）</SelectItem>
+                  <SelectItem value="amount">金额模式</SelectItem>
+                  <SelectItem value="shares">份额模式</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -162,80 +160,52 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
               </Select>
             </div>
           </div>
-          {valuationMode === "shares" ? (
-            useLinked ? (
-              <>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <Label className={tri.computedField === "price" ? computedStyle : ""}>
-                      股价 ({sym}) {tri.computedField === "price" && "·自动"}
-                    </Label>
-                    <Input
-                      type="number"
-                      value={tri.price}
-                      onChange={(e) => tri.onPriceChange(e.target.value)}
-                      className={tri.computedField === "price" ? "italic text-muted-foreground" : ""}
-                    />
-                  </div>
-                  <div>
-                    <Label className={tri.computedField === "shares" ? computedStyle : ""}>
-                      份额 {tri.computedField === "shares" && "·自动"}
-                    </Label>
-                    <Input
-                      type="number"
-                      value={tri.shares}
-                      onChange={(e) => tri.onSharesChange(e.target.value)}
-                      className={tri.computedField === "shares" ? "italic text-muted-foreground" : ""}
-                    />
-                  </div>
-                  <div>
-                    <Label className={tri.computedField === "marketValue" ? computedStyle : ""}>
-                      市值 ({sym}) {tri.computedField === "marketValue" && "·自动"}
-                    </Label>
-                    <Input
-                      type="number"
-                      value={tri.marketValue}
-                      onChange={(e) => tri.onMarketValueChange(e.target.value)}
-                      className={tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""}
-                    />
-                  </div>
+          {/* Edit mode: show value fields */}
+          {isEdit && valuationMode === "shares" && (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className={tri.computedField === "price" ? computedStyle : ""}>
+                    股价 ({sym}) {tri.computedField === "price" && "·自动"}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={tri.price}
+                    onChange={(e) => tri.onPriceChange(e.target.value)}
+                    className={tri.computedField === "price" ? "italic text-muted-foreground" : ""}
+                  />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  编辑任意两个字段，第三个自动计算（标记为"·自动"）
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>份额</Label>
-                    <Input
-                      type="number"
-                      value={shares}
-                      onChange={(e) => setShares(e.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <Label>股价 ({sym})</Label>
-                    <Input
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      placeholder="0"
-                    />
-                  </div>
+                <div>
+                  <Label className={tri.computedField === "shares" ? computedStyle : ""}>
+                    份额 {tri.computedField === "shares" && "·自动"}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={tri.shares}
+                    onChange={(e) => tri.onSharesChange(e.target.value)}
+                    className={tri.computedField === "shares" ? "italic text-muted-foreground" : ""}
+                  />
                 </div>
-                {computedMarketValue && (
-                  <p className="text-sm text-muted-foreground">
-                    市值（自动计算）：{sym}{parseFloat(computedMarketValue).toLocaleString()}
-                  </p>
-                )}
-              </>
-            )
-          ) : (
+                <div>
+                  <Label className={tri.computedField === "marketValue" ? computedStyle : ""}>
+                    市值 ({sym}) {tri.computedField === "marketValue" && "·自动"}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={tri.marketValue}
+                    onChange={(e) => tri.onMarketValueChange(e.target.value)}
+                    className={tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                编辑任意两个字段，第三个自动计算（标记为"·自动"）
+              </p>
+            </>
+          )}
+          {isEdit && valuationMode === "amount" && (
             <div>
-              <Label>市值 ({sym})（选填）</Label>
+              <Label>市值 ({sym})</Label>
               <Input
                 type="number"
                 value={marketValue}
@@ -245,7 +215,7 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
             </div>
           )}
           <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">
-            {saving ? "保存中..." : "保存"}
+            {saving ? "保存中..." : isEdit ? "保存" : "创建"}
           </Button>
         </div>
       </DialogContent>
@@ -337,7 +307,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
 
       <div className="flex items-center justify-between">
         <h3 className="font-medium">持仓列表</h3>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>+ 添加持仓</Button>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>+ 新建持仓</Button>
       </div>
 
       {holdings.length === 0 ? (
