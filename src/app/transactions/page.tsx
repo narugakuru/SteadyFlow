@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,18 @@ const TX_TYPE_COLORS: Record<string, string> = {
 };
 
 export default function TransactionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <p className="text-muted-foreground text-center py-8">加载中...</p>
+      }
+    >
+      <TransactionsContent />
+    </Suspense>
+  );
+}
+
+function TransactionsContent() {
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { AccountList } from "@/components/account-list";
 import { Account, AllocationData } from "@/lib/types";
 
-export default function AccountsPage() {
+function AccountsContent() {
   const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
@@ -55,5 +55,19 @@ export default function AccountsPage() {
         onRefresh={fetchAll}
       />
     </div>
+  );
+}
+
+export default function AccountsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-muted-foreground">加载中...</p>
+        </div>
+      }
+    >
+      <AccountsContent />
+    </Suspense>
   );
 }
