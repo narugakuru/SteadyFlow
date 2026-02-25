@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +29,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
+import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Pencil, Trash2 } from "lucide-react";
+import { HoldingRow } from "@/components/holding-row";
+
+// ─── Account Form (create/edit) ───
 
 interface AccountFormProps {
   account?: Account;
@@ -42,12 +45,8 @@ interface AccountFormProps {
 function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps) {
   const [name, setName] = useState(account?.name ?? "");
   const [currency, setCurrency] = useState<string>(account?.currency ?? "CNY");
-  const [totalBalance, setTotalBalance] = useState(
-    account?.totalBalance?.toString() ?? ""
-  );
-  const [totalCost, setTotalCost] = useState(
-    account?.totalCost?.toString() ?? "0"
-  );
+  const [totalBalance, setTotalBalance] = useState(account?.totalBalance?.toString() ?? "");
+  const [totalCost, setTotalCost] = useState(account?.totalCost?.toString() ?? "0");
   const [saving, setSaving] = useState(false);
   const isEdit = !!account;
 
@@ -93,21 +92,11 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
           </div>
           <div>
             <Label>账户市值/总额 ({CURRENCY_SYMBOLS[currency]})</Label>
-            <Input
-              type="number"
-              value={totalBalance}
-              onChange={(e) => setTotalBalance(e.target.value)}
-              placeholder="0"
-            />
+            <Input type="number" value={totalBalance} onChange={(e) => setTotalBalance(e.target.value)} placeholder="0" />
           </div>
           <div>
             <Label>账户本金 ({CURRENCY_SYMBOLS[currency]})（选填）</Label>
-            <Input
-              type="number"
-              value={totalCost}
-              onChange={(e) => setTotalCost(e.target.value)}
-              placeholder="0"
-            />
+            <Input type="number" value={totalCost} onChange={(e) => setTotalCost(e.target.value)} placeholder="0" />
           </div>
           <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">
             {saving ? "保存中..." : "保存"}
@@ -118,19 +107,171 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
   );
 }
 
-interface AccountListProps {
-  accounts: Account[];
-  colorMode: "cn" | "us";
-  onRefresh: () => void;
-  onSelectAccount: (account: Account) => void;
+// ─── Holding Form (simplified, for adding new holdings) ───
+
+interface HoldingFormProps {
+  accountId: number;
+  currency: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
 }
 
-export function AccountList({ accounts, colorMode, onRefresh, onSelectAccount }: AccountListProps) {
+function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: HoldingFormProps) {
+  const [name, setName] = useState("");
+  const [ticker, setTicker] = useState("");
+  const [valuationMode, setValuationMode] = useState<"amount" | "shares">("amount");
+  const [cost, setCost] = useState("");
+  const [marketValue, setMarketValue] = useState("");
+  const [shares, setShares] = useState("");
+  const [price, setPrice] = useState("");
+  const [assetClass, setAssetClass] = useState("");
+  const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
+  const [saving, setSaving] = useState(false);
+  const sym = CURRENCY_SYMBOLS[currency];
+
+  useEffect(() => {
+    if (open) {
+      setName(""); setTicker(""); setValuationMode("amount");
+      setCost(""); setMarketValue(""); setShares(""); setPrice("");
+      fetch("/api/asset-classes")
+        .then((r) => r.json())
+        .then((data: AssetClass[]) => {
+          const filtered = data.filter((c) => c.name !== "现金");
+          setAssetClasses(filtered);
+          if (filtered.length > 0) setAssetClass(filtered[0].name);
+        });
+    }
+  }, [open]);
+
+  const computedMV = valuationMode === "shares"
+    ? ((parseFloat(shares) || 0) * (parseFloat(price) || 0)).toFixed(2) : null;
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    const payload: Record<string, any> = {
+      accountId, name, ticker: ticker || null, valuationMode,
+      cost: parseFloat(cost) || 0, assetClass,
+    };
+    if (valuationMode === "shares") {
+      payload.shares = parseFloat(shares) || 0;
+      payload.price = parseFloat(price) || 0;
+    } else {
+      const mv = marketValue.trim() !== "" ? parseFloat(marketValue) : undefined;
+      if (mv !== undefined) payload.marketValue = mv;
+    }
+    await fetch("/api/holdings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSaving(false);
+    onOpenChange(false);
+    onSaved();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>添加持仓</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div><Label>持仓名称</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" /></div>
+            <div><Label>股票代码（选填）</Label><Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>估值模式</Label>
+              <Select value={valuationMode} onValueChange={(v) => setValuationMode(v as "amount" | "shares")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="amount">金额模式</SelectItem>
+                  <SelectItem value="shares">份额模式</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>资产类别</Label>
+              <Select value={assetClass} onValueChange={setAssetClass}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {assetClasses.map((c) => (<SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div><Label>本金 ({sym})</Label><Input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" /></div>
+          {valuationMode === "shares" ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div><Label>份额</Label><Input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0" /></div>
+                <div><Label>股价 ({sym})</Label><Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" /></div>
+              </div>
+              {computedMV && <p className="text-sm text-muted-foreground">市值（自动计算）：{sym}{parseFloat(computedMV).toLocaleString()}</p>}
+            </>
+          ) : (
+            <div><Label>市值 ({sym})（选填，不填则等于本金）</Label><Input type="number" value={marketValue} onChange={(e) => setMarketValue(e.target.value)} placeholder="不填则等于本金" /></div>
+          )}
+          <Button onClick={handleSubmit} disabled={saving || !name || !cost} className="w-full">{saving ? "保存中..." : "保存"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Account List (expand/collapse mode) ───
+
+interface AccountListProps {
+  accounts: Account[];
+  totalAssetCny: number;
+  rates: Record<string, number>;
+  colorMode: "cn" | "us";
+  defaultExpandId?: number;
+  onRefresh: () => void;
+}
+
+export function AccountList({ accounts, totalAssetCny, rates, colorMode, defaultExpandId, onRefresh }: AccountListProps) {
+  const [expanded, setExpanded] = useState<Set<number>>(
+    defaultExpandId ? new Set([defaultExpandId]) : new Set()
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
+  const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
 
-  const handleDelete = async (id: number) => {
+  const fetchHoldings = async () => {
+    const res = await fetch("/api/holdings");
+    const data: Holding[] = await res.json();
+    setAllHoldings(data);
+  };
+
+  useEffect(() => {
+    fetchHoldings();
+  }, []);
+
+  const toggleExpand = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteAccount = async (id: number) => {
     await fetch(`/api/accounts/${id}`, { method: "DELETE" });
+    onRefresh();
+    fetchHoldings();
+  };
+
+  const handleDeleteHolding = async (id: number) => {
+    await fetch(`/api/holdings/${id}`, { method: "DELETE" });
+    fetchHoldings();
+    onRefresh();
+  };
+
+  const handleDataChange = () => {
+    fetchHoldings();
     onRefresh();
   };
 
@@ -138,10 +279,9 @@ export function AccountList({ accounts, colorMode, onRefresh, onSelectAccount }:
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">账户列表</h2>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          + 添加账户
-        </Button>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>+ 添加账户</Button>
       </div>
+
       {accounts.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无账户，点击上方添加</p>
       ) : (
@@ -149,6 +289,7 @@ export function AccountList({ accounts, colorMode, onRefresh, onSelectAccount }:
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
+                <th className="text-left p-3 font-medium w-8"></th>
                 <th className="text-left p-3 font-medium">账户</th>
                 <th className="text-right p-3 font-medium">市值</th>
                 <th className="text-right p-3 font-medium">本金</th>
@@ -163,75 +304,128 @@ export function AccountList({ accounts, colorMode, onRefresh, onSelectAccount }:
                 const sym = CURRENCY_SYMBOLS[a.currency];
                 const pnl = a.totalCost > 0 ? a.totalBalance - a.totalCost : 0;
                 const pnlPct = a.totalCost > 0 ? ((pnl / a.totalCost) * 100).toFixed(2) : null;
+                const isExpanded = expanded.has(a.id);
+                const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
+                const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
+                const cash = Math.max(0, a.totalBalance - holdingsTotal);
+
                 return (
-                  <tr
-                    key={a.id}
-                    className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
-                    onClick={() => onSelectAccount(a)}
-                  >
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{a.name}</span>
-                        <Badge variant="outline" className="text-xs">{a.currency}</Badge>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right font-semibold">{sym}{a.totalBalance.toLocaleString()}</td>
-                    <td className="p-3 text-right">{sym}{a.totalCost.toLocaleString()}</td>
-                    <td className={`p-3 text-right ${a.totalCost > 0 ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
-                      {a.totalCost > 0 ? (
-                        <>
-                          {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
-                          {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
-                        </>
-                      ) : "--"}
-                    </td>
-                    <td className="p-3 text-right">{sym}{a.cash.toLocaleString()}</td>
-                    <td className="p-3 text-right">{a.holdingsCount}</td>
-                    <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-center gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => setEditAccount(a)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>确认删除</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                将同时删除"{a.name}"下的所有持仓和交易记录，此操作不可撤销。
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>取消</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(a.id)}>确认删除</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </td>
-                  </tr>
+                  <>
+                    <tr
+                      key={a.id}
+                      className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() => toggleExpand(a.id)}
+                    >
+                      <td className="p-3 text-muted-foreground">
+                        {isExpanded ? "▼" : "▶"}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{a.name}</span>
+                          <Badge variant="outline" className="text-xs">{a.currency}</Badge>
+                        </div>
+                      </td>
+                      <td className="p-3 text-right font-semibold">{sym}{a.totalBalance.toLocaleString()}</td>
+                      <td className="p-3 text-right">{sym}{a.totalCost.toLocaleString()}</td>
+                      <td className={`p-3 text-right ${a.totalCost > 0 ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
+                        {a.totalCost > 0 ? (
+                          <>
+                            {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
+                            {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
+                          </>
+                        ) : "--"}
+                      </td>
+                      <td className="p-3 text-right">{sym}{cash.toLocaleString()}</td>
+                      <td className="p-3 text-right">{a.holdingsCount}</td>
+                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-center gap-0.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditAccount(a)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  将同时删除"{a.name}"下的所有持仓和交易记录，此操作不可撤销。
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>取消</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteAccount(a.id)}>确认删除</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${a.id}-detail`}>
+                        <td colSpan={8} className="bg-muted/20 px-4 py-3">
+                          {/* Account summary */}
+                          <div className="flex items-center gap-6 text-sm mb-3">
+                            <span>总额 <span className="font-semibold">{sym}{a.totalBalance.toLocaleString()}</span></span>
+                            <span>持仓 <span className="font-semibold">{sym}{holdingsTotal.toLocaleString()}</span></span>
+                            <span>现金 <span className="font-semibold">{sym}{cash.toLocaleString()}</span></span>
+                            <div className="flex-1" />
+                            <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>✏️ 编辑账户</Button>
+                            <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>+ 添加持仓</Button>
+                          </div>
+                          {/* Holdings list */}
+                          {accountHoldings.length === 0 ? (
+                            <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
+                          ) : (
+                            <div className="space-y-0.5">
+                              {accountHoldings.map((h) => (
+                                <HoldingRow
+                                  key={h.id}
+                                  holding={h}
+                                  currency={a.currency}
+                                  totalAssetCny={totalAssetCny}
+                                  rates={rates}
+                                  colorMode={colorMode}
+                                  actions="full"
+                                  accountId={a.id}
+                                  accounts={accounts}
+                                  allHoldings={allHoldings}
+                                  onDataChange={handleDataChange}
+                                  onDelete={handleDeleteHolding}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 );
               })}
             </tbody>
           </table>
         </div>
       )}
+
       <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />
       {editAccount && (
         <AccountForm
           account={editAccount}
           open={!!editAccount}
           onOpenChange={(open) => !open && setEditAccount(null)}
-          onSaved={onRefresh}
+          onSaved={() => { setEditAccount(null); handleDataChange(); }}
+        />
+      )}
+      {addHoldingFor && (
+        <HoldingForm
+          accountId={addHoldingFor.id}
+          currency={addHoldingFor.currency}
+          open={!!addHoldingFor}
+          onOpenChange={(open) => !open && setAddHoldingFor(null)}
+          onSaved={() => { setAddHoldingFor(null); handleDataChange(); }}
         />
       )}
     </div>

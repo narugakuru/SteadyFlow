@@ -1,33 +1,39 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AllocationItem, AllocationHolding, Holding, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
+import { AllocationItem, AllocationHolding, Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
-import { HoldingEditDialog } from "@/components/holding-edit-dialog";
+import { HoldingRow } from "@/components/holding-row";
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
+  totalAssetCny: number;
+  rates: Record<string, number>;
   colorMode: "cn" | "us";
   onDataChange: () => void;
 }
 
-export function DisciplineTable({ allocation, colorMode, onDataChange }: DisciplineTableProps) {
+export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, onDataChange }: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [editHoldingFull, setEditHoldingFull] = useState<Holding | null>(null);
-  const [editHoldingCurrency, setEditHoldingCurrency] = useState<string>("CNY");
+  const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  const handleEditHolding = async (h: AllocationHolding) => {
-    // Fetch full holding data to get valuationMode/shares/price
-    const res = await fetch("/api/holdings");
-    const all: Holding[] = await res.json();
-    const full = all.find((item) => item.id === h.id);
-    if (full) {
-      setEditHoldingCurrency(h.currency);
-      setEditHoldingFull(full);
-    }
+  // Fetch full holdings + accounts data for HoldingRow (needed for edit/trade)
+  const fetchData = async () => {
+    const [hRes, aRes] = await Promise.all([
+      fetch("/api/holdings"),
+      fetch("/api/accounts"),
+    ]);
+    const [hData, aData] = await Promise.all([hRes.json(), aRes.json()]);
+    setAllHoldings(hData);
+    setAccounts(aData);
+    setDataLoaded(true);
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -36,6 +42,16 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
       else next.add(id);
       return next;
     });
+  };
+
+  const handleDataChange = () => {
+    fetchData();
+    onDataChange();
+  };
+
+  // Map AllocationHolding to full Holding for HoldingRow
+  const getFullHolding = (ah: AllocationHolding): Holding | null => {
+    return allHoldings.find((h) => h.id === ah.id) || null;
   };
 
   return (
@@ -85,7 +101,6 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
                   <td className="p-3">
                     <div className="flex items-center gap-2 justify-end">
                       <div className="relative w-20 h-4 bg-muted rounded overflow-hidden flex-shrink-0">
-                        {/* 填充条 */}
                         <div
                           className="absolute inset-y-0 left-0 rounded"
                           style={{
@@ -94,7 +109,6 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
                             opacity: 0.6,
                           }}
                         />
-                        {/* 目标标记线 */}
                         <div
                           className="absolute inset-y-0 w-0.5 bg-foreground/70"
                           style={{ left: `${Math.min(item.targetPct, 100)}%` }}
@@ -121,56 +135,54 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
                 </tr>
                 {isExpanded && (
                   <tr key={`${item.id}-detail`}>
-                    <td colSpan={6} className="bg-muted/20 px-6 py-2">
+                    <td colSpan={6} className="bg-muted/20 px-4 py-2">
                       {item.holdings.length === 0 ? (
                         <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
                       ) : (
-                        <div className="space-y-1">
-                          {item.holdings.map((h) => {
-                            const sym = CURRENCY_SYMBOLS[h.currency] || "¥";
-                            const isCash = h.id < 0;
-                            return (
-                              <div
-                                key={h.id}
-                                className="flex items-center justify-between text-sm py-1.5 px-2 rounded hover:bg-accent/30"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span>{h.name}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {h.accountName}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-3">
+                        <div className="space-y-0.5">
+                          {item.holdings.map((ah) => {
+                            const isCash = ah.id < 0;
+                            if (isCash) {
+                              // Cash row: simple display, no actions
+                              const sym = CURRENCY_SYMBOLS[ah.currency] || "¥";
+                              return (
+                                <div key={ah.id} className="flex items-center justify-between text-sm py-2 px-2 text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <span>{ah.name}</span>
+                                    <Badge variant="outline" className="text-xs">{ah.accountName}</Badge>
+                                  </div>
                                   <span>
-                                    {h.currency !== "CNY"
-                                      ? `${sym}${h.marketValue.toLocaleString()} ≈ `
-                                      : ""}
-                                    ¥{h.marketValueCny.toLocaleString()}
+                                    {ah.currency !== "CNY" ? `${sym}${ah.marketValue.toLocaleString()} ≈ ` : ""}
+                                    ¥{ah.marketValueCny.toLocaleString()}
                                   </span>
-                                  {!isCash && h.returnRate !== null && (
-                                    <span className={pnlColorClass(h.returnRate, colorMode)}>
-                                      {h.returnRate > 0 ? "+" : ""}
-                                      {h.returnRate.toFixed(2)}%
-                                    </span>
-                                  )}
-                                  <span className="text-muted-foreground">
-                                    {h.pctOfTotal}%
-                                  </span>
-                                  {!isCash && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditHolding(h);
-                                      }}
-                                    >
-                                      <Pencil className="h-3.5 w-3.5" />
-                                    </Button>
-                                  )}
                                 </div>
-                              </div>
+                              );
+                            }
+                            const full = getFullHolding(ah);
+                            if (!full || !dataLoaded) {
+                              // Fallback while loading
+                              return (
+                                <div key={ah.id} className="text-sm py-2 px-2 text-muted-foreground">
+                                  {ah.name} — 加载中...
+                                </div>
+                              );
+                            }
+                            return (
+                              <HoldingRow
+                                key={ah.id}
+                                holding={full}
+                                currency={ah.currency}
+                                totalAssetCny={totalAssetCny}
+                                rates={rates}
+                                colorMode={colorMode}
+                                showAccountName
+                                accountName={ah.accountName}
+                                actions="compact"
+                                accountId={full.accountId}
+                                accounts={accounts}
+                                allHoldings={allHoldings}
+                                onDataChange={handleDataChange}
+                              />
                             );
                           })}
                         </div>
@@ -183,26 +195,6 @@ export function DisciplineTable({ allocation, colorMode, onDataChange }: Discipl
           })}
         </tbody>
       </table>
-
-      {editHoldingFull && (
-        <HoldingEditDialog
-          holdingId={editHoldingFull.id}
-          name={editHoldingFull.name}
-          cost={editHoldingFull.cost}
-          marketValue={editHoldingFull.marketValue}
-          valuationMode={editHoldingFull.valuationMode}
-          shares={editHoldingFull.shares}
-          price={editHoldingFull.price}
-          assetClass={editHoldingFull.assetClass}
-          currency={editHoldingCurrency}
-          open={!!editHoldingFull}
-          onClose={() => setEditHoldingFull(null)}
-          onSaved={() => {
-            setEditHoldingFull(null);
-            onDataChange();
-          }}
-        />
-      )}
     </div>
   );
 }

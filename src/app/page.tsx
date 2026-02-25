@@ -74,7 +74,7 @@ export default function Dashboard() {
       {/* Discipline Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
-        <DisciplineTable allocation={allocation.allocation} colorMode={allocation.settings.colorMode} onDataChange={fetchAll} />
+        <DisciplineTable allocation={allocation.allocation} totalAssetCny={allocation.totalAssetCny} rates={rates} colorMode={allocation.settings.colorMode} onDataChange={fetchAll} />
         <DeviationChart allocation={allocation.allocation} />
       </div>
 
