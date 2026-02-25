@@ -72,18 +72,18 @@ src/
 ## 已知待改进项
 
 详见 `docs/improvement-proposals.md`，按优先级排列：
-- P0：资产类别动态化（当前 enum 硬编码）、批量更新市值
+- P0：资产类别动态化（当前 enum 硬编码）、批量更新市值 （均已完成）
 - P1：~~再平衡建议~~（已完成）、~~成本基础+盈亏计算~~（已完成）、~~可视化图表~~（已完成）
 - P2：收益率追踪、现金处理优化、快照历史增强、币种动态化
 - P3：移动端优化、汇率来源冗余、数据导入导出
 
 ## 进展日志
 
-- [2025-02-24] 项目初始化，生成 OpenSpec 方案
-- [2025-02-24] V1.0.0 MVP 完成：账户管理、持仓管理、资产配置纪律表、汇率自动获取、每日快照
-- [2025-02-24] 新增 UI 改进提案（`docs/improvement-proposals.md`），梳理 12 项改进建议及优先级
-- [2025-02-24] 新增 `project_overview.md`，建立多终端协作规范
-- [2025-07-15] 完成可视化图表（P1 #6）：双环饼图、偏离度柱状图、纪律表进度条、总资产走势折线图、资产占比堆叠面积图；新增 chart-colors.ts、deviation-chart.tsx、snapshot-charts.tsx，改造 portfolio-chart.tsx 和 discipline-table.tsx
-- [2025-07-15] 完成再平衡建议（P1 #2）+ 盈亏展示补全（P1 #4）：新增 rebalance-panel.tsx，纪律表增加盈亏列，API 返回 adjustAmount/totalCost/totalPnl/pnlAmount 等字段
-- [2025-07-16] 完成交易系统+多页导航重构：新增 transactions 表和交易 API（买入/卖出/股息/现金存取，含副作用逻辑和 affectBalance 开关）；holdings 新增 ticker/valuationMode/shares/price 字段支持双估值模式；accounts 新增 totalCost 字段支持账户盈亏；重构为多页导航（总览/账户/交易/快照/股价更新），新增全局导航栏；总览页精简，账户管理和交易记录独立为新页面
-- [2025-07-16] 新增 Windows 独立打包能力：next.config.ts 启用 standalone 输出，新增 server.js 启动脚本（端口检测+自动开浏览器）、启动.bat 用户入口、scripts/package.js 打包脚本（构建+组装+嵌入 node.exe+zip），业务代码零改动
+- [2026-02-24] 项目初始化，生成 OpenSpec 方案
+- [2026-02-24] V1.0.0 MVP 完成：账户管理、持仓管理、资产配置纪律表、汇率自动获取、每日快照
+- [2026-02-24] 新增 UI 改进提案（`docs/improvement-proposals.md`），梳理 12 项改进建议及优先级
+- [2026-02-24] 新增 `project_overview.md`，建立多终端协作规范
+- [2026-02-24] 完成可视化图表（P1 #6）：双环饼图、偏离度柱状图、纪律表进度条、总资产走势折线图、资产占比堆叠面积图；新增 chart-colors.ts、deviation-chart.tsx、snapshot-charts.tsx，改造 portfolio-chart.tsx 和 discipline-table.tsx
+- [2026-02-25] 完成再平衡建议（P1 #2）+ 盈亏展示补全（P1 #4）：新增 rebalance-panel.tsx，纪律表增加盈亏列，API 返回 adjustAmount/totalCost/totalPnl/pnlAmount 等字段
+- [2026-02-25] 完成交易系统+多页导航重构：新增 transactions 表和交易 API（买入/卖出/股息/现金存取，含副作用逻辑和 affectBalance 开关）；holdings 新增 ticker/valuationMode/shares/price 字段支持双估值模式；accounts 新增 totalCost 字段支持账户盈亏；重构为多页导航（总览/账户/交易/快照/股价更新），新增全局导航栏；总览页精简，账户管理和交易记录独立为新页面
+- [2026-02-25] 新增 Windows 独立打包能力：next.config.ts 启用 standalone 输出，新增 server.js 启动脚本（端口检测+自动开浏览器）、启动.bat 用户入口、scripts/package.js 打包脚本（构建+组装+嵌入 node.exe+zip），业务代码零改动

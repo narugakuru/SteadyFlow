@@ -3,23 +3,21 @@
  *
  * 用法: node scripts/package.js
  *
- * 分发包结构:
+ * 分发包结构 (standalone 内容平铺为根):
  *   InvestManage/
  *   ├── node.exe              (嵌入的 Node.js 运行时)
- *   ├── server.js             (启动脚本 wrapper)
+ *   ├── server.js             (我们的 wrapper 启动脚本)
+ *   ├── _next_server.js       (Next.js 原生 server.js，重命名)
  *   ├── 启动.bat              (用户双击入口)
- *   └── .next/
- *       ├── standalone/       (Next.js standalone 产物)
- *       │   ├── server.js     (Next.js 原生服务端)
- *       │   ├── drizzle/      (数据库迁移文件)
- *       │   ├── data/         (运行时创建)
- *       │   └── ...
- *       └── static/           (前端静态资源)
- *
- * 关键路径说明:
- *   wrapper server.js 将 cwd 设为 .next/standalone/
- *   db/index.ts 用 process.cwd() 定位 data/ 和 drizzle/
- *   因此 drizzle/ 必须放在 .next/standalone/ 下
+ *   ├── package.json          (standalone 生成的)
+ *   ├── .next/                (standalone 的 .next + static)
+ *   │   ├── server/
+ *   │   ├── node_modules/     (native addons like better-sqlite3)
+ *   │   └── static/           (额外复制)
+ *   ├── node_modules/         (standalone 精简的依赖)
+ *   ├── drizzle/              (standalone 已包含)
+ *   ├── public/               (额外复制)
+ *   └── data/                 (运行时自动创建)
  */
 
 const { execSync } = require("child_process");
@@ -35,15 +33,19 @@ function log(msg) {
   console.log(`[package] ${msg}`);
 }
 
-function copyDir(src, dest) {
-  fs.mkdirSync(dest, { recursive: true });
-  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
+/**
+ * Use robocopy for reliable copying on Windows.
+ * robocopy returns 0-7 for success, 8+ for errors.
+ */
+function robocopy(src, dest, options = "") {
+  try {
+    execSync(`robocopy "${src}" "${dest}" /E /NFL /NDL /NJH /NJS /NC /NS /NP ${options}`, {
+      stdio: "pipe",
+    });
+  } catch (err) {
+    // robocopy exit codes 0-7 are success/info, 8+ are errors
+    if (err.status >= 8) {
+      throw new Error(`robocopy failed (exit ${err.status}): ${src} -> ${dest}`);
     }
   }
 }
@@ -67,36 +69,44 @@ function assembleStandalone() {
     throw new Error(".next/standalone not found. Did next build run with output: 'standalone'?");
   }
 
-  // Copy standalone output into OUT/.next/standalone/
-  log("Copying standalone output...");
-  copyDir(standaloneDir, path.join(OUT, ".next", "standalone"));
+  // Copy entire standalone content as the root of the dist package
+  log("Copying standalone output as root...");
+  robocopy(standaloneDir, OUT);
 
-  // Copy .next/static/ into OUT/.next/static/ (standalone doesn't include these)
+  // Rename the Next.js server.js to _next_server.js (our wrapper will load it)
+  const nextServerSrc = path.join(OUT, "server.js");
+  const nextServerDest = path.join(OUT, "_next_server.js");
+  if (fs.existsSync(nextServerSrc)) {
+    fs.renameSync(nextServerSrc, nextServerDest);
+  }
+
+  // Copy .next/static/ (standalone doesn't include frontend static assets)
   const staticSrc = path.join(ROOT, ".next", "static");
   if (fs.existsSync(staticSrc)) {
     log("Copying .next/static/...");
-    copyDir(staticSrc, path.join(OUT, ".next", "static"));
+    robocopy(staticSrc, path.join(OUT, ".next", "static"));
   }
 
-  // Copy public/ into OUT/.next/standalone/public/ (Next.js expects it relative to standalone)
+  // Copy public/ (standalone doesn't include it)
   const publicSrc = path.join(ROOT, "public");
   if (fs.existsSync(publicSrc)) {
     log("Copying public/...");
-    copyDir(publicSrc, path.join(OUT, ".next", "standalone", "public"));
+    robocopy(publicSrc, path.join(OUT, "public"));
   }
 }
 
-function copyDrizzleMigrations() {
-  // drizzle/ goes inside standalone dir because process.cwd() will be there
-  const drizzleSrc = path.join(ROOT, "drizzle");
-  if (fs.existsSync(drizzleSrc)) {
-    log("Copying drizzle/ migrations...");
-    copyDir(drizzleSrc, path.join(OUT, ".next", "standalone", "drizzle"));
+function removeDevData() {
+  // Remove data/ dir copied from standalone (it's dev database)
+  // Users will get a fresh db on first launch
+  const dataDir = path.join(OUT, "data");
+  if (fs.existsSync(dataDir)) {
+    log("Removing dev data/ directory...");
+    fs.rmSync(dataDir, { recursive: true });
   }
 }
 
 function copyServerAndBat() {
-  log("Copying server.js...");
+  log("Copying server.js wrapper...");
   fs.copyFileSync(path.join(ROOT, "server.js"), path.join(OUT, "server.js"));
 
   log("Creating 启动.bat...");
@@ -135,7 +145,7 @@ async function main() {
   clean();
   build();
   assembleStandalone();
-  copyDrizzleMigrations();
+  removeDevData();
   copyServerAndBat();
   embedNodeExe();
   createZip();

@@ -2,17 +2,15 @@
  * InvestManage 启动脚本
  * 包装 Next.js standalone server，添加端口检测和自动打开浏览器功能
  *
- * 此文件在打包后位于 .next/standalone/ 目录中（与 Next.js 生成的 server.js 同级）
- * 打包脚本会将此文件重命名放置到正确位置
+ * 打包后此文件位于分发包根目录，与 Next.js 原生 server.js 同级
+ * 原生 server.js 被重命名为 _next_server.js
  */
 
 const { execSync } = require("child_process");
 const net = require("net");
 const path = require("path");
 
-// 确保 cwd 是 standalone 目录（与 Next.js server.js 一致）
-const standaloneDir = path.join(__dirname, ".next", "standalone");
-process.chdir(standaloneDir);
+process.chdir(__dirname);
 
 function checkPort(port) {
   return new Promise((resolve) => {
@@ -62,7 +60,7 @@ async function main() {
   };
 
   // Load the Next.js standalone server
-  require(path.join(standaloneDir, "server.js"));
+  require(path.join(__dirname, "_next_server.js"));
 }
 
 main().catch((err) => {
