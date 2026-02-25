@@ -63,7 +63,6 @@ export function TransactionForm({
   const [newHoldingTicker, setNewHoldingTicker] = useState("");
   const [newHoldingMode, setNewHoldingMode] = useState<"amount" | "shares">("amount");
   const [newHoldingAssetClass, setNewHoldingAssetClass] = useState("");
-  const [newHoldingCost, setNewHoldingCost] = useState("");
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [creatingSaving, setCreatingSaving] = useState(false);
   // Local holdings list that can be refreshed after inline create
@@ -284,17 +283,12 @@ export function TransactionForm({
                   </Select>
                 </div>
               </div>
-              <div>
-                <Label className="text-xs">本金 ({sym})</Label>
-                <Input type="number" value={newHoldingCost} onChange={(e) => setNewHoldingCost(e.target.value)} placeholder="0" />
-              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  disabled={creatingSaving || !newHoldingName || !newHoldingCost}
+                  disabled={creatingSaving || !newHoldingName}
                   onClick={async () => {
                     setCreatingSaving(true);
-                    const costVal = parseFloat(newHoldingCost) || 0;
                     const res = await fetch("/api/holdings", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -303,7 +297,6 @@ export function TransactionForm({
                         name: newHoldingName,
                         ticker: newHoldingTicker || null,
                         valuationMode: newHoldingMode,
-                        cost: costVal,
                         assetClass: newHoldingAssetClass,
                       }),
                     });
@@ -319,7 +312,6 @@ export function TransactionForm({
                     setNewHoldingName("");
                     setNewHoldingTicker("");
                     setNewHoldingMode("amount");
-                    setNewHoldingCost("");
                     setInlineCreateOpen(false);
                     setCreatingSaving(false);
                   }}

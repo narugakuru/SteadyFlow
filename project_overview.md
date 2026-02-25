@@ -92,3 +92,4 @@ src/
 - [2026-02-25] 新增 Windows 独立打包能力：next.config.ts 启用 standalone 输出，新增 server.js 启动脚本（端口检测+自动开浏览器）、启动.bat 用户入口、scripts/package.js 打包脚本（构建+组装+嵌入 node.exe+zip），业务代码零改动
 - [2026-02-25] 统一持仓与交易 UX：新增 useTriFieldLinked hook（三字段联动编辑）和 HoldingEditDialog 共享组件；纪律表编辑弹窗升级为模式感知（区分 amount/shares）；账户详情页持仓编辑支持三字段联动；TransactionForm 提取为独立共享组件并增加快捷交易入口（买入/卖出按钮）；交易表单内可直接新建持仓；账户页和交易页支持 URL 参数预选；页面间增加交叉导航链接
 - [2026-02-25] 统一持仓展示与账户展开模式：新增 HoldingRow 共享组件（两行布局：核心信息+详细信息，支持 compact/full 操作模式）；纪律表展开区域升级为 HoldingRow（含交易+编辑按钮）；账户页从跳转子页面改为展开/折叠模式（内嵌持仓列表+编辑账户+添加持仓）；holdings-panel.tsx 不再被引用
+- [2026-02-25] 新建持仓/编辑持仓移除本金字段：本金由交易记录自动累积，不再支持手动填写；影响 HoldingEditDialog、HoldingForm（holdings-panel/account-list）、TransactionForm 内联新建持仓、holdings POST API（cost 改为可选默认0）

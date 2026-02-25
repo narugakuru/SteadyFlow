@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { accountId, name, ticker, valuationMode = "amount", cost, marketValue, shares: inputShares, price: inputPrice, assetClass } = body;
 
-  if (!accountId || !name || cost == null || !assetClass) {
+  if (!accountId || !name || !assetClass) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 

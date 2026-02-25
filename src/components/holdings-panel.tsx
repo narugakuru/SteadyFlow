@@ -48,7 +48,6 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
   const [name, setName] = useState(holding?.name ?? "");
   const [ticker, setTicker] = useState(holding?.ticker ?? "");
   const [valuationMode, setValuationMode] = useState<"amount" | "shares">(holding?.valuationMode ?? "amount");
-  const [cost, setCost] = useState(holding?.cost?.toString() ?? "");
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
   // For create mode (non-linked)
   const [shares, setShares] = useState(holding?.shares?.toString() ?? "");
@@ -87,14 +86,12 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
 
   const handleSubmit = async () => {
     setSaving(true);
-    const costVal = parseFloat(cost) || 0;
 
     const payload: Record<string, any> = {
       ...(isEdit ? {} : { accountId }),
       name,
       ticker: ticker || null,
       valuationMode,
-      cost: costVal,
       assetClass,
     };
 
@@ -164,15 +161,6 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div>
-            <Label>本金 ({sym})</Label>
-            <Input
-              type="number"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              placeholder="0"
-            />
           </div>
           {valuationMode === "shares" ? (
             useLinked ? (
@@ -247,16 +235,16 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
             )
           ) : (
             <div>
-              <Label>市值 ({sym})（选填，不填则等于本金）</Label>
+              <Label>市值 ({sym})（选填）</Label>
               <Input
                 type="number"
                 value={marketValue}
                 onChange={(e) => setMarketValue(e.target.value)}
-                placeholder="不填则等于本金"
+                placeholder="0"
               />
             </div>
           )}
-          <Button onClick={handleSubmit} disabled={saving || !name || !cost} className="w-full">
+          <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">
             {saving ? "保存中..." : "保存"}
           </Button>
         </div>

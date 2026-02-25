@@ -1,7 +1,7 @@
 ## 1. 三字段联动编辑组件
 
 - [x] 1.1 创建共享的 `useTriFieldLinked` hook，实现"最后两次编辑锁定，第三个自动计算"逻辑（输入：初始 price/shares/marketValue，输出：三个字段值、各字段 onChange、computedField 标识）
-- [x] 1.2 创建共享的 `HoldingEditDialog` 组件，根据 valuationMode 切换 amount/shares 编辑模式：amount 模式显示名称、本金、市值、资产类别；shares 模式显示名称、本金、三字段联动（股价/份额/市值）、资产类别。被计算字段用浅色斜体样式标识
+- [x] 1.2 创建共享的 `HoldingEditDialog` 组件，根据 valuationMode 切换 amount/shares 编辑模式：amount 模式显示名称、市值、资产类别；shares 模式显示名称、三字段联动（股价/份额/市值）、资产类别。被计算字段用浅色斜体样式标识。本金由交易记录自动累积，不在编辑弹窗中显示
 
 ## 2. 总览页纪律表编辑升级
 
@@ -15,7 +15,7 @@
 
 ## 4. 交易表单内新建持仓
 
-- [x] 4.1 在 `TransactionForm` 的持仓下拉选择器底部增加"➕ 新建持仓..."选项，点击后弹出简化版 `HoldingForm`（名称、ticker、估值模式、资产类别、本金），创建成功后自动选中新持仓并刷新列表
+- [x] 4.1 在 `TransactionForm` 的持仓下拉选择器底部增加"➕ 新建持仓..."选项，点击后弹出简化版 `HoldingForm`（名称、ticker、估值模式、资产类别），创建成功后自动选中新持仓并刷新列表。本金不在此处填写，由交易记录自动累积
 
 ## 5. 交叉导航
 

@@ -121,7 +121,6 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
   const [valuationMode, setValuationMode] = useState<"amount" | "shares">("amount");
-  const [cost, setCost] = useState("");
   const [marketValue, setMarketValue] = useState("");
   const [shares, setShares] = useState("");
   const [price, setPrice] = useState("");
@@ -133,7 +132,7 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
   useEffect(() => {
     if (open) {
       setName(""); setTicker(""); setValuationMode("amount");
-      setCost(""); setMarketValue(""); setShares(""); setPrice("");
+      setMarketValue(""); setShares(""); setPrice("");
       fetch("/api/asset-classes")
         .then((r) => r.json())
         .then((data: AssetClass[]) => {
@@ -151,7 +150,7 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
     setSaving(true);
     const payload: Record<string, any> = {
       accountId, name, ticker: ticker || null, valuationMode,
-      cost: parseFloat(cost) || 0, assetClass,
+      assetClass,
     };
     if (valuationMode === "shares") {
       payload.shares = parseFloat(shares) || 0;
@@ -200,7 +199,6 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
               </Select>
             </div>
           </div>
-          <div><Label>本金 ({sym})</Label><Input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" /></div>
           {valuationMode === "shares" ? (
             <>
               <div className="grid grid-cols-2 gap-4">
@@ -210,9 +208,9 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
               {computedMV && <p className="text-sm text-muted-foreground">市值（自动计算）：{sym}{parseFloat(computedMV).toLocaleString()}</p>}
             </>
           ) : (
-            <div><Label>市值 ({sym})（选填，不填则等于本金）</Label><Input type="number" value={marketValue} onChange={(e) => setMarketValue(e.target.value)} placeholder="不填则等于本金" /></div>
+            <div><Label>市值 ({sym})（选填）</Label><Input type="number" value={marketValue} onChange={(e) => setMarketValue(e.target.value)} placeholder="0" /></div>
           )}
-          <Button onClick={handleSubmit} disabled={saving || !name || !cost} className="w-full">{saving ? "保存中..." : "保存"}</Button>
+          <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">{saving ? "保存中..." : "保存"}</Button>
         </div>
       </DialogContent>
     </Dialog>

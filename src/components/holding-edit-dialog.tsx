@@ -23,7 +23,6 @@ import { useTriFieldLinked, TriField } from "@/lib/hooks";
 interface HoldingEditDialogProps {
   holdingId: number;
   name: string;
-  cost: number;
   marketValue: number;
   valuationMode: "amount" | "shares";
   shares: number;
@@ -38,7 +37,6 @@ interface HoldingEditDialogProps {
 export function HoldingEditDialog({
   holdingId,
   name: initName,
-  cost: initCost,
   marketValue: initMarketValue,
   valuationMode,
   shares: initShares,
@@ -50,7 +48,6 @@ export function HoldingEditDialog({
   onSaved,
 }: HoldingEditDialogProps) {
   const [name, setName] = useState(initName);
-  const [cost, setCost] = useState(initCost.toString());
   const [marketValue, setMarketValue] = useState(initMarketValue.toString());
   const [assetClass, setAssetClass] = useState(initAssetClass);
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
@@ -81,7 +78,6 @@ export function HoldingEditDialog({
     setSaving(true);
     const payload: Record<string, any> = {
       name,
-      cost: parseFloat(cost) || 0,
       assetClass,
     };
 
@@ -112,14 +108,6 @@ export function HoldingEditDialog({
           <div>
             <Label>持仓名称</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <Label>本金 ({sym})</Label>
-            <Input
-              type="number"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-            />
           </div>
 
           {isShares ? (
