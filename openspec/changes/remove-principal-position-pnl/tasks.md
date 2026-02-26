@@ -20,4 +20,4 @@
 
 ## 4. 数据库同步
 
-- [ ] 4.1 执行 `npx drizzle-kit push` 同步 schema 变更到数据库（需手动确认删除 total_cost 列）
+- [x] 4.1 执行 `npx drizzle-kit push` 同步 schema 变更到数据库（需手动确认删除 total_cost 列）
