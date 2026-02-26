@@ -40,6 +40,7 @@ src/
 │       ├── exchange-rates/         # 汇率
 │       ├── market/                 # 市场指数行情（Yahoo Finance）
 │       └── snapshots/              # 快照
+├── middleware.ts                  # 路由守卫（JWT + 管理员权限）
 ├── components/
 │   ├── ui/                         # shadcn 基础组件
 │   ├── navbar.tsx                  # 全局导航栏
@@ -123,3 +124,4 @@ src/
 - [2026-02-26] 完成 Auth 数据表与业务表 userId 字段 schema 调整，并补充 SQLite/PG 迁移文件
 - [2026-02-26] 新增 Auth.js 配置与 NextAuth API 路由（Credentials + GitHub OAuth，JWT 写入 userId/role/plan）
 - [2026-02-26] 新增登录/注册页面与注册 API（邮箱密码注册、记住我、GitHub OAuth 按钮）
+- [2026-02-26] 新增全局 middleware 路由守卫（登录校验 + 管理员权限）

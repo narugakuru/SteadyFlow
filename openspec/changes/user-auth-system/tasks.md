@@ -32,10 +32,10 @@
 
 ## 5. 路由守卫
 
-- [ ] 5.1 创建 middleware.ts：公开路由（/login, /register, /api/auth/*）放行，保护路由检查 JWT，管理路由检查 role=admin
-- [ ] 5.2 未登录访问保护路由重定向到 /login
-- [ ] 5.3 已登录访问 /login 或 /register 重定向到 /
-- [ ] 5.4 非 admin 访问 /admin/* 重定向到 /
+- [x] 5.1 创建 middleware.ts：公开路由（/login, /register, /api/auth/*）放行，保护路由检查 JWT，管理路由检查 role=admin
+- [x] 5.2 未登录访问保护路由重定向到 /login
+- [x] 5.3 已登录访问 /login 或 /register 重定向到 /
+- [x] 5.4 非 admin 访问 /admin/* 重定向到 /
 
 ## 6. 数据迁移
 
