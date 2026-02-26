@@ -2,26 +2,7 @@ import path from "path";
 import fs from "fs";
 
 const dbType = process.env.DB_TYPE || "sqlite";
-let pgInitPromise: Promise<void> | null = null;
-
-function runPostgresInit(sql: ReturnType<typeof import("@neondatabase/serverless").neon>) {
-  const initPath = path.join(process.cwd(), "drizzle-pg", "init.sql");
-  if (!fs.existsSync(initPath)) {
-    return Promise.resolve();
-  }
-
-  const raw = fs.readFileSync(initPath, "utf8");
-  const statements = raw
-    .split("-- statement-breakpoint")
-    .map((statement) => statement.trim())
-    .filter(Boolean);
-
-  return (async () => {
-    for (const statement of statements) {
-      await sql.query(statement);
-    }
-  })();
-}
+let pgMigratePromise: Promise<void> | null = null;
 
 // Dynamically create the correct db instance based on DB_TYPE
 function createDb() {
@@ -36,11 +17,20 @@ function createDb() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { drizzle } = require("drizzle-orm/neon-http");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { migrate } = require("drizzle-orm/neon-http/migrator");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pgSchema = require("./schema-pg");
 
     const sql = neon(databaseUrl);
-    pgInitPromise = runPostgresInit(sql);
-    return drizzle(sql, { schema: pgSchema });
+    const db = drizzle(sql, { schema: pgSchema });
+
+    // Auto-migrate PostgreSQL
+    const migrationsFolder = path.join(process.cwd(), "drizzle-pg");
+    if (fs.existsSync(migrationsFolder)) {
+      pgMigratePromise = migrate(db, { migrationsFolder });
+    }
+
+    return db;
   } else {
     // SQLite (better-sqlite3)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -81,11 +71,11 @@ export const isPostgres = dbType === "postgres";
 // Run seed (async-safe)
 import { seed } from "./seed";
 if (dbType === "postgres") {
-  if (pgInitPromise) {
-    pgInitPromise
+  if (pgMigratePromise) {
+    pgMigratePromise
       .then(() => seed(db))
       .catch((error) => {
-        console.error("Postgres init failed:", error);
+        console.error("Postgres migrate failed:", error);
       });
   } else {
     seed(db);
