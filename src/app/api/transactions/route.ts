@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { transactions, holdings, accounts } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { fromDbBool, toDbBool } from "@/lib/utils";
 
 export async function GET(request: Request) {
   const { userId, response } = await requireUser();
@@ -45,8 +46,8 @@ export async function GET(request: Request) {
 
   const result = rows.map((r: any) => ({
     ...r,
-    affectCash: !!r.affectCash,
-    affectHolding: !!r.affectHolding,
+    affectCash: fromDbBool(r.affectCash),
+    affectHolding: fromDbBool(r.affectHolding),
   }));
 
   return NextResponse.json(result);
@@ -157,7 +158,7 @@ export async function POST(request: Request) {
   }
 
   // Create transaction record
-  // affectCash/affectHolding: use raw values compatible with both SQLite (0/1) and PG (boolean)
+  // affectCash/affectHolding: persist as 0/1 across SQLite and PostgreSQL
   const [txRecord] = await db
     .insert(transactions)
     .values({
@@ -169,8 +170,8 @@ export async function POST(request: Request) {
       shares: txShares != null ? parseFloat(txShares) : null,
       price: txPrice != null ? parseFloat(txPrice) : null,
       fee: parseFloat(fee) || 0,
-      affectCash: affectCash as any,
-      affectHolding: affectHolding as any,
+      affectCash: toDbBool(affectCash),
+      affectHolding: toDbBool(affectHolding),
       note: note || null,
     })
     .returning();
@@ -285,8 +286,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ...txRecord,
-    affectCash: !!txRecord.affectCash,
-    affectHolding: !!txRecord.affectHolding,
+    affectCash: fromDbBool(txRecord.affectCash),
+    affectHolding: fromDbBool(txRecord.affectHolding),
   }, { status: 201 });
   } catch (error) {
     console.error("POST /api/transactions error:", error);

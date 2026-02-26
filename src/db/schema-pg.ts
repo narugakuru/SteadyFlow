@@ -5,7 +5,6 @@ import {
   integer,
   text,
   doublePrecision,
-  boolean,
   varchar,
   timestamp,
   primaryKey,
@@ -155,8 +154,8 @@ export const transactions = pgTable("transactions", {
   shares: doublePrecision("shares"),
   price: doublePrecision("price"),
   fee: doublePrecision("fee").notNull().default(0),
-  affectCash: boolean("affect_cash").notNull().default(true),
-  affectHolding: boolean("affect_holding").notNull().default(true),
+  affectCash: integer("affect_cash").notNull().default(1),
+  affectHolding: integer("affect_holding").notNull().default(1),
   note: text("note"),
   createdAt: text("created_at").notNull().default(sql`now()`),
 });

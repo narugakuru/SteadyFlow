@@ -91,7 +91,7 @@ src/
 | verificationTokens | 验证令牌 | identifier, token, expires |
 | accounts | 投资账户 | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额) |
 | holdings | 持仓明细 | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass |
-| transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金), affectHolding(影响持仓) |
+| transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
 | assetClasses | 资产类别配置 | userId(FK, not null), name, targetPct(目标百分比) |
 | exchangeRates | 汇率 | currencyPair, rate |
 | snapshots | 每日快照 | userId(FK, not null), date, totalAssetCny, dataJson |
@@ -139,3 +139,4 @@ src/
 - [2026-02-26] 前端接入 SessionProvider，导航栏显示用户信息与登出
 - [2026-02-26] 管理后台完成：admin API + 统计面板 + 用户管理页
 - [2026-02-26] 修复数据迁移脚本为直连 SQL，避免 Node 直接加载 TS
+- [2026-02-26] 统一交易副作用布尔字段存储为 0/1（SQLite/PG），API 读写做 0/1 ⇄ boolean 转换；不提供迁移（手动清库）

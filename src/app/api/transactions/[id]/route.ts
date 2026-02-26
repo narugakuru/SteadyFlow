@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings, transactions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { fromDbBool } from "@/lib/utils";
 
 export async function GET(
   _request: Request,
@@ -47,8 +48,8 @@ export async function GET(
 
   return NextResponse.json({
     ...row,
-    affectCash: !!row.affectCash,
-    affectHolding: !!row.affectHolding,
+    affectCash: fromDbBool(row.affectCash),
+    affectHolding: fromDbBool(row.affectHolding),
   });
 }
 
