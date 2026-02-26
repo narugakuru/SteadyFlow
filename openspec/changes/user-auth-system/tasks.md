@@ -39,9 +39,9 @@
 
 ## 6. 数据迁移
 
-- [ ] 6.1 创建迁移脚本：插入默认 admin 用户（使用环境变量或硬编码邮箱密码）
-- [ ] 6.2 迁移脚本：将现有 accounts、assetClasses、snapshots、settings 的 userId 设为默认用户 ID
-- [ ] 6.3 userId 字段改为 NOT NULL，生成并执行迁移
+- [x] 6.1 创建迁移脚本：插入默认 admin 用户（使用环境变量或硬编码邮箱密码）
+- [x] 6.2 迁移脚本：将现有 accounts、assetClasses、snapshots、settings 的 userId 设为默认用户 ID
+- [x] 6.3 userId 字段改为 NOT NULL，生成并执行迁移
 
 ## 7. Seed 改造
 

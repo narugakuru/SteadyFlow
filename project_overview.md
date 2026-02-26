@@ -83,13 +83,13 @@ src/
 | authAccounts | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken |
 | sessions | 会话 | sessionToken, userId(FK), expires |
 | verificationTokens | 验证令牌 | identifier, token, expires |
-| accounts | 投资账户 | userId(FK), name, currency(CNY/USD/HKD), cashBalance(现金余额) |
+| accounts | 投资账户 | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额) |
 | holdings | 持仓明细 | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass |
 | transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金), affectHolding(影响持仓) |
-| assetClasses | 资产类别配置 | userId(FK), name, targetPct(目标百分比) |
+| assetClasses | 资产类别配置 | userId(FK, not null), name, targetPct(目标百分比) |
 | exchangeRates | 汇率 | currencyPair, rate |
-| snapshots | 每日快照 | userId(FK), date, totalAssetCny, dataJson |
-| settings | 系统设置 | userId(FK), key, value |
+| snapshots | 每日快照 | userId(FK, not null), date, totalAssetCny, dataJson |
+| settings | 系统设置 | userId(FK, not null), key, value |
 
 ## 已知待改进项
 
@@ -125,3 +125,4 @@ src/
 - [2026-02-26] 新增 Auth.js 配置与 NextAuth API 路由（Credentials + GitHub OAuth，JWT 写入 userId/role/plan）
 - [2026-02-26] 新增登录/注册页面与注册 API（邮箱密码注册、记住我、GitHub OAuth 按钮）
 - [2026-02-26] 新增全局 middleware 路由守卫（登录校验 + 管理员权限）
+- [2026-02-26] 新增数据迁移脚本与 userId NOT NULL 迁移（默认 admin 归属历史数据）

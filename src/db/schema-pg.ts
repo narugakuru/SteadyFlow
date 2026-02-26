@@ -69,7 +69,7 @@ export const verificationTokens = pgTable(
 
 export const accounts = pgTable("accounts", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   currency: varchar("currency", { length: 3 }).notNull(),
   cashBalance: doublePrecision("cash_balance").notNull().default(0),
@@ -98,7 +98,7 @@ export const assetClasses = pgTable(
   "asset_classes",
   {
     id: serial("id").primaryKey(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     targetPct: doublePrecision("target_pct").notNull().default(0),
   },
@@ -111,7 +111,7 @@ export const settings = pgTable(
   "settings",
   {
     id: serial("id").primaryKey(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     value: text("value").notNull(),
   },
@@ -131,7 +131,7 @@ export const snapshots = pgTable(
   "snapshots",
   {
     id: serial("id").primaryKey(),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     totalAssetCny: doublePrecision("total_asset_cny").notNull(),
     dataJson: text("data_json").notNull(),

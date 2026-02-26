@@ -29,6 +29,13 @@
       "when": 1772106851039,
       "tag": "0003_user_auth_system",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772108074694,
+      "tag": "0004_user_id_not_null",
+      "breakpoints": true
     }
   ]
 }

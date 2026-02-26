@@ -65,7 +65,7 @@ export const verificationTokens = sqliteTable(
 
 export const accounts = sqliteTable("accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
   cashBalance: real("cash_balance").notNull().default(0),
@@ -94,7 +94,7 @@ export const assetClasses = sqliteTable(
   "asset_classes",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     targetPct: real("target_pct").notNull().default(0),
   },
@@ -107,7 +107,7 @@ export const settings = sqliteTable(
   "settings",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     value: text("value").notNull(),
   },
@@ -127,7 +127,7 @@ export const snapshots = sqliteTable(
   "snapshots",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     totalAssetCny: real("total_asset_cny").notNull(),
     dataJson: text("data_json").notNull(),
