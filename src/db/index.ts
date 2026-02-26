@@ -2,6 +2,26 @@ import path from "path";
 import fs from "fs";
 
 const dbType = process.env.DB_TYPE || "sqlite";
+let pgInitPromise: Promise<void> | null = null;
+
+function runPostgresInit(sql: (query: string) => Promise<unknown>) {
+  const initPath = path.join(process.cwd(), "drizzle-pg", "init.sql");
+  if (!fs.existsSync(initPath)) {
+    return Promise.resolve();
+  }
+
+  const raw = fs.readFileSync(initPath, "utf8");
+  const statements = raw
+    .split("-- statement-breakpoint")
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+
+  return (async () => {
+    for (const statement of statements) {
+      await sql(statement);
+    }
+  })();
+}
 
 // Dynamically create the correct db instance based on DB_TYPE
 function createDb() {
@@ -19,6 +39,7 @@ function createDb() {
     const pgSchema = require("./schema-pg");
 
     const sql = neon(databaseUrl);
+    pgInitPromise = runPostgresInit(sql);
     return drizzle(sql, { schema: pgSchema });
   } else {
     // SQLite (better-sqlite3)
@@ -59,4 +80,16 @@ export const isPostgres = dbType === "postgres";
 
 // Run seed (async-safe)
 import { seed } from "./seed";
-seed(db);
+if (dbType === "postgres") {
+  if (pgInitPromise) {
+    pgInitPromise
+      .then(() => seed(db))
+      .catch((error) => {
+        console.error("Postgres init failed:", error);
+      });
+  } else {
+    seed(db);
+  }
+} else {
+  seed(db);
+}
