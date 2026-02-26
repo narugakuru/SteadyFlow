@@ -65,6 +65,7 @@ src/
 │   └── seed.ts                     # 种子数据（async，兼容双数据库）
 ├── lib/
 │   ├── auth.ts                     # Auth.js 配置与导出
+│   ├── user-seed.ts                # 用户级默认数据初始化
 │   ├── utils.ts                    # 工具函数
 │   ├── types.ts                    # 类型定义
 │   ├── hooks.ts                    # 自定义 Hooks
@@ -126,3 +127,4 @@ src/
 - [2026-02-26] 新增登录/注册页面与注册 API（邮箱密码注册、记住我、GitHub OAuth 按钮）
 - [2026-02-26] 新增全局 middleware 路由守卫（登录校验 + 管理员权限）
 - [2026-02-26] 新增数据迁移脚本与 userId NOT NULL 迁移（默认 admin 归属历史数据）
+- [2026-02-26] Seed 改造：全局仅保留汇率，新增用户级 seed 并接入注册流程

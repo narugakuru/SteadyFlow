@@ -45,9 +45,9 @@
 
 ## 7. Seed 改造
 
-- [ ] 7.1 全局 seed.ts 改造：仅保留 exchangeRates 等共享数据，移除 assetClasses 和 settings 的 seed
-- [ ] 7.2 创建用户级 seed 函数 src/lib/user-seed.ts：为新用户创建默认 assetClasses 和 settings
-- [ ] 7.3 注册流程中调用用户级 seed
+- [x] 7.1 全局 seed.ts 改造：仅保留 exchangeRates 等共享数据，移除 assetClasses 和 settings 的 seed
+- [x] 7.2 创建用户级 seed 函数 src/lib/user-seed.ts：为新用户创建默认 assetClasses 和 settings
+- [x] 7.3 注册流程中调用用户级 seed
 
 ## 8. API 层改造 — 直接关联表
 
