@@ -1,4 +1,4 @@
-﻿import bcrypt from "bcrypt";
+﻿import bcrypt from "bcryptjs";
 import { eq, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
