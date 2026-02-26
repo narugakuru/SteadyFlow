@@ -29,9 +29,12 @@ src/
 │   ├── market/page.tsx             # 市场概览页（TradingView Widget）
 │   ├── login/page.tsx              # 登录页
 │   ├── register/page.tsx           # 注册页
+│   ├── admin/page.tsx              # 管理后台入口
+│   ├── admin/users/page.tsx        # 用户管理页
 │   └── api/                        # API 路由
 │       ├── auth/                   # Auth.js 路由
 │       ├── register/               # 注册 API
+│       ├── admin/                  # 管理后台 API
 │       ├── accounts/               # 账户 CRUD
 │       ├── holdings/               # 持仓 CRUD
 │       ├── transactions/           # 交易记录 CRUD + 副作用
@@ -133,3 +136,4 @@ src/
 - [2026-02-26] 完成直连表 API 鉴权与 userId 过滤（accounts/asset-classes/snapshots/settings）
 - [2026-02-26] 完成间接关联表 API 鉴权与用户隔离（holdings/transactions/asset-allocation/batch-update）
 - [2026-02-26] 前端接入 SessionProvider，导航栏显示用户信息与登出
+- [2026-02-26] 管理后台完成：admin API + 统计面板 + 用户管理页

@@ -75,11 +75,11 @@
 
 ## 11. 管理后台
 
-- [ ] 11.1 创建 /api/admin/users GET：返回所有用户列表（不含 password），admin 权限检查
-- [ ] 11.2 创建 /api/admin/users/[id] PUT：修改用户 role/plan，admin 权限检查，禁止修改自己角色
-- [ ] 11.3 创建 /api/admin/stats GET：返回用户统计数据（总数、今日新增、角色分布、计划分布）
-- [ ] 11.4 创建 /admin/page.tsx：管理面板入口，显示统计卡片
-- [ ] 11.5 创建 /admin/users/page.tsx：用户列表表格，支持修改角色和计划
+- [x] 11.1 创建 /api/admin/users GET：返回所有用户列表（不含 password），admin 权限检查
+- [x] 11.2 创建 /api/admin/users/[id] PUT：修改用户 role/plan，admin 权限检查，禁止修改自己角色
+- [x] 11.3 创建 /api/admin/stats GET：返回用户统计数据（总数、今日新增、角色分布、计划分布）
+- [x] 11.4 创建 /admin/page.tsx：管理面板入口，显示统计卡片
+- [x] 11.5 创建 /admin/users/page.tsx：用户列表表格，支持修改角色和计划
 
 ## 12. 测试与验证
 
