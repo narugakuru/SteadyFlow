@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-utils";
 
 export async function GET() {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const rows = await db
     .select({
       id: accounts.id,
@@ -18,6 +24,7 @@ export async function GET() {
     })
     .from(accounts)
     .leftJoin(holdings, eq(accounts.id, holdings.accountId))
+    .where(eq(accounts.userId, userId))
     .groupBy(accounts.id);
 
   const result = rows.map((row: any) => ({
@@ -29,6 +36,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const body = await request.json();
   const { name, currency, cashBalance } = body;
 
@@ -41,6 +53,7 @@ export async function POST(request: Request) {
   const [result] = await db
     .insert(accounts)
     .values({
+      userId,
       name,
       currency,
       cashBalance: cashVal,

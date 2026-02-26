@@ -65,6 +65,7 @@ src/
 │   └── seed.ts                     # 种子数据（async，兼容双数据库）
 ├── lib/
 │   ├── auth.ts                     # Auth.js 配置与导出
+│   ├── auth-utils.ts               # Session 获取与 401 封装
 │   ├── user-seed.ts                # 用户级默认数据初始化
 │   ├── utils.ts                    # 工具函数
 │   ├── types.ts                    # 类型定义
@@ -128,3 +129,4 @@ src/
 - [2026-02-26] 新增全局 middleware 路由守卫（登录校验 + 管理员权限）
 - [2026-02-26] 新增数据迁移脚本与 userId NOT NULL 迁移（默认 admin 归属历史数据）
 - [2026-02-26] Seed 改造：全局仅保留汇率，新增用户级 seed 并接入注册流程
+- [2026-02-26] 完成直连表 API 鉴权与 userId 过滤（accounts/asset-classes/snapshots/settings）

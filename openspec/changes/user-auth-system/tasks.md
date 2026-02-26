@@ -51,12 +51,12 @@
 
 ## 8. API 层改造 — 直接关联表
 
-- [ ] 8.1 创建 auth 辅助函数 src/lib/auth-utils.ts：封装 session 获取 + 401 响应
-- [ ] 8.2 /api/accounts GET/POST：加 session 检查，查询加 userId 过滤，创建时写入 userId
-- [ ] 8.3 /api/accounts/[id] GET/PUT/DELETE：加 session 检查，操作前验证账户属于当前用户
-- [ ] 8.4 /api/asset-classes GET/POST/PUT/DELETE：加 session 检查 + userId 过滤
-- [ ] 8.5 /api/snapshots GET/POST：加 session 检查 + userId 过滤
-- [ ] 8.6 /api/settings GET/POST：加 session 检查 + userId 过滤
+- [x] 8.1 创建 auth 辅助函数 src/lib/auth-utils.ts：封装 session 获取 + 401 响应
+- [x] 8.2 /api/accounts GET/POST：加 session 检查，查询加 userId 过滤，创建时写入 userId
+- [x] 8.3 /api/accounts/[id] GET/PUT/DELETE：加 session 检查，操作前验证账户属于当前用户
+- [x] 8.4 /api/asset-classes GET/POST/PUT/DELETE：加 session 检查 + userId 过滤
+- [x] 8.5 /api/snapshots GET/POST：加 session 检查 + userId 过滤
+- [x] 8.6 /api/settings GET/POST：加 session 检查 + userId 过滤
 
 ## 9. API 层改造 — 间接关联表
 

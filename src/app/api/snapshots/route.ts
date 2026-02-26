@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses, snapshots } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
+import { requireUser } from "@/lib/auth-utils";
 
 export async function GET() {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const rows = await db
     .select()
     .from(snapshots)
+    .where(eq(snapshots.userId, userId))
     .orderBy(desc(snapshots.date));
 
   return NextResponse.json(
@@ -19,14 +26,23 @@ export async function GET() {
 }
 
 export async function POST() {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const today = new Date().toISOString().slice(0, 10);
 
-  const [ratesResult, allAccounts, allHoldings, allClasses]: any[] = await Promise.all([
+  const [ratesResult, allAccounts, allClasses]: any[] = await Promise.all([
     getExchangeRates(),
-    db.select().from(accounts),
-    db.select().from(holdings),
-    db.select().from(assetClasses),
+    db.select().from(accounts).where(eq(accounts.userId, userId)),
+    db.select().from(assetClasses).where(eq(assetClasses.userId, userId)),
   ]);
+
+  const accountIds = allAccounts.map((account: any) => account.id);
+  const allHoldings = accountIds.length
+    ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
+    : [];
 
   const rates = ratesResult.rates;
   const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));
@@ -83,7 +99,7 @@ export async function POST() {
   const [existing] = await db
     .select()
     .from(snapshots)
-    .where(eq(snapshots.date, today));
+    .where(and(eq(snapshots.userId, userId), eq(snapshots.date, today)));
 
   if (existing) {
     await db.update(snapshots)
@@ -91,10 +107,11 @@ export async function POST() {
         totalAssetCny: +totalAssetCny.toFixed(2),
         dataJson: JSON.stringify(data),
       })
-      .where(eq(snapshots.date, today));
+      .where(and(eq(snapshots.userId, userId), eq(snapshots.date, today)));
   } else {
     await db.insert(snapshots)
       .values({
+        userId,
         date: today,
         totalAssetCny: +totalAssetCny.toFixed(2),
         dataJson: JSON.stringify(data),
