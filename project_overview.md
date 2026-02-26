@@ -27,8 +27,11 @@ src/
 │   ├── snapshots/page.tsx          # 快照历史页
 │   ├── batch-update/page.tsx       # 股价更新页
 │   ├── market/page.tsx             # 市场概览页（TradingView Widget）
+│   ├── login/page.tsx              # 登录页
+│   ├── register/page.tsx           # 注册页
 │   └── api/                        # API 路由
 │       ├── auth/                   # Auth.js 路由
+│       ├── register/               # 注册 API
 │       ├── accounts/               # 账户 CRUD
 │       ├── holdings/               # 持仓 CRUD
 │       ├── transactions/           # 交易记录 CRUD + 副作用
@@ -119,3 +122,4 @@ src/
 - [2026-02-26] 新增 Auth.js 相关依赖（next-auth@beta、@auth/drizzle-adapter、bcrypt）与 GitHub OAuth 配置文档
 - [2026-02-26] 完成 Auth 数据表与业务表 userId 字段 schema 调整，并补充 SQLite/PG 迁移文件
 - [2026-02-26] 新增 Auth.js 配置与 NextAuth API 路由（Credentials + GitHub OAuth，JWT 写入 userId/role/plan）
+- [2026-02-26] 新增登录/注册页面与注册 API（邮箱密码注册、记住我、GitHub OAuth 按钮）

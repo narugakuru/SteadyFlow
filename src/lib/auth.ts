@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         remember: { label: "Remember me", type: "checkbox" },
       },
       async authorize(credentials) {
-        const email = credentials?.email?.trim();
+        const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
         if (!email || !password) {
           return null;

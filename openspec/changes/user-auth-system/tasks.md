@@ -25,10 +25,10 @@
 
 ## 4. 注册与登录页面
 
-- [ ] 4.1 创建 /register 页面：邮箱 + 密码表单，密码最少 6 位校验，邮箱唯一性检查
-- [ ] 4.2 创建注册 API src/app/api/register/route.ts：bcrypt 哈希密码，创建 users 记录，首个用户自动 admin，触发用户级 seed
-- [ ] 4.3 创建 /login 页面：邮箱密码表单 + "记住我"复选框 + GitHub OAuth 按钮 + 注册链接
-- [ ] 4.4 登录/注册页面样式：居中卡片布局，与项目整体风格一致
+- [x] 4.1 创建 /register 页面：邮箱 + 密码表单，密码最少 6 位校验，邮箱唯一性检查
+- [x] 4.2 创建注册 API src/app/api/register/route.ts：bcrypt 哈希密码，创建 users 记录，首个用户自动 admin，触发用户级 seed
+- [x] 4.3 创建 /login 页面：邮箱密码表单 + "记住我"复选框 + GitHub OAuth 按钮 + 注册链接
+- [x] 4.4 登录/注册页面样式：居中卡片布局，与项目整体风格一致
 
 ## 5. 路由守卫
 
