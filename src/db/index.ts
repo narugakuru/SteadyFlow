@@ -4,7 +4,7 @@ import fs from "fs";
 const dbType = process.env.DB_TYPE || "sqlite";
 let pgInitPromise: Promise<void> | null = null;
 
-function runPostgresInit(sql: (query: string) => Promise<unknown>) {
+function runPostgresInit(sql: ReturnType<typeof import("@neondatabase/serverless").neon>) {
   const initPath = path.join(process.cwd(), "drizzle-pg", "init.sql");
   if (!fs.existsSync(initPath)) {
     return Promise.resolve();
@@ -18,7 +18,7 @@ function runPostgresInit(sql: (query: string) => Promise<unknown>) {
 
   return (async () => {
     for (const statement of statements) {
-      await sql(statement);
+      await sql.query(statement);
     }
   })();
 }
