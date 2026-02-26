@@ -5,6 +5,32 @@ const fs = require("fs");
 const path = require("path");
 
 const DEFAULT_TABLES = ["accounts", "asset_classes", "snapshots", "settings"];
+const ENV_PATH = path.join(process.cwd(), ".env");
+
+function loadEnvFile() {
+  if (!fs.existsSync(ENV_PATH)) {
+    return;
+  }
+
+  const raw = fs.readFileSync(ENV_PATH, "utf8");
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const idx = trimmed.indexOf("=");
+    if (idx === -1) continue;
+    const key = trimmed.slice(0, idx).trim();
+    let value = trimmed.slice(idx + 1).trim();
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (!process.env[key]) {
+      process.env[key] = value;
+    }
+  }
+}
 
 async function migrateSqlite(email, password) {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -80,6 +106,8 @@ async function migratePostgres(email, password) {
 }
 
 async function main() {
+  loadEnvFile();
+
   const email = (process.env.DEFAULT_ADMIN_EMAIL || "").trim().toLowerCase();
   const password = process.env.DEFAULT_ADMIN_PASSWORD || "";
 
