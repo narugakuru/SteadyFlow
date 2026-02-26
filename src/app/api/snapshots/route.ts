@@ -29,7 +29,7 @@ export async function POST() {
   ]);
 
   const rates = ratesResult.rates;
-  const accountMap = new Map(allAccounts.map((a: any) => [a.id, a]));
+  const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));
 
   // Calculate holdings value per account
   const accountHoldingsValue: Record<number, number> = {};
@@ -39,7 +39,7 @@ export async function POST() {
 
   // Total asset = Σ(cashBalance + holdingsValue) per account in CNY
   const totalAssetCny = allAccounts.reduce(
-    (sum, a) => {
+    (sum: number, a: any) => {
       const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
       return sum + convertToCNY(accountValue, a.currency, rates);
     },
@@ -56,7 +56,7 @@ export async function POST() {
   }
 
   // Cash per account — directly from cashBalance
-  const totalCashCny = allAccounts.reduce((sum, a) => {
+  const totalCashCny = allAccounts.reduce((sum: number, a: any) => {
     return sum + convertToCNY(a.cashBalance, a.currency, rates);
   }, 0);
 

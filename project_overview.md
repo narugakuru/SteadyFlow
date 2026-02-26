@@ -10,9 +10,9 @@
 
 - 框架：Next.js 16 (App Router) + React 19 + TypeScript
 - 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)
-- 数据库：SQLite (better-sqlite3) + Drizzle ORM
+- 数据库：SQLite (better-sqlite3) / PostgreSQL (Neon serverless) + Drizzle ORM（通过 DB_TYPE 环境变量切换）
 - 图标：lucide-react
-- 数据存储：`data/invest.db`
+- 数据存储：SQLite 模式 `data/invest.db`，PostgreSQL 模式通过 DATABASE_URL 连接
 
 ## 目录结构
 
@@ -55,9 +55,11 @@ src/
 │   ├── asset-class-view.tsx        # 资产类别视图
 │   └── asset-class-settings.tsx    # 配置设置
 ├── db/
-│   ├── schema.ts                   # 数据模型定义
-│   ├── index.ts                    # 数据库连接
-│   └── seed.ts                     # 种子数据
+│   ├── schema.ts                   # 统一 schema 导出入口（根据 DB_TYPE 切换）
+│   ├── schema-sqlite.ts            # SQLite 方言 schema 定义
+│   ├── schema-pg.ts                # PostgreSQL 方言 schema 定义
+│   ├── index.ts                    # 数据库连接（动态选择 SQLite/PostgreSQL）
+│   └── seed.ts                     # 种子数据（async，兼容双数据库）
 └── lib/
     ├── utils.ts                    # 工具函数
     ├── types.ts                    # 类型定义
@@ -102,3 +104,4 @@ src/
 - [2026-02-25] 重构账户模型：totalBalance 改为 cashBalance（现金余额），账户总价值改为实时计算（cashBalance + holdingsValue）；修复盈亏计算、资产配置总资产计算、快照数据；批量更新页面移除账户总额编辑只保留持仓市值更新；新建账户改为只填初始现金
 - [2026-02-25] 交易副作用拆分：affectBalance 单开关拆为 affectCash（影响账户现金）+ affectHolding（影响持仓数据）两个独立开关；支持录入已有持仓（只更新持仓不扣现金）；交易列表显示副作用状态标签；API 保持向后兼容
 - [2026-02-26] 新增市场概览页（/market）：嵌入 TradingView Widget 展示全球主要指数（美股S&P500/纳斯达克100/道琼斯、A股沪深300/上证/创业板/中证500、港股恒生/恒生科技、日股日经225/东证指数）；顶部 Ticker Tape 滚动条 + 中部 Mini Chart 网格 + 底部 VIX K线图 + 情绪阈值参考（5级表情+投资理念提示）；导航栏新增"市场"项
+- [2026-02-26] 双数据库支持：新增 PostgreSQL（Neon serverless）支持，通过 DB_TYPE 环境变量切换 SQLite/PostgreSQL；schema 拆分为 schema-sqlite.ts 和 schema-pg.ts，schema.ts 统一导出；db/index.ts 动态选择驱动；drizzle.config.ts 支持双方言配置；所有 API 路由改为标准异步 Drizzle API（移除 .all()/.get()/.run()）；seed.ts 改为 async；新增 drizzle-pg/ 迁移目录

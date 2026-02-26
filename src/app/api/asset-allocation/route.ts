@@ -22,7 +22,7 @@ export async function GET() {
   const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 5;
   const colorMode = (colorRow?.value === "us" ? "us" : "cn") as "cn" | "us";
 
-  const accountMap = new Map(allAccounts.map((a: any) => [a.id, a]));
+  const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));
 
   // Calculate holdings value per account for total asset calculation
   const accountHoldingsValue: Record<number, number> = {};
@@ -93,7 +93,7 @@ export async function GET() {
           pnlAmountCny: 0,
           pctOfTotal: totalAssetCny > 0 ? +((ac.cashCny / totalAssetCny) * 100).toFixed(2) : 0,
         }))
-      : (classHoldings[cls.name] || []).map((h) => {
+      : (classHoldings[cls.name] || []).map((h: any) => {
           const account = accountMap.get(h.accountId)!;
           const valueCny = convertToCNY(h.marketValue, account.currency, rates);
           const returnRate = h.cost > 0 ? +(((h.marketValue - h.cost) / h.cost) * 100).toFixed(2) : null;
@@ -117,7 +117,7 @@ export async function GET() {
         });
 
     // Category-level cost, P&L, and rebalance adjustment
-    const totalCost = isCash ? 0 : holdingsList.reduce((s, h) => s + convertToCNY(h.cost, h.currency, rates), 0);
+    const totalCost = isCash ? 0 : holdingsList.reduce((s: number, h: any) => s + convertToCNY(h.cost, h.currency, rates), 0);
     const totalPnl = isCash ? 0 : +(actualValue - totalCost).toFixed(2);
     const adjustAmount = +((cls.targetPct / 100) * totalAssetCny - actualValue).toFixed(2);
 

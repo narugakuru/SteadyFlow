@@ -29,6 +29,6 @@
 
 ## 6. 验证与测试
 
-- [ ] 6.1 SQLite 模式验证：确认现有功能不受影响，应用正常启动、seed 正常、CRUD 正常
-- [ ] 6.2 PostgreSQL 模式验证：配置 Neon 连接串，确认迁移执行、seed 正常、基本 CRUD 正常
-- [ ] 6.3 检查 API 路由层无需改动（db.select/insert/update/delete 在两种驱动下行为一致）
+- [x] 6.1 SQLite 模式验证：确认现有功能不受影响，应用正常启动、seed 正常、CRUD 正常
+- [x] 6.2 PostgreSQL 模式验证：配置 Neon 连接串，确认迁移执行、seed 正常、基本 CRUD 正常
+- [x] 6.3 检查 API 路由层无需改动（db.select/insert/update/delete 在两种驱动下行为一致）

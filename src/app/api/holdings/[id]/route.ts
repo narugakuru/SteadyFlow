@@ -7,7 +7,7 @@ async function getValidAssetClasses(): Promise<string[]> {
   const rows = await db
     .select({ name: assetClasses.name })
     .from(assetClasses);
-  return rows.map((r) => r.name).filter((n) => n !== "现金");
+  return rows.map((r: any) => r.name).filter((n: string) => n !== "现金");
 }
 
 export async function PUT(
