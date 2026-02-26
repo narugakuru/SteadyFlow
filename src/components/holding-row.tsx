@@ -157,6 +157,7 @@ export function HoldingRow({
         <HoldingEditDialog
           holdingId={h.id}
           name={h.name}
+          ticker={h.ticker}
           marketValue={h.marketValue}
           valuationMode={h.valuationMode}
           shares={h.shares}

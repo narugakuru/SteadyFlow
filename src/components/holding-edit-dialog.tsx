@@ -23,6 +23,7 @@ import { useTriFieldLinked, TriField } from "@/lib/hooks";
 interface HoldingEditDialogProps {
   holdingId: number;
   name: string;
+  ticker?: string | null;
   marketValue: number;
   valuationMode: "amount" | "shares";
   shares: number;
@@ -37,6 +38,7 @@ interface HoldingEditDialogProps {
 export function HoldingEditDialog({
   holdingId,
   name: initName,
+  ticker: initTicker,
   marketValue: initMarketValue,
   valuationMode,
   shares: initShares,
@@ -48,6 +50,7 @@ export function HoldingEditDialog({
   onSaved,
 }: HoldingEditDialogProps) {
   const [name, setName] = useState(initName);
+  const [ticker, setTicker] = useState(initTicker || "");
   const [marketValue, setMarketValue] = useState(initMarketValue.toString());
   const [assetClass, setAssetClass] = useState(initAssetClass);
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
@@ -78,6 +81,7 @@ export function HoldingEditDialog({
     setSaving(true);
     const payload: Record<string, any> = {
       name,
+      ticker: ticker || null,
       assetClass,
     };
 
@@ -105,9 +109,15 @@ export function HoldingEditDialog({
           <DialogTitle>编辑持仓</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <Label>持仓名称</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>持仓名称</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label>股票代码（选填）</Label>
+              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
+            </div>
           </div>
 
           {isShares ? (
