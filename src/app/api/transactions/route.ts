@@ -59,8 +59,13 @@ export async function POST(request: Request) {
     return response;
   }
 
+  let body: any;
   try {
-  const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "请求体解析失败" }, { status: 400 });
+  }
+
   const {
     accountId,
     holdingId,
@@ -289,8 +294,4 @@ export async function POST(request: Request) {
     affectCash: fromDbBool(txRecord.affectCash),
     affectHolding: fromDbBool(txRecord.affectHolding),
   }, { status: 201 });
-  } catch (error) {
-    console.error("POST /api/transactions error:", error);
-    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
-  }
 }
