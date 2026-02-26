@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 
@@ -19,7 +19,6 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
 
@@ -48,7 +47,8 @@ function LoginForm() {
       return;
     }
 
-    router.push(result?.url ?? callbackUrl);
+    // 使用硬跳转确保浏览器携带新cookie发起完整请求
+    window.location.href = callbackUrl;
   };
 
   const handleGitHubLogin = async () => {
