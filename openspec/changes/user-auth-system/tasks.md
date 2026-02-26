@@ -1,8 +1,8 @@
 ## 1. 依赖安装与项目配置
 
-- [ ] 1.1 安装 auth 相关依赖：next-auth@beta (Auth.js v5), @auth/drizzle-adapter, bcrypt, @types/bcrypt
-- [ ] 1.2 新增环境变量：AUTH_SECRET, GITHUB_ID, GITHUB_SECRET（更新 .env.example）
-- [ ] 1.3 创建 GitHub OAuth 配置说明文档 docs/github-oauth-setup.md
+- [x] 1.1 安装 auth 相关依赖：next-auth@beta (Auth.js v5), @auth/drizzle-adapter, bcrypt, @types/bcrypt
+- [x] 1.2 新增环境变量：AUTH_SECRET, GITHUB_ID, GITHUB_SECRET（更新 .env.example）
+- [x] 1.3 创建 GitHub OAuth 配置说明文档 docs/github-oauth-setup.md
 
 ## 2. Auth 数据库 Schema
 

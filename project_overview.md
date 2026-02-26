@@ -12,6 +12,7 @@
 - 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)
 - 数据库：SQLite (better-sqlite3) / PostgreSQL (Neon serverless) + Drizzle ORM（通过 DB_TYPE 环境变量切换）
 - 图标：lucide-react
+- 认证：Auth.js v5 (next-auth@beta) + bcrypt
 - 数据存储：SQLite 模式 `data/invest.db`，PostgreSQL 模式通过 DATABASE_URL 连接
 
 ## 目录结构
@@ -107,3 +108,4 @@ src/
 - [2026-02-26] 修复 shares 模式首次买入/卖出市值为 0 的 bug：交易 API 的 buy/sell 副作用中，shares 模式现在用交易成交价（txPrice）更新 holding.price 并重新计算 marketValue，修正了首次买入时 holding.price 为 0 导致市值不更新的问题
 - [2026-02-26] UI 修复三项：饼图内环 Tooltip 从显示金额改为显示百分比；账户列表交易/编辑后展开状态不再收缩（修复父组件 refresh 导致 unmount）；股价更新页 shares 模式持仓增加市值/股数/股价三字段联动编辑，API 支持同时更新 price
 - [2026-02-26] 持仓编辑增加股票代码字段：HoldingEditDialog 新增 ticker 输入框（与名称并排），支持后期补充股票代码
+- [2026-02-26] 新增 Auth.js 相关依赖（next-auth@beta、@auth/drizzle-adapter、bcrypt）与 GitHub OAuth 配置文档
