@@ -72,9 +72,9 @@ export const isPostgres = dbType === "postgres";
 import { seed } from "./seed";
 if (dbType === "postgres") {
   if (pgMigratePromise) {
-    pgMigratePromise
+    (pgMigratePromise as Promise<void>)
       .then(() => seed(db))
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Postgres migrate failed:", error);
       });
   } else {

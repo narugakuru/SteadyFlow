@@ -9,7 +9,7 @@ export async function GET() {
     return response;
   }
 
-  if (session?.user?.role !== "admin") {
+  if ((session?.user as any)?.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

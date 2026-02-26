@@ -12,12 +12,13 @@ const DEFAULT_SESSION_MAX_AGE = 60 * 60 * 24;
 const REMEMBER_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: authAccounts,
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
-  }),
+  } as any) as any,
   session: {
     strategy: "jwt",
     maxAge: REMEMBER_SESSION_MAX_AGE,
@@ -36,8 +37,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         remember: { label: "Remember me", type: "checkbox" },
       },
       async authorize(credentials) {
-        const email = credentials?.email?.trim().toLowerCase();
-        const password = credentials?.password;
+        const email = (credentials?.email as string)?.trim().toLowerCase();
+        const password = credentials?.password as string;
         if (!email || !password) {
           return null;
         }
@@ -74,8 +75,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           : false;
 
         token.userId = (user as { id?: string }).id ?? token.sub;
-        token.role = (user as { role?: string }).role ?? "user";
-        token.plan = (user as { plan?: string }).plan ?? "free";
+        token.role = (user as { role?: "admin" | "user" }).role ?? "user";
+        token.plan = (user as { plan?: "free" | "pro" }).plan ?? "free";
         token.remember = remember;
         const maxAge = remember ? REMEMBER_SESSION_MAX_AGE : DEFAULT_SESSION_MAX_AGE;
         token.exp = Math.floor(Date.now() / 1000) + maxAge;
@@ -99,7 +100,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       if (token.exp) {
-        session.expires = new Date(token.exp * 1000).toISOString();
+        session.expires = new Date(token.exp * 1000).toISOString() as unknown as Date & string;
       }
 
       return session;
