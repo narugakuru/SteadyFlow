@@ -28,6 +28,7 @@ src/
 │   ├── batch-update/page.tsx       # 股价更新页
 │   ├── market/page.tsx             # 市场概览页（TradingView Widget）
 │   └── api/                        # API 路由
+│       ├── auth/                   # Auth.js 路由
 │       ├── accounts/               # 账户 CRUD
 │       ├── holdings/               # 持仓 CRUD
 │       ├── transactions/           # 交易记录 CRUD + 副作用
@@ -58,13 +59,16 @@ src/
 │   ├── schema-pg.ts                # PostgreSQL 方言 schema 定义
 │   ├── index.ts                    # 数据库连接（动态选择 SQLite/PostgreSQL）
 │   └── seed.ts                     # 种子数据（async，兼容双数据库）
-└── lib/
-    ├── utils.ts                    # 工具函数
-    ├── types.ts                    # 类型定义
-    ├── hooks.ts                    # 自定义 Hooks
-    ├── chart-colors.ts             # 图表颜色常量
-    ├── exchange-rate.ts            # 汇率获取逻辑
-    └── market-data.ts              # 市场指数数据获取（Yahoo Finance API）
+├── lib/
+│   ├── auth.ts                     # Auth.js 配置与导出
+│   ├── utils.ts                    # 工具函数
+│   ├── types.ts                    # 类型定义
+│   ├── hooks.ts                    # 自定义 Hooks
+│   ├── chart-colors.ts             # 图表颜色常量
+│   ├── exchange-rate.ts            # 汇率获取逻辑
+│   └── market-data.ts              # 市场指数数据获取（Yahoo Finance API）
+└── types/
+    └── next-auth.d.ts              # Auth.js 类型扩展
 ```
 
 ## 数据模型
@@ -114,3 +118,4 @@ src/
 - [2026-02-26] 持仓编辑增加股票代码字段：HoldingEditDialog 新增 ticker 输入框（与名称并排），支持后期补充股票代码
 - [2026-02-26] 新增 Auth.js 相关依赖（next-auth@beta、@auth/drizzle-adapter、bcrypt）与 GitHub OAuth 配置文档
 - [2026-02-26] 完成 Auth 数据表与业务表 userId 字段 schema 调整，并补充 SQLite/PG 迁移文件
+- [2026-02-26] 新增 Auth.js 配置与 NextAuth API 路由（Credentials + GitHub OAuth，JWT 写入 userId/role/plan）

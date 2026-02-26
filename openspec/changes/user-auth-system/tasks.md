@@ -16,12 +16,12 @@
 
 ## 3. Auth.js 配置
 
-- [ ] 3.1 创建 src/lib/auth.ts：配置 Auth.js v5，Drizzle Adapter（自定义表名映射 accounts → authAccounts）
-- [ ] 3.2 配置 Credentials Provider：邮箱密码登录，bcrypt.compare 验证
-- [ ] 3.3 配置 GitHub Provider：OAuth 登录
-- [ ] 3.4 配置 JWT callbacks：jwt() 写入 userId/role/plan，session() 暴露给客户端；默认过期 24h，"记住我"模式 30 天
-- [ ] 3.5 配置自定义页面路径：signIn → /login
-- [ ] 3.6 创建 src/app/api/auth/[...nextauth]/route.ts 路由
+- [x] 3.1 创建 src/lib/auth.ts：配置 Auth.js v5，Drizzle Adapter（自定义表名映射 accounts → authAccounts）
+- [x] 3.2 配置 Credentials Provider：邮箱密码登录，bcrypt.compare 验证
+- [x] 3.3 配置 GitHub Provider：OAuth 登录
+- [x] 3.4 配置 JWT callbacks：jwt() 写入 userId/role/plan，session() 暴露给客户端；默认过期 24h，"记住我"模式 30 天
+- [x] 3.5 配置自定义页面路径：signIn → /login
+- [x] 3.6 创建 src/app/api/auth/[...nextauth]/route.ts 路由
 
 ## 4. 注册与登录页面
 
