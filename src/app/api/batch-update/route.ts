@@ -4,7 +4,7 @@ import { holdings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 interface BatchPayload {
-  holdings?: { id: number; marketValue: number }[];
+  holdings?: { id: number; marketValue: number; price?: number }[];
 }
 
 export async function PUT(request: Request) {
@@ -19,8 +19,12 @@ export async function PUT(request: Request) {
   const now = new Date().toISOString();
 
   for (const h of holdingUpdates) {
+    const updateData: Record<string, any> = { marketValue: h.marketValue, updatedAt: now };
+    if (h.price !== undefined) {
+      updateData.price = h.price;
+    }
     await db.update(holdings)
-      .set({ marketValue: h.marketValue, updatedAt: now })
+      .set(updateData)
       .where(eq(holdings.id, h.id));
   }
 

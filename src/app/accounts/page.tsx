@@ -15,8 +15,8 @@ function AccountsContent() {
     ? Number(searchParams.get("accountId"))
     : undefined;
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     const [accRes, allocRes] = await Promise.all([
       fetch("/api/accounts"),
       fetch("/api/asset-allocation"),
@@ -27,11 +27,11 @@ function AccountsContent() {
     ]);
     setAccounts(accData);
     setAllocation(allocData);
-    setLoading(false);
+    if (isInitial) setLoading(false);
   }, []);
 
   useEffect(() => {
-    fetchAll();
+    fetchAll(true);
   }, [fetchAll]);
 
   if (loading || !allocation) {
@@ -52,7 +52,7 @@ function AccountsContent() {
         rates={rates}
         colorMode={allocation.settings.colorMode}
         defaultExpandId={defaultExpandId}
-        onRefresh={fetchAll}
+        onRefresh={() => fetchAll()}
       />
     </div>
   );

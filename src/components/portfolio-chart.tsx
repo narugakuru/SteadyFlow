@@ -23,10 +23,11 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
       value: a.actualValue,
       pct: a.actualPct,
       color: getClassColor(a.name),
+      ring: "outer" as const,
     }));
 
   // 外环：实际配置（按标的）
-  const holdingData: { name: string; value: number; pct: number; color: string }[] = [];
+  const holdingData: { name: string; value: number; pct: number; color: string; ring: "outer" }[] = [];
   for (const cls of allocation) {
     const gradients = getClassGradients(cls.name);
     cls.holdings.forEach((h, i) => {
@@ -36,6 +37,7 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
           value: h.marketValueCny,
           pct: h.pctOfTotal,
           color: gradients[i % gradients.length],
+          ring: "outer",
         });
       }
     });
@@ -49,6 +51,7 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
       value: a.targetPct,
       pct: a.targetPct,
       color: getClassColor(a.name),
+      ring: "inner" as const,
     }));
 
   const outerData = view === "category" ? categoryData : holdingData;
@@ -120,10 +123,13 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
               </Pie>
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                formatter={(value: any, name: any) => [
-                  `¥${Number(value).toLocaleString()}`,
-                  name,
-                ]}
+                formatter={(value: any, name: any, props: any) => {
+                  const ring = props?.payload?.ring;
+                  if (ring === "inner") {
+                    return [`${Number(value)}%`, name];
+                  }
+                  return [`¥${Number(value).toLocaleString()}`, name];
+                }}
               />
               <Legend />
             </PieChart>

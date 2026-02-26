@@ -8,8 +8,13 @@ import { Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
 import Link from "next/link";
 
+interface HoldingEdit {
+  marketValue: number;
+  price?: number;
+}
+
 interface EditState {
-  holdings: Record<number, number>;
+  holdings: Record<number, HoldingEdit>;
 }
 
 export default function BatchUpdatePage() {
@@ -41,15 +46,33 @@ export default function BatchUpdatePage() {
 
   const hasChanges = Object.keys(edits.holdings).length > 0;
 
-  const handleHoldingChange = (id: number, original: number, value: string) => {
+  const handleMarketValueChange = (h: Holding, value: string) => {
     const num = parseFloat(value);
     if (isNaN(num)) return;
     setEdits((prev) => {
       const next = { ...prev, holdings: { ...prev.holdings } };
-      if (num === original) {
-        delete next.holdings[id];
+      const isShares = h.valuationMode === "shares" && h.shares > 0;
+      const newPrice = isShares ? num / h.shares : undefined;
+      // Check if value is back to original
+      if (num === h.marketValue) {
+        delete next.holdings[h.id];
       } else {
-        next.holdings[id] = num;
+        next.holdings[h.id] = { marketValue: num, price: newPrice };
+      }
+      return next;
+    });
+  };
+
+  const handlePriceChange = (h: Holding, value: string) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return;
+    setEdits((prev) => {
+      const next = { ...prev, holdings: { ...prev.holdings } };
+      const newMarketValue = h.shares * num;
+      if (num === h.price && newMarketValue === h.marketValue) {
+        delete next.holdings[h.id];
+      } else {
+        next.holdings[h.id] = { marketValue: newMarketValue, price: num };
       }
       return next;
     });
@@ -61,9 +84,10 @@ export default function BatchUpdatePage() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        holdings: Object.entries(edits.holdings).map(([id, marketValue]) => ({
+        holdings: Object.entries(edits.holdings).map(([id, edit]) => ({
           id: Number(id),
-          marketValue,
+          marketValue: edit.marketValue,
+          ...(edit.price !== undefined ? { price: edit.price } : {}),
         })),
       }),
     });
@@ -123,24 +147,56 @@ export default function BatchUpdatePage() {
                 {accHoldings.length > 0 && (
                   <div className="space-y-1.5 pl-2">
                     {accHoldings.map((h) => {
-                      const isModified = h.id in edits.holdings;
+                      const edit = edits.holdings[h.id];
+                      const isModified = !!edit;
+                      const isShares = h.valuationMode === "shares";
+                      const modifiedStyle = "border-blue-400 bg-blue-50";
+
                       return (
-                        <div key={h.id} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <span>{h.name}</span>
+                        <div key={h.id} className="flex items-center justify-between text-sm gap-2">
+                          <div className="flex items-center gap-2 min-w-0 shrink-0">
+                            <span className="truncate">{h.name}</span>
                             <Badge variant="secondary" className={`text-xs ${getAssetClassColor(h.assetClass)}`}>
                               {h.assetClass}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">市值 ({sym})</span>
-                            <Input
-                              type="number"
-                              className={`w-32 text-right ${isModified ? "border-blue-400 bg-blue-50" : ""}`}
-                              defaultValue={h.marketValue}
-                              onChange={(e) => handleHoldingChange(h.id, h.marketValue, e.target.value)}
-                            />
-                          </div>
+                          {isShares ? (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground text-xs">市值</span>
+                                <Input
+                                  type="number"
+                                  className={`w-28 text-right ${isModified ? modifiedStyle : ""}`}
+                                  value={edit ? edit.marketValue : h.marketValue}
+                                  onChange={(e) => handleMarketValueChange(h, e.target.value)}
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground text-xs">股数</span>
+                                <span className="w-20 text-right inline-block">{h.shares.toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-muted-foreground text-xs">股价</span>
+                                <Input
+                                  type="number"
+                                  className={`w-24 text-right ${isModified ? modifiedStyle : ""}`}
+                                  value={edit?.price !== undefined ? edit.price : h.price}
+                                  onChange={(e) => handlePriceChange(h, e.target.value)}
+                                  disabled={h.shares === 0}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">市值 ({sym})</span>
+                              <Input
+                                type="number"
+                                className={`w-32 text-right ${isModified ? modifiedStyle : ""}`}
+                                defaultValue={h.marketValue}
+                                onChange={(e) => handleMarketValueChange(h, e.target.value)}
+                              />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
