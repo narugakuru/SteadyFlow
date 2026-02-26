@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 自动创建每日快照
 
@@ -32,15 +32,6 @@
 
 - **WHEN** 当前用户账户 cashBalance=50000，持仓市值=200000
 - **THEN** 快照中该账户的 totalCny 为 (50000+200000) 的 CNY 折算值，cashCny 为 50000 的 CNY 折算值
-
-### Requirement: 手动触发快照更新
-
-系统 SHALL 允许用户手动触发更新当日快照，用于在更新持仓数据后刷新当天的快照记录。
-
-#### Scenario: 更新持仓后刷新快照
-
-- **WHEN** 用户更新了持仓数据后点击"刷新快照"按钮
-- **THEN** 系统用当前最新数据覆盖今日快照
 
 ### Requirement: 快照历史查询
 

@@ -143,3 +143,4 @@ src/
 - [2026-02-26] 统一交易副作用布尔字段存储为 0/1（SQLite/PG），API 读写做 0/1 ⇄ boolean 转换；不提供迁移（手动清库）
 - [2026-02-26] PostgreSQL 启动时执行 `drizzle-pg/drizzle-pg\0000_strange_gateway.sql` 完整建表，删除 PG 历史迁移文件
 - [2026-02-26] 配置 Husky + lint-staged + Prettier 代码质量检查，每次commit进行格式检测，push前进行类型检查。
+- [2026-02-27] 归档 3 个已完成 changes（market-overview-page、bool-to-int-storage、user-auth-system），delta specs 全部同步到主 specs
