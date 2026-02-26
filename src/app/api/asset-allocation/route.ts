@@ -18,8 +18,8 @@ export async function GET() {
   const [warnRow] = await db.select().from(settings).where(eq(settings.key, "warning_threshold"));
   const [dangerRow] = await db.select().from(settings).where(eq(settings.key, "danger_threshold"));
   const [colorRow] = await db.select().from(settings).where(eq(settings.key, "color_mode"));
-  const warningThreshold = warnRow ? parseFloat(warnRow.value) : 3;
-  const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 5;
+  const warningThreshold = warnRow ? parseFloat(warnRow.value) : 5;
+  const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 15;
   const colorMode = (colorRow?.value === "us" ? "us" : "cn") as "cn" | "us";
 
   const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));

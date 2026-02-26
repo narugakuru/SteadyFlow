@@ -10,8 +10,8 @@ export async function GET() {
     result[row.key] = row.value;
   }
   return NextResponse.json({
-    warningThreshold: parseFloat(result.warning_threshold ?? "3"),
-    dangerThreshold: parseFloat(result.danger_threshold ?? "5"),
+    warningThreshold: parseFloat(result.warning_threshold ?? "5"),
+    dangerThreshold: parseFloat(result.danger_threshold ?? "15"),
     colorMode: result.color_mode ?? "cn",
   });
 }

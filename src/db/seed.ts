@@ -18,10 +18,10 @@ export async function seed(db: any) {
   // Seed global thresholds in settings
   const warningSetting = await db.select().from(settings).where(eq(settings.key, "warning_threshold"));
   if (warningSetting.length === 0) {
-    await db.insert(settings).values({ key: "warning_threshold", value: "3" });
+    await db.insert(settings).values({ key: "warning_threshold", value: "5" });
   }
   const dangerSetting = await db.select().from(settings).where(eq(settings.key, "danger_threshold"));
   if (dangerSetting.length === 0) {
-    await db.insert(settings).values({ key: "danger_threshold", value: "5" });
+    await db.insert(settings).values({ key: "danger_threshold", value: "15" });
   }
 }
