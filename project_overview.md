@@ -44,6 +44,7 @@ src/
 ├── components/
 │   ├── ui/                         # shadcn 基础组件
 │   ├── navbar.tsx                  # 全局导航栏
+│   ├── session-provider.tsx        # SessionProvider 包装
 │   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域（支持当前值高亮）
 │   ├── account-list.tsx            # 账户列表（含持仓盈亏）
 │   ├── holdings-panel.tsx          # 持仓面板（已废弃，不再被引用）
@@ -131,3 +132,4 @@ src/
 - [2026-02-26] Seed 改造：全局仅保留汇率，新增用户级 seed 并接入注册流程
 - [2026-02-26] 完成直连表 API 鉴权与 userId 过滤（accounts/asset-classes/snapshots/settings）
 - [2026-02-26] 完成间接关联表 API 鉴权与用户隔离（holdings/transactions/asset-allocation/batch-update）
+- [2026-02-26] 前端接入 SessionProvider，导航栏显示用户信息与登出

@@ -69,8 +69,8 @@
 
 ## 10. 前端 Session 适配
 
-- [ ] 10.1 layout.tsx 包裹 SessionProvider
-- [ ] 10.2 navbar.tsx 改造：右侧显示用户名/头像 + 登出按钮，admin 显示"管理"导航项
+- [x] 10.1 layout.tsx 包裹 SessionProvider
+- [x] 10.2 navbar.tsx 改造：右侧显示用户名/头像 + 登出按钮，admin 显示"管理"导航项
 - [ ] 10.3 各页面数据请求无需改动（API 层已按用户过滤），验证页面正常工作
 
 ## 11. 管理后台
