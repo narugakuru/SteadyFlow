@@ -137,3 +137,4 @@ src/
 - [2026-02-26] 完成间接关联表 API 鉴权与用户隔离（holdings/transactions/asset-allocation/batch-update）
 - [2026-02-26] 前端接入 SessionProvider，导航栏显示用户信息与登出
 - [2026-02-26] 管理后台完成：admin API + 统计面板 + 用户管理页
+- [2026-02-26] 修复数据迁移脚本为直连 SQL，避免 Node 直接加载 TS
