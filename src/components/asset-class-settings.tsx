@@ -149,7 +149,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
           {/* Global thresholds */}
           <div className="border-t pt-4">
             <p className="text-sm font-medium mb-3">全局偏离阈值（所有类别共用）</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs mb-2 block">⚠️ 警告阈值 (%)</Label>
                 <Input

@@ -72,11 +72,98 @@ export function HoldingRow({
     setTxOpen(true);
   };
 
+  const pnlDisplay = returnRate !== null ? (
+    <span className={`text-sm ${pnlColorClass(pnl, colorMode)}`}>
+      {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
+      <span className="ml-1">({returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%)</span>
+    </span>
+  ) : (
+    <span className="text-sm text-muted-foreground">--</span>
+  );
+
+  const actionButtons = (
+    <>
+      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openTx("buy")}>交易</Button>
+      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditOpen(true)}>编辑</Button>
+      {actions === "full" && (
+        <>
+          <Link href={`/transactions?accountId=${accountId}`}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">交易记录 →</Button>
+          </Link>
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive">删除</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>确认删除</AlertDialogTitle>
+                  <AlertDialogDescription>确定删除持仓"{h.name}"？</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(h.id)}>确认</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </>
+      )}
+    </>
+  );
+
   return (
     <>
       <div className="py-2 px-2 rounded hover:bg-accent/30">
-        {/* Row 1: core info */}
-        <div className="flex items-center justify-between">
+        {/* Desktop: two-row horizontal layout */}
+        <div className="hidden md:block">
+          {/* Row 1: core info */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-medium truncate">{h.name}</span>
+              {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
+              {showAccountName && accountName && (
+                <Badge variant="outline" className="text-xs shrink-0">{accountName}</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-4 shrink-0">
+              <span className="font-semibold">
+                {sym}{h.marketValue.toLocaleString()}
+                {currency !== "CNY" && (
+                  <span className="text-xs text-muted-foreground ml-1">≈ ¥{valueCny.toLocaleString()}</span>
+                )}
+              </span>
+              {pnlDisplay}
+            </div>
+          </div>
+          {/* Row 2: details + actions */}
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {h.valuationMode === "shares" && (
+                <>
+                  <span>份额 {h.shares.toLocaleString()}</span>
+                  <span>·</span>
+                  {h.shares > 0 && (
+                    <>
+                      <span>均价 {sym}{(h.cost / h.shares).toFixed(4)}</span>
+                      <span>·</span>
+                    </>
+                  )}
+                  <span>股价 {sym}{h.price}</span>
+                  <span>·</span>
+                </>
+              )}
+              <span>占比 {pctOfTotal}%</span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {actionButtons}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile: vertical stacked layout */}
+        <div className="md:hidden space-y-1.5">
+          {/* Row 1: name + tags */}
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{h.name}</span>
             {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
@@ -84,27 +171,18 @@ export function HoldingRow({
               <Badge variant="outline" className="text-xs shrink-0">{accountName}</Badge>
             )}
           </div>
-          <div className="flex items-center gap-4 shrink-0">
-            <span className="font-semibold">
+          {/* Row 2: value + pnl */}
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-sm">
               {sym}{h.marketValue.toLocaleString()}
               {currency !== "CNY" && (
                 <span className="text-xs text-muted-foreground ml-1">≈ ¥{valueCny.toLocaleString()}</span>
               )}
             </span>
-            {returnRate !== null ? (
-              <span className={`text-sm ${pnlColorClass(pnl, colorMode)}`}>
-                {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
-                <span className="ml-1">({returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%)</span>
-              </span>
-            ) : (
-              <span className="text-sm text-muted-foreground">--</span>
-            )}
+            {pnlDisplay}
           </div>
-        </div>
-
-        {/* Row 2: details + actions */}
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {/* Row 3: details */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             {h.valuationMode === "shares" && (
               <>
                 <span>份额 {h.shares.toLocaleString()}</span>
@@ -121,33 +199,9 @@ export function HoldingRow({
             )}
             <span>占比 {pctOfTotal}%</span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openTx("buy")}>交易</Button>
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditOpen(true)}>编辑</Button>
-            {actions === "full" && (
-              <>
-                <Link href={`/transactions?accountId=${accountId}`}>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">交易记录 →</Button>
-                </Link>
-                {onDelete && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive">删除</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>确认删除</AlertDialogTitle>
-                        <AlertDialogDescription>确定删除持仓"{h.name}"？</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(h.id)}>确认</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </>
-            )}
+          {/* Row 4: actions */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {actionButtons}
           </div>
         </div>
       </div>

@@ -104,9 +104,9 @@ export default function BatchUpdatePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">✏️ 批量更新</h1>
+        <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
         <div className="flex gap-2">
           <Link href="/">
             <Button variant="outline" size="sm">← 返回 Dashboard</Button>
@@ -153,7 +153,7 @@ export default function BatchUpdatePage() {
                       const modifiedStyle = "border-blue-400 bg-blue-50";
 
                       return (
-                        <div key={h.id} className="flex items-center justify-between text-sm gap-2">
+                        <div key={h.id} className="flex flex-col md:flex-row md:items-center justify-between text-sm gap-2">
                           <div className="flex items-center gap-2 min-w-0 shrink-0">
                             <span className="truncate">{h.name}</span>
                             <Badge variant="secondary" className={`text-xs ${getAssetClassColor(h.assetClass)}`}>
@@ -161,7 +161,7 @@ export default function BatchUpdatePage() {
                             </Badge>
                           </div>
                           {isShares ? (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <div className="flex items-center gap-1">
                                 <span className="text-muted-foreground text-xs">市值</span>
                                 <Input

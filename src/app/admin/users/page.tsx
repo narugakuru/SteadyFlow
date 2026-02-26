@@ -82,9 +82,9 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">用户管理</h1>
+        <h1 className="text-xl md:text-2xl font-bold">用户管理</h1>
         <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
           刷新
         </Button>
@@ -92,6 +92,7 @@ export default function AdminUsersPage() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
@@ -149,6 +150,7 @@ export default function AdminUsersPage() {
           })}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }

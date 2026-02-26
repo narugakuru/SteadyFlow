@@ -144,3 +144,4 @@ src/
 - [2026-02-26] PostgreSQL 启动时执行 `drizzle-pg/drizzle-pg\0000_strange_gateway.sql` 完整建表，删除 PG 历史迁移文件
 - [2026-02-26] 配置 Husky + lint-staged + Prettier 代码质量检查，每次commit进行格式检测，push前进行类型检查。
 - [2026-02-27] 归档 3 个已完成 changes（market-overview-page、bool-to-int-storage、user-auth-system），delta specs 全部同步到主 specs
+- [2026-02-27] 完成移动端响应式适配（P3）：导航栏改为汉堡菜单+Sheet抽屉（新增shadcn Sheet组件）；Dialog移动端底部弹出+可滚动；纪律表和账户列表移动端改为卡片布局；HoldingRow移动端垂直堆叠；所有表单网格移动端降为单列；页面容器响应式padding；表格横向滚动；使用md:断点渐进增强，同一套代码

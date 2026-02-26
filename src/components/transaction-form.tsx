@@ -295,7 +295,7 @@ export function TransactionForm({
           {inlineCreateOpen && (
             <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
               <p className="text-sm font-medium">新建持仓</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">名称</Label>
                   <Input value={newHoldingName} onChange={(e) => setNewHoldingName(e.target.value)} placeholder="如：沪深300ETF" />
@@ -305,7 +305,7 @@ export function TransactionForm({
                   <Input value={newHoldingTicker} onChange={(e) => setNewHoldingTicker(e.target.value)} placeholder="如：510300" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">估值模式</Label>
                   <Select value={newHoldingMode} onValueChange={(v) => setNewHoldingMode(v as "amount" | "shares")}>
@@ -372,7 +372,7 @@ export function TransactionForm({
 
           {isSharesMode && needsHolding ? (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>股数</Label>
                   <Input

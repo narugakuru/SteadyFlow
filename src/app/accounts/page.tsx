@@ -45,7 +45,7 @@ function AccountsContent() {
   const rates = allocation.rates.rates;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6">
       <AccountList
         accounts={accounts}
         totalAssetCny={allocation.totalAssetCny}

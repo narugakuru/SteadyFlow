@@ -54,7 +54,7 @@ export default function MarketPage() {
   const vix = data?.find((d) => d.symbol === "^VIX");
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">📊 市场概览</h1>
         <Button
@@ -83,8 +83,8 @@ export default function MarketPage() {
                 <h2 className="text-sm font-semibold text-muted-foreground mb-2">
                   {group.label}
                 </h2>
-                <div className="rounded-lg border overflow-hidden">
-                  <table className="w-full text-sm">
+                <div className="rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm min-w-[480px]">
                     <thead>
                       <tr className="border-b bg-muted/50">
                         <th className="text-left px-4 py-2 font-medium">指数</th>

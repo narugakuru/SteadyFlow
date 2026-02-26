@@ -26,7 +26,7 @@ export function RebalancePanel({ allocation, warningThreshold, colorMode }: Reba
             const isBuy = item.adjustAmount > 0;
             const absAmount = Math.abs(item.adjustAmount);
             return (
-              <div key={item.id} className="flex items-center justify-between p-3">
+              <div key={item.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 gap-1">
                 <div className="flex items-center gap-3">
                   <span className="font-medium">{item.name}</span>
                   <span className="text-sm text-muted-foreground">

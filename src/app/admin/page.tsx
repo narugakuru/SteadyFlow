@@ -51,9 +51,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">管理面板</h1>
+        <h1 className="text-xl md:text-2xl font-bold">管理面板</h1>
         <Link href="/admin/users">
           <Button size="sm">用户管理</Button>
         </Link>

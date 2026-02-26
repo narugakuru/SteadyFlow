@@ -151,7 +151,7 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
       <DialogContent>
         <DialogHeader><DialogTitle>新建持仓</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>名称</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
@@ -161,7 +161,7 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
               <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>估值模式</Label>
               <Select value={valuationMode} onValueChange={(v) => setValuationMode(v as "amount" | "shares")}>
@@ -245,6 +245,52 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
     onRefresh();
   };
 
+  // Shared expanded detail content
+  const renderExpandedDetail = (a: Account) => {
+    const sym = CURRENCY_SYMBOLS[a.currency];
+    const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
+    const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
+
+    return (
+      <div className="bg-muted/20 px-3 md:px-4 py-3">
+        {/* Account summary */}
+        <div className="flex flex-wrap items-center gap-3 md:gap-6 text-sm mb-3">
+          <span>总价值 <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span></span>
+          <span>持仓 <span className="font-semibold">{sym}{holdingsTotal.toLocaleString()}</span></span>
+          <span>现金 <span className="font-semibold">{sym}{a.cashBalance.toLocaleString()}</span></span>
+          <div className="flex-1 hidden md:block" />
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>✏️ 编辑账户</Button>
+            <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>+ 新建持仓</Button>
+          </div>
+        </div>
+        {/* Holdings list */}
+        {accountHoldings.length === 0 ? (
+          <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
+        ) : (
+          <div className="space-y-0.5">
+            {accountHoldings.map((h) => (
+              <HoldingRow
+                key={h.id}
+                holding={h}
+                currency={a.currency}
+                totalAssetCny={totalAssetCny}
+                rates={rates}
+                colorMode={colorMode}
+                actions="full"
+                accountId={a.id}
+                accounts={accounts}
+                allHoldings={allHoldings}
+                onDataChange={handleDataChange}
+                onDelete={handleDeleteHolding}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
@@ -255,58 +301,121 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
       {accounts.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无账户，点击上方添加</p>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left p-3 font-medium w-8"></th>
-                <th className="text-left p-3 font-medium">账户</th>
-                <th className="text-right p-3 font-medium">总价值</th>
-                <th className="text-right p-3 font-medium">持仓盈亏</th>
-                <th className="text-right p-3 font-medium">现金</th>
-                <th className="text-right p-3 font-medium">持仓数</th>
-                <th className="text-center p-3 font-medium w-20">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accounts.map((a) => {
-                const sym = CURRENCY_SYMBOLS[a.currency];
-                const pnl = a.holdingsPnl;
-                const holdingsCost = a.holdingsValue - a.holdingsPnl;
-                const pnlPct = holdingsCost > 0 ? ((pnl / holdingsCost) * 100).toFixed(2) : null;
-                const hasPnl = a.holdingsCount > 0;
-                const isExpanded = expanded.has(a.id);
-                const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
-                const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
+        <>
+          {/* Desktop: table layout */}
+          <div className="hidden md:block border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left p-3 font-medium w-8"></th>
+                  <th className="text-left p-3 font-medium">账户</th>
+                  <th className="text-right p-3 font-medium">总价值</th>
+                  <th className="text-right p-3 font-medium">持仓盈亏</th>
+                  <th className="text-right p-3 font-medium">现金</th>
+                  <th className="text-right p-3 font-medium">持仓数</th>
+                  <th className="text-center p-3 font-medium w-20">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((a) => {
+                  const sym = CURRENCY_SYMBOLS[a.currency];
+                  const pnl = a.holdingsPnl;
+                  const holdingsCost = a.holdingsValue - a.holdingsPnl;
+                  const pnlPct = holdingsCost > 0 ? ((pnl / holdingsCost) * 100).toFixed(2) : null;
+                  const hasPnl = a.holdingsCount > 0;
+                  const isExpanded = expanded.has(a.id);
 
-                return (
-                  <Fragment key={a.id}>
-                    <tr
-                      className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
-                      onClick={() => toggleExpand(a.id)}
-                    >
-                      <td className="p-3 text-muted-foreground">
-                        {isExpanded ? "▼" : "▶"}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{a.name}</span>
-                          <Badge variant="outline" className="text-xs">{a.currency}</Badge>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right font-semibold">{sym}{a.accountValue.toLocaleString()}</td>
-                      <td className={`p-3 text-right ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
-                        {hasPnl ? (
-                          <>
-                            {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
-                            {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
-                          </>
-                        ) : "--"}
-                      </td>
-                      <td className="p-3 text-right">{sym}{a.cashBalance.toLocaleString()}</td>
-                      <td className="p-3 text-right">{a.holdingsCount}</td>
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-center gap-0.5">
+                  return (
+                    <Fragment key={a.id}>
+                      <tr
+                        className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
+                        onClick={() => toggleExpand(a.id)}
+                      >
+                        <td className="p-3 text-muted-foreground">
+                          {isExpanded ? "▼" : "▶"}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{a.name}</span>
+                            <Badge variant="outline" className="text-xs">{a.currency}</Badge>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-semibold">{sym}{a.accountValue.toLocaleString()}</td>
+                        <td className={`p-3 text-right ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
+                          {hasPnl ? (
+                            <>
+                              {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
+                              {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
+                            </>
+                          ) : "--"}
+                        </td>
+                        <td className="p-3 text-right">{sym}{a.cashBalance.toLocaleString()}</td>
+                        <td className="p-3 text-right">{a.holdingsCount}</td>
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center gap-0.5">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditAccount(a)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>确认删除</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    将同时删除"{a.name}"下的所有持仓和交易记录，此操作不可撤销。
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteAccount(a.id)}>确认删除</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${a.id}-detail`}>
+                          <td colSpan={7}>
+                            {renderExpandedDetail(a)}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: card layout */}
+          <div className="md:hidden space-y-3">
+            {accounts.map((a) => {
+              const sym = CURRENCY_SYMBOLS[a.currency];
+              const pnl = a.holdingsPnl;
+              const holdingsCost = a.holdingsValue - a.holdingsPnl;
+              const pnlPct = holdingsCost > 0 ? ((pnl / holdingsCost) * 100).toFixed(2) : null;
+              const hasPnl = a.holdingsCount > 0;
+              const isExpanded = expanded.has(a.id);
+
+              return (
+                <div key={a.id} className="border rounded-lg overflow-hidden">
+                  <div
+                    className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => toggleExpand(a.id)}
+                  >
+                    {/* Header: name + currency + expand */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{a.name}</span>
+                        <Badge variant="outline" className="text-xs">{a.currency}</Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div onClick={(e) => e.stopPropagation()} className="flex gap-0.5">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditAccount(a)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -330,52 +439,37 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                             </AlertDialogContent>
                           </AlertDialog>
                         </div>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr key={`${a.id}-detail`}>
-                        <td colSpan={7} className="bg-muted/20 px-4 py-3">
-                          {/* Account summary */}
-                          <div className="flex items-center gap-6 text-sm mb-3">
-                            <span>总价值 <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span></span>
-                            <span>持仓 <span className="font-semibold">{sym}{holdingsTotal.toLocaleString()}</span></span>
-                            <span>现金 <span className="font-semibold">{sym}{a.cashBalance.toLocaleString()}</span></span>
-                            <div className="flex-1" />
-                            <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>✏️ 编辑账户</Button>
-                            <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>+ 新建持仓</Button>
-                          </div>
-                          {/* Holdings list */}
-                          {accountHoldings.length === 0 ? (
-                            <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
-                          ) : (
-                            <div className="space-y-0.5">
-                              {accountHoldings.map((h) => (
-                                <HoldingRow
-                                  key={h.id}
-                                  holding={h}
-                                  currency={a.currency}
-                                  totalAssetCny={totalAssetCny}
-                                  rates={rates}
-                                  colorMode={colorMode}
-                                  actions="full"
-                                  accountId={a.id}
-                                  accounts={accounts}
-                                  allHoldings={allHoldings}
-                                  onDataChange={handleDataChange}
-                                  onDelete={handleDeleteHolding}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        <span className="text-muted-foreground text-sm ml-1">{isExpanded ? "▼" : "▶"}</span>
+                      </div>
+                    </div>
+                    {/* Value row */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span>
+                      <span className={`text-xs ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
+                        {hasPnl ? (
+                          <>
+                            {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
+                            {pnlPct && <span className="ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
+                          </>
+                        ) : "--"}
+                      </span>
+                    </div>
+                    {/* Sub info */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                      <span>现金 {sym}{a.cashBalance.toLocaleString()}</span>
+                      <span>持仓 {a.holdingsCount} 个</span>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div className="border-t">
+                      {renderExpandedDetail(a)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />

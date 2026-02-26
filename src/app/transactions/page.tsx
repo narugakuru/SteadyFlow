@@ -100,15 +100,15 @@ function TransactionsContent() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-4">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">交易记录</h1>
+        <h1 className="text-xl md:text-2xl font-bold">交易记录</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>+ 新增交易</Button>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4">
-        <div className="w-48">
+      <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+        <div className="w-full md:w-48">
           <Select value={filterAccount} onValueChange={setFilterAccount}>
             <SelectTrigger><SelectValue placeholder="全部账户" /></SelectTrigger>
             <SelectContent>
@@ -119,7 +119,7 @@ function TransactionsContent() {
             </SelectContent>
           </Select>
         </div>
-        <div className="w-48">
+        <div className="w-full md:w-48">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger><SelectValue placeholder="全部类型" /></SelectTrigger>
             <SelectContent>
@@ -144,9 +144,9 @@ function TransactionsContent() {
           {transactions.map((tx) => {
             const sym = tx.accountCurrency ? CURRENCY_SYMBOLS[tx.accountCurrency] : "¥";
             return (
-              <div key={tx.id} className="border rounded-lg p-3 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
+              <div key={tx.id} className="border rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge className={TX_TYPE_COLORS[tx.type] || ""}>
                       {TX_TYPE_LABELS[tx.type] || tx.type}
                     </Badge>
@@ -166,7 +166,7 @@ function TransactionsContent() {
                       <Badge variant="outline" className="text-xs">不更新持仓</Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
                     <span className="font-semibold text-foreground">{sym}{tx.amount.toLocaleString()}</span>
                     {tx.shares != null && <span>股数: {tx.shares}</span>}
                     {tx.price != null && <span>价格: {sym}{tx.price}</span>}

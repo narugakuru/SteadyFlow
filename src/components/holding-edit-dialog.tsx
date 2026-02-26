@@ -109,7 +109,7 @@ export function HoldingEditDialog({
           <DialogTitle>编辑持仓</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <Label>持仓名称</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -122,7 +122,7 @@ export function HoldingEditDialog({
 
           {isShares ? (
             <>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <Label className={tri.computedField === "price" ? computedStyle : ""}>
                     股价 ({sym}) {tri.computedField === "price" && "·自动"}
