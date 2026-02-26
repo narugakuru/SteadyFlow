@@ -141,8 +141,14 @@ export function TransactionForm({
     });
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error || "创建失败");
+      let errorMsg = "创建失败";
+      try {
+        const data = await res.json();
+        errorMsg = data.error || errorMsg;
+      } catch {
+        // response body is not valid JSON
+      }
+      setError(errorMsg);
       setSaving(false);
       return;
     }

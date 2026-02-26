@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     return response;
   }
 
+  try {
   const body = await request.json();
   const {
     accountId,
@@ -287,4 +288,8 @@ export async function POST(request: Request) {
     affectCash: !!txRecord.affectCash,
     affectHolding: !!txRecord.affectHolding,
   }, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/transactions error:", error);
+    return NextResponse.json({ error: "服务器内部错误" }, { status: 500 });
+  }
 }

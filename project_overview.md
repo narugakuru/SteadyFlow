@@ -126,6 +126,7 @@ src/
 - [2026-02-26] 修复 shares 模式首次买入/卖出市值为 0 的 bug：交易 API 的 buy/sell 副作用中，shares 模式现在用交易成交价（txPrice）更新 holding.price 并重新计算 marketValue，修正了首次买入时 holding.price 为 0 导致市值不更新的问题
 - [2026-02-26] UI 修复三项：饼图内环 Tooltip 从显示金额改为显示百分比；账户列表交易/编辑后展开状态不再收缩（修复父组件 refresh 导致 unmount）；股价更新页 shares 模式持仓增加市值/股数/股价三字段联动编辑，API 支持同时更新 price
 - [2026-02-26] 持仓编辑增加股票代码字段：HoldingEditDialog 新增 ticker 输入框（与名称并排），支持后期补充股票代码
+- [2026-02-26] ↑↑↑以上个人使用版本开发完毕，↓↓↓接下来开始大幅重构，改为vercel+neon-pg的面向多用户的平台工具
 - [2026-02-26] 新增 Auth.js 相关依赖（next-auth@beta、@auth/drizzle-adapter、bcrypt）与 GitHub OAuth 配置文档
 - [2026-02-26] 完成 Auth 数据表与业务表 userId 字段 schema 调整，并补充 SQLite/PG 迁移文件
 - [2026-02-26] 新增 Auth.js 配置与 NextAuth API 路由（Credentials + GitHub OAuth，JWT 写入 userId/role/plan）

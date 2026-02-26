@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,9 +280,8 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                 const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
 
                 return (
-                  <>
+                  <Fragment key={a.id}>
                     <tr
-                      key={a.id}
                       className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
                       onClick={() => toggleExpand(a.id)}
                     >
@@ -371,7 +370,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
