@@ -104,3 +104,4 @@ src/
 - [2026-02-26] 新增市场概览页（/market）：通过 Yahoo Finance API 获取全球主要指数行情（美股S&P500/纳斯达克100/道琼斯、A股沪深300/上证/创业板/中证500、港股恒生/恒生科技、日股日经225/东证指数、VIX）；表格展示指数名称/最新价/涨跌/涨跌幅/更新时间，每行附 TradingView 跳转链接；VIX 区域含大字当前值 + 5级情绪阈值参考（自动高亮当前级别）；导航栏新增"市场"项
 - [2026-02-26] 双数据库支持：新增 PostgreSQL（Neon serverless）支持，通过 DB_TYPE 环境变量切换 SQLite/PostgreSQL；schema 拆分为 schema-sqlite.ts 和 schema-pg.ts，schema.ts 统一导出；db/index.ts 动态选择驱动；drizzle.config.ts 支持双方言配置；所有 API 路由改为标准异步 Drizzle API（移除 .all()/.get()/.run()）；seed.ts 改为 async；新增 drizzle-pg/ 迁移目录
 - [2026-02-26] 删除账户本金（totalCost）字段，盈亏改为持仓盈亏：accounts 表移除 totalCost 列（SQLite+PG 双 schema 同步）；账户列表删除本金列，添加/编辑账户表单删除本金输入项；账户盈亏改为持仓盈亏（Σ 持仓 marketValue-cost）；纪律表盈亏列标题改为"持仓盈亏"；交易副作用移除 totalCost 更新逻辑
+- [2026-02-26] 修复 shares 模式首次买入/卖出市值为 0 的 bug：交易 API 的 buy/sell 副作用中，shares 模式现在用交易成交价（txPrice）更新 holding.price 并重新计算 marketValue，修正了首次买入时 holding.price 为 0 导致市值不更新的问题

@@ -146,11 +146,13 @@ export async function POST(request: Request) {
       if (affectHolding && holding) {
         if (holding.valuationMode === "shares" && txShares != null) {
           const newShares = holding.shares + parseFloat(txShares);
+          const newPrice = txPrice != null ? parseFloat(txPrice) : holding.price;
           await db.update(holdings)
             .set({
               cost: holding.cost + finalAmount,
               shares: newShares,
-              marketValue: newShares * holding.price,
+              price: newPrice,
+              marketValue: newShares * newPrice,
               updatedAt: now,
             })
             .where(eq(holdings.id, holdingId));
@@ -178,11 +180,13 @@ export async function POST(request: Request) {
           const avgCost = holding.shares > 0 ? holding.cost / holding.shares : 0;
           const costReduce = parseFloat(txShares) * avgCost;
           const newShares = holding.shares - parseFloat(txShares);
+          const newPrice = txPrice != null ? parseFloat(txPrice) : holding.price;
           await db.update(holdings)
             .set({
               cost: holding.cost - costReduce,
               shares: newShares,
-              marketValue: newShares * holding.price,
+              price: newPrice,
+              marketValue: newShares * newPrice,
               updatedAt: now,
             })
             .where(eq(holdings.id, holdingId));

@@ -9,7 +9,7 @@
 
 #### Scenario: 创建买入交易（shares模式）
 - **WHEN** 用户为 shares 模式的持仓"沪深300ETF"创建买入交易，股数 1000，成交价 3.85，手续费 5，affectCash=true，affectHolding=true
-- **THEN** 系统创建交易记录，amount 自动计算为 3850，holding.cost += 3850，holding.shares += 1000，holding.marketValue = holding.shares × holding.price，account.cashBalance -= 3855
+- **THEN** 系统创建交易记录，amount 自动计算为 3850，holding.cost += 3850，holding.shares += 1000，holding.price = 3.85，holding.marketValue = holding.shares × 3.85，account.cashBalance -= 3855
 
 #### Scenario: 创建卖出交易（amount模式）
 - **WHEN** 用户为 amount 模式的持仓（cost=5000, marketValue=6000）创建卖出交易，金额 3000，affectCash=true，affectHolding=true
@@ -17,7 +17,7 @@
 
 #### Scenario: 创建卖出交易（shares模式）
 - **WHEN** 用户为 shares 模式的持仓（cost=10000, shares=2000）创建卖出交易，股数 500，成交价 6.00，affectCash=true，affectHolding=true
-- **THEN** 系统创建交易记录，amount = 3000，avgCost = 10000/2000 = 5，costReduce = 500 × 5 = 2500，holding.cost -= 2500，holding.shares -= 500，holding.marketValue = holding.shares × holding.price，account.cashBalance += 3000（减去手续费）
+- **THEN** 系统创建交易记录，amount = 3000，avgCost = 10000/2000 = 5，costReduce = 500 × 5 = 2500，holding.cost -= 2500，holding.shares -= 500，holding.price = 6.00，holding.marketValue = holding.shares × 6.00，account.cashBalance += 3000（减去手续费）
 
 #### Scenario: 创建股息交易
 - **WHEN** 用户创建股息交易，关联持仓"腾讯"，金额 500，affectCash=true
