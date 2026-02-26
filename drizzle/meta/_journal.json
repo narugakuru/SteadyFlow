@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1771917453507,
-      "tag": "0000_chunky_arachne",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1771923546556,
-      "tag": "0001_sad_supreme_intelligence",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1771992566466,
-      "tag": "0002_smooth_captain_midlands",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1772106851039,
-      "tag": "0003_user_auth_system",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1772108074694,
-      "tag": "0004_user_id_not_null",
+      "when": 1772115262463,
+      "tag": "0000_motionless_groot",
       "breakpoints": true
     }
   ]
