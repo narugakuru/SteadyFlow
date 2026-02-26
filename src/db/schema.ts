@@ -11,3 +11,7 @@ export const settings = schema.settings;
 export const exchangeRates = schema.exchangeRates;
 export const snapshots = schema.snapshots;
 export const transactions = schema.transactions;
+export const users = schema.users;
+export const authAccounts = schema.authAccounts;
+export const sessions = schema.sessions;
+export const verificationTokens = schema.verificationTokens;

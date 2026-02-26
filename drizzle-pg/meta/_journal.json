@@ -8,6 +8,13 @@
       "when": 1772079218195,
       "tag": "0000_bright_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772106869366,
+      "tag": "0001_user_auth_system",
+      "breakpoints": true
     }
   ]
 }

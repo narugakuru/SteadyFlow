@@ -6,13 +6,13 @@
 
 ## 2. Auth 数据库 Schema
 
-- [ ] 2.1 schema-pg.ts 新增 auth 表：users（含 password/role/plan 扩展字段）、authAccounts、sessions、verificationTokens
-- [ ] 2.2 schema-sqlite.ts 同步新增 auth 表，保持与 PG schema 结构一致
-- [ ] 2.3 schema-pg.ts 业务表新增 userId 字段：accounts、assetClasses、snapshots、settings（先 nullable）
-- [ ] 2.4 schema-sqlite.ts 同步业务表新增 userId 字段
-- [ ] 2.5 schema.ts 统一导出入口新增 auth 表导出
-- [ ] 2.6 snapshots 表 date 唯一约束改为 (userId, date) 联合唯一；settings 表 key 唯一约束改为 (userId, key) 联合唯一
-- [ ] 2.7 生成 Drizzle 迁移文件（SQLite + PostgreSQL 双方言）
+- [x] 2.1 schema-pg.ts 新增 auth 表：users（含 password/role/plan 扩展字段）、authAccounts、sessions、verificationTokens
+- [x] 2.2 schema-sqlite.ts 同步新增 auth 表，保持与 PG schema 结构一致
+- [x] 2.3 schema-pg.ts 业务表新增 userId 字段：accounts、assetClasses、snapshots、settings（先 nullable）
+- [x] 2.4 schema-sqlite.ts 同步业务表新增 userId 字段
+- [x] 2.5 schema.ts 统一导出入口新增 auth 表导出
+- [x] 2.6 snapshots 表 date 唯一约束改为 (userId, date) 联合唯一；settings 表 key 唯一约束改为 (userId, key) 联合唯一
+- [x] 2.7 生成 Drizzle 迁移文件（SQLite + PostgreSQL 双方言）
 
 ## 3. Auth.js 配置
 

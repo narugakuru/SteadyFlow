@@ -71,13 +71,17 @@ src/
 
 | 表名 | 用途 | 关键字段 |
 |------|------|----------|
-| accounts | 投资账户 | name, currency(CNY/USD/HKD), cashBalance(现金余额) |
+| users | 用户 | email(unique), password, role(admin/user), plan(free/pro), createdAt |
+| authAccounts | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken |
+| sessions | 会话 | sessionToken, userId(FK), expires |
+| verificationTokens | 验证令牌 | identifier, token, expires |
+| accounts | 投资账户 | userId(FK), name, currency(CNY/USD/HKD), cashBalance(现金余额) |
 | holdings | 持仓明细 | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass |
 | transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金), affectHolding(影响持仓) |
-| assetClasses | 资产类别配置 | name, targetPct(目标百分比) |
+| assetClasses | 资产类别配置 | userId(FK), name, targetPct(目标百分比) |
 | exchangeRates | 汇率 | currencyPair, rate |
-| snapshots | 每日快照 | date, totalAssetCny, dataJson |
-| settings | 系统设置 | key, value |
+| snapshots | 每日快照 | userId(FK), date, totalAssetCny, dataJson |
+| settings | 系统设置 | userId(FK), key, value |
 
 ## 已知待改进项
 
@@ -109,3 +113,4 @@ src/
 - [2026-02-26] UI 修复三项：饼图内环 Tooltip 从显示金额改为显示百分比；账户列表交易/编辑后展开状态不再收缩（修复父组件 refresh 导致 unmount）；股价更新页 shares 模式持仓增加市值/股数/股价三字段联动编辑，API 支持同时更新 price
 - [2026-02-26] 持仓编辑增加股票代码字段：HoldingEditDialog 新增 ticker 输入框（与名称并排），支持后期补充股票代码
 - [2026-02-26] 新增 Auth.js 相关依赖（next-auth@beta、@auth/drizzle-adapter、bcrypt）与 GitHub OAuth 配置文档
+- [2026-02-26] 完成 Auth 数据表与业务表 userId 字段 schema 调整，并补充 SQLite/PG 迁移文件
