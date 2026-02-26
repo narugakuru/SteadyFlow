@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { AllocationItem, AllocationHolding, Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { HoldingRow } from "@/components/holding-row";
@@ -88,9 +88,8 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
               item.status === "danger" ? "🔴" : item.status === "warning" ? "⚠️" : "✅";
 
             return (
-              <>
+              <Fragment key={item.id}>
                 <tr
-                  key={item.id}
                   className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
                   onClick={() => toggleExpand(item.id)}
                 >
@@ -190,7 +189,7 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
