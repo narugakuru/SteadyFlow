@@ -2,17 +2,15 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { holdings, assetClasses } from "@/db/schema";
 
-function getValidAssetClasses(): string[] {
-  return db
+async function getValidAssetClasses(): Promise<string[]> {
+  const rows = await db
     .select({ name: assetClasses.name })
-    .from(assetClasses)
-    .all()
-    .map((r) => r.name)
-    .filter((n) => n !== "现金");
+    .from(assetClasses);
+  return rows.map((r) => r.name).filter((n) => n !== "现金");
 }
 
 export async function GET() {
-  const rows = db.select().from(holdings).all();
+  const rows = await db.select().from(holdings);
   return NextResponse.json(rows);
 }
 
@@ -24,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const validClasses = getValidAssetClasses();
+  const validClasses = await getValidAssetClasses();
   if (!validClasses.includes(assetClass)) {
     return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
   }
@@ -36,7 +34,7 @@ export async function POST(request: Request) {
     ? finalShares * finalPrice
     : (marketValue != null ? parseFloat(marketValue) : finalCost);
 
-  const result = db
+  const [result] = await db
     .insert(holdings)
     .values({
       accountId,
@@ -49,8 +47,7 @@ export async function POST(request: Request) {
       price: finalPrice,
       assetClass,
     })
-    .returning()
-    .get();
+    .returning();
 
   return NextResponse.json(result, { status: 201 });
 }

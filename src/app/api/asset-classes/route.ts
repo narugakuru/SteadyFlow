@@ -4,7 +4,7 @@ import { assetClasses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET() {
-  const rows = db.select().from(assetClasses).all();
+  const rows = await db.select().from(assetClasses);
   return NextResponse.json(rows);
 }
 
@@ -16,21 +16,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
   }
 
-  const existing = db
+  const [existing] = await db
     .select()
     .from(assetClasses)
-    .where(eq(assetClasses.name, name.trim()))
-    .get();
+    .where(eq(assetClasses.name, name.trim()));
 
   if (existing) {
     return NextResponse.json({ error: "该类别已存在" }, { status: 400 });
   }
 
-  const result = db
+  const [result] = await db
     .insert(assetClasses)
     .values({ name: name.trim(), targetPct: 0 })
-    .returning()
-    .get();
+    .returning();
 
   return NextResponse.json(result, { status: 201 });
 }
@@ -55,12 +53,11 @@ export async function PUT(request: Request) {
   }
 
   for (const cls of classes) {
-    db.update(assetClasses)
+    await db.update(assetClasses)
       .set({ targetPct: cls.targetPct })
-      .where(eq(assetClasses.id, cls.id))
-      .run();
+      .where(eq(assetClasses.id, cls.id));
   }
 
-  const updated = db.select().from(assetClasses).all();
+  const updated = await db.select().from(assetClasses);
   return NextResponse.json(updated);
 }

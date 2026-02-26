@@ -3,13 +3,11 @@ import { db } from "@/db";
 import { holdings, assetClasses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-function getValidAssetClasses(): string[] {
-  return db
+async function getValidAssetClasses(): Promise<string[]> {
+  const rows = await db
     .select({ name: assetClasses.name })
-    .from(assetClasses)
-    .all()
-    .map((r) => r.name)
-    .filter((n) => n !== "现金");
+    .from(assetClasses);
+  return rows.map((r) => r.name).filter((n) => n !== "现金");
 }
 
 export async function PUT(
@@ -21,7 +19,7 @@ export async function PUT(
   const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass } = body;
 
   if (assetClass !== undefined) {
-    const validClasses = getValidAssetClasses();
+    const validClasses = await getValidAssetClasses();
     if (!validClasses.includes(assetClass)) {
       return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
     }
@@ -42,7 +40,7 @@ export async function PUT(
   if (price !== undefined) updateSet.price = parseFloat(price);
 
   // Get current holding to determine mode for auto-calc
-  const current = db.select().from(holdings).where(eq(holdings.id, Number(id))).get();
+  const [current] = await db.select().from(holdings).where(eq(holdings.id, Number(id)));
   if (!current) {
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
   }
@@ -56,12 +54,11 @@ export async function PUT(
     updateSet.marketValue = parseFloat(marketValue);
   }
 
-  const result = db
+  const [result] = await db
     .update(holdings)
     .set(updateSet)
     .where(eq(holdings.id, Number(id)))
-    .returning()
-    .get();
+    .returning();
 
   return NextResponse.json(result);
 }
@@ -72,11 +69,10 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  const result = db
+  const [result] = await db
     .delete(holdings)
     .where(eq(holdings.id, Number(id)))
-    .returning()
-    .get();
+    .returning();
 
   if (!result) {
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });

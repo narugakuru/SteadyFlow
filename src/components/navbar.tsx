@@ -8,6 +8,7 @@ import { AssetClassSettings } from "@/components/asset-class-settings";
 
 const navItems = [
   { href: "/", label: "总览" },
+  { href: "/market", label: "市场" },
   { href: "/accounts", label: "账户" },
   { href: "/transactions", label: "交易" },
   { href: "/snapshots", label: "快照" },

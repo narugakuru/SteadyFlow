@@ -5,14 +5,13 @@ import { eq, desc } from "drizzle-orm";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 
 export async function GET() {
-  const rows = db
+  const rows = await db
     .select()
     .from(snapshots)
-    .orderBy(desc(snapshots.date))
-    .all();
+    .orderBy(desc(snapshots.date));
 
   return NextResponse.json(
-    rows.map((r) => ({
+    rows.map((r: any) => ({
       ...r,
       dataJson: JSON.parse(r.dataJson),
     }))
@@ -22,15 +21,15 @@ export async function GET() {
 export async function POST() {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [ratesResult, allAccounts, allHoldings, allClasses] = await Promise.all([
+  const [ratesResult, allAccounts, allHoldings, allClasses]: any[] = await Promise.all([
     getExchangeRates(),
-    db.select().from(accounts).all(),
-    db.select().from(holdings).all(),
-    db.select().from(assetClasses).all(),
+    db.select().from(accounts),
+    db.select().from(holdings),
+    db.select().from(assetClasses),
   ]);
 
   const rates = ratesResult.rates;
-  const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
+  const accountMap = new Map(allAccounts.map((a: any) => [a.id, a]));
 
   // Calculate holdings value per account
   const accountHoldingsValue: Record<number, number> = {};
@@ -62,12 +61,12 @@ export async function POST() {
   }, 0);
 
   const data = {
-    allocation: allClasses.map((cls) => {
+    allocation: allClasses.map((cls: any) => {
       const actualValue = cls.name === "现金" ? totalCashCny : (classValues[cls.name] || 0);
       const actualPct = totalAssetCny > 0 ? +((actualValue / totalAssetCny) * 100).toFixed(2) : 0;
       return { name: cls.name, actualValue: +actualValue.toFixed(2), actualPct };
     }),
-    accounts: allAccounts.map((a) => {
+    accounts: allAccounts.map((a: any) => {
       const holdingsVal = accountHoldingsValue[a.id] || 0;
       const accountValue = a.cashBalance + holdingsVal;
       return {
@@ -81,28 +80,25 @@ export async function POST() {
   };
 
   // Upsert today's snapshot
-  const existing = db
+  const [existing] = await db
     .select()
     .from(snapshots)
-    .where(eq(snapshots.date, today))
-    .get();
+    .where(eq(snapshots.date, today));
 
   if (existing) {
-    db.update(snapshots)
+    await db.update(snapshots)
       .set({
         totalAssetCny: +totalAssetCny.toFixed(2),
         dataJson: JSON.stringify(data),
       })
-      .where(eq(snapshots.date, today))
-      .run();
+      .where(eq(snapshots.date, today));
   } else {
-    db.insert(snapshots)
+    await db.insert(snapshots)
       .values({
         date: today,
         totalAssetCny: +totalAssetCny.toFixed(2),
         dataJson: JSON.stringify(data),
-      })
-      .run();
+      });
   }
 
   return NextResponse.json({ date: today, totalAssetCny: +totalAssetCny.toFixed(2), data });

@@ -4,7 +4,7 @@ import { settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET() {
-  const rows = db.select().from(settings).all();
+  const rows = await db.select().from(settings);
   const result: Record<string, string> = {};
   for (const row of rows) {
     result[row.key] = row.value;
@@ -25,28 +25,28 @@ export async function PUT(request: Request) {
   }
 
   // Upsert warning_threshold
-  const existingWarn = db.select().from(settings).where(eq(settings.key, "warning_threshold")).get();
+  const [existingWarn] = await db.select().from(settings).where(eq(settings.key, "warning_threshold"));
   if (existingWarn) {
-    db.update(settings).set({ value: String(warningThreshold) }).where(eq(settings.key, "warning_threshold")).run();
+    await db.update(settings).set({ value: String(warningThreshold) }).where(eq(settings.key, "warning_threshold"));
   } else {
-    db.insert(settings).values({ key: "warning_threshold", value: String(warningThreshold) }).run();
+    await db.insert(settings).values({ key: "warning_threshold", value: String(warningThreshold) });
   }
 
   // Upsert danger_threshold
-  const existingDanger = db.select().from(settings).where(eq(settings.key, "danger_threshold")).get();
+  const [existingDanger] = await db.select().from(settings).where(eq(settings.key, "danger_threshold"));
   if (existingDanger) {
-    db.update(settings).set({ value: String(dangerThreshold) }).where(eq(settings.key, "danger_threshold")).run();
+    await db.update(settings).set({ value: String(dangerThreshold) }).where(eq(settings.key, "danger_threshold"));
   } else {
-    db.insert(settings).values({ key: "danger_threshold", value: String(dangerThreshold) }).run();
+    await db.insert(settings).values({ key: "danger_threshold", value: String(dangerThreshold) });
   }
 
   // Upsert color_mode
   if (colorMode) {
-    const existingColor = db.select().from(settings).where(eq(settings.key, "color_mode")).get();
+    const [existingColor] = await db.select().from(settings).where(eq(settings.key, "color_mode"));
     if (existingColor) {
-      db.update(settings).set({ value: String(colorMode) }).where(eq(settings.key, "color_mode")).run();
+      await db.update(settings).set({ value: String(colorMode) }).where(eq(settings.key, "color_mode"));
     } else {
-      db.insert(settings).values({ key: "color_mode", value: String(colorMode) }).run();
+      await db.insert(settings).values({ key: "color_mode", value: String(colorMode) });
     }
   }
 

@@ -5,24 +5,24 @@ import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { eq } from "drizzle-orm";
 
 export async function GET() {
-  const [ratesResult, allAccounts, allHoldings, allClasses] = await Promise.all([
+  const [ratesResult, allAccounts, allHoldings, allClasses]: any[] = await Promise.all([
     getExchangeRates(),
-    db.select().from(accounts).all(),
-    db.select().from(holdings).all(),
-    db.select().from(assetClasses).all(),
+    db.select().from(accounts),
+    db.select().from(holdings),
+    db.select().from(assetClasses),
   ]);
 
   const rates = ratesResult.rates;
 
   // Read global thresholds from settings
-  const warnRow = db.select().from(settings).where(eq(settings.key, "warning_threshold")).get();
-  const dangerRow = db.select().from(settings).where(eq(settings.key, "danger_threshold")).get();
-  const colorRow = db.select().from(settings).where(eq(settings.key, "color_mode")).get();
+  const [warnRow] = await db.select().from(settings).where(eq(settings.key, "warning_threshold"));
+  const [dangerRow] = await db.select().from(settings).where(eq(settings.key, "danger_threshold"));
+  const [colorRow] = await db.select().from(settings).where(eq(settings.key, "color_mode"));
   const warningThreshold = warnRow ? parseFloat(warnRow.value) : 3;
   const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 5;
   const colorMode = (colorRow?.value === "us" ? "us" : "cn") as "cn" | "us";
 
-  const accountMap = new Map(allAccounts.map((a) => [a.id, a]));
+  const accountMap = new Map(allAccounts.map((a: any) => [a.id, a]));
 
   // Calculate holdings value per account for total asset calculation
   const accountHoldingsValue: Record<number, number> = {};
@@ -32,7 +32,7 @@ export async function GET() {
 
   // Calculate total asset in CNY: Σ(cashBalance + holdingsValue) per account
   const totalAssetCny = allAccounts.reduce(
-    (sum, a) => {
+    (sum: number, a: any) => {
       const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
       return sum + convertToCNY(accountValue, a.currency, rates);
     },
@@ -63,7 +63,7 @@ export async function GET() {
   }
 
   // Build allocation result
-  const allocation = allClasses.map((cls) => {
+  const allocation = allClasses.map((cls: any) => {
     const isCash = cls.name === "现金";
     const actualValue = isCash ? totalCashCny : (classValues[cls.name] || 0);
     const actualPct = totalAssetCny > 0 ? +((actualValue / totalAssetCny) * 100).toFixed(2) : 0;

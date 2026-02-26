@@ -9,11 +9,10 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  const result = db
+  const [result] = await db
     .delete(transactions)
     .where(eq(transactions.id, Number(id)))
-    .returning()
-    .get();
+    .returning();
 
   if (!result) {
     return NextResponse.json({ error: "Transaction not found" }, { status: 404 });

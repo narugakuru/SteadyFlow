@@ -4,7 +4,7 @@ import { accounts, holdings } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 export async function GET() {
-  const rows = db
+  const rows = await db
     .select({
       id: accounts.id,
       name: accounts.name,
@@ -18,10 +18,9 @@ export async function GET() {
     })
     .from(accounts)
     .leftJoin(holdings, eq(accounts.id, holdings.accountId))
-    .groupBy(accounts.id)
-    .all();
+    .groupBy(accounts.id);
 
-  const result = rows.map((row) => ({
+  const result = rows.map((row: any) => ({
     ...row,
     accountValue: row.cashBalance + row.holdingsValue,
   }));
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
 
   const cashVal = parseFloat(cashBalance) || 0;
 
-  const result = db
+  const [result] = await db
     .insert(accounts)
     .values({
       name,
@@ -47,8 +46,7 @@ export async function POST(request: Request) {
       cashBalance: cashVal,
       totalCost: totalCost != null ? parseFloat(totalCost) : cashVal,
     })
-    .returning()
-    .get();
+    .returning();
 
   return NextResponse.json(result, { status: 201 });
 }

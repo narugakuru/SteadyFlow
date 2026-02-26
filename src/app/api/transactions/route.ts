@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { transactions, holdings, accounts } from "@/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   if (accountId) conditions.push(eq(transactions.accountId, Number(accountId)));
   if (type) conditions.push(eq(transactions.type, type as any));
 
-  const rows = db
+  const rows = await db
     .select({
       id: transactions.id,
       accountId: transactions.accountId,
@@ -35,10 +35,9 @@ export async function GET(request: Request) {
     .leftJoin(accounts, eq(transactions.accountId, accounts.id))
     .leftJoin(holdings, eq(transactions.holdingId, holdings.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(transactions.date), desc(transactions.id))
-    .all();
+    .orderBy(desc(transactions.date), desc(transactions.id));
 
-  const result = rows.map((r) => ({
+  const result = rows.map((r: any) => ({
     ...r,
     affectCash: !!r.affectCash,
     affectHolding: !!r.affectHolding,
@@ -90,14 +89,15 @@ export async function POST(request: Request) {
   // Get holding if needed
   let holding: any = null;
   if (holdingId) {
-    holding = db.select().from(holdings).where(eq(holdings.id, holdingId)).get();
+    const [h] = await db.select().from(holdings).where(eq(holdings.id, holdingId));
+    holding = h || null;
     if (!holding) {
       return NextResponse.json({ error: "持仓不存在" }, { status: 404 });
     }
   }
 
   // Get account
-  const account = db.select().from(accounts).where(eq(accounts.id, accountId)).get();
+  const [account] = await db.select().from(accounts).where(eq(accounts.id, accountId));
   if (!account) {
     return NextResponse.json({ error: "账户不存在" }, { status: 404 });
   }
@@ -119,7 +119,8 @@ export async function POST(request: Request) {
   }
 
   // Create transaction record
-  const txRecord = db
+  // affectCash/affectHolding: use raw values compatible with both SQLite (0/1) and PG (boolean)
+  const [txRecord] = await db
     .insert(transactions)
     .values({
       accountId,
@@ -130,12 +131,11 @@ export async function POST(request: Request) {
       shares: txShares != null ? parseFloat(txShares) : null,
       price: txPrice != null ? parseFloat(txPrice) : null,
       fee: parseFloat(fee) || 0,
-      affectCash: affectCash ? 1 : 0,
-      affectHolding: affectHolding ? 1 : 0,
+      affectCash: affectCash as any,
+      affectHolding: affectHolding as any,
       note: note || null,
     })
-    .returning()
-    .get();
+    .returning();
 
   // Apply side effects
   const feeVal = parseFloat(fee) || 0;
@@ -146,31 +146,28 @@ export async function POST(request: Request) {
       if (affectHolding && holding) {
         if (holding.valuationMode === "shares" && txShares != null) {
           const newShares = holding.shares + parseFloat(txShares);
-          db.update(holdings)
+          await db.update(holdings)
             .set({
               cost: holding.cost + finalAmount,
               shares: newShares,
               marketValue: newShares * holding.price,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId))
-            .run();
+            .where(eq(holdings.id, holdingId));
         } else {
-          db.update(holdings)
+          await db.update(holdings)
             .set({
               cost: holding.cost + finalAmount,
               marketValue: holding.marketValue + finalAmount,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId))
-            .run();
+            .where(eq(holdings.id, holdingId));
         }
       }
       if (affectCash) {
-        db.update(accounts)
+        await db.update(accounts)
           .set({ cashBalance: account.cashBalance - finalAmount - feeVal, updatedAt: now })
-          .where(eq(accounts.id, accountId))
-          .run();
+          .where(eq(accounts.id, accountId));
       }
       break;
     }
@@ -181,72 +178,66 @@ export async function POST(request: Request) {
           const avgCost = holding.shares > 0 ? holding.cost / holding.shares : 0;
           const costReduce = parseFloat(txShares) * avgCost;
           const newShares = holding.shares - parseFloat(txShares);
-          db.update(holdings)
+          await db.update(holdings)
             .set({
               cost: holding.cost - costReduce,
               shares: newShares,
               marketValue: newShares * holding.price,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId))
-            .run();
+            .where(eq(holdings.id, holdingId));
         } else {
           const costReduce = holding.marketValue > 0
             ? finalAmount * holding.cost / holding.marketValue
             : 0;
-          db.update(holdings)
+          await db.update(holdings)
             .set({
               cost: holding.cost - costReduce,
               marketValue: holding.marketValue - finalAmount,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId))
-            .run();
+            .where(eq(holdings.id, holdingId));
         }
       }
       if (affectCash) {
-        db.update(accounts)
+        await db.update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
-          .where(eq(accounts.id, accountId))
-          .run();
+          .where(eq(accounts.id, accountId));
       }
       break;
     }
 
     case "dividend": {
       if (affectCash) {
-        db.update(accounts)
+        await db.update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
-          .where(eq(accounts.id, accountId))
-          .run();
+          .where(eq(accounts.id, accountId));
       }
       break;
     }
 
     case "deposit": {
       if (affectCash) {
-        db.update(accounts)
+        await db.update(accounts)
           .set({
             totalCost: account.totalCost + finalAmount,
             cashBalance: account.cashBalance + finalAmount,
             updatedAt: now,
           })
-          .where(eq(accounts.id, accountId))
-          .run();
+          .where(eq(accounts.id, accountId));
       }
       break;
     }
 
     case "withdraw": {
       if (affectCash) {
-        db.update(accounts)
+        await db.update(accounts)
           .set({
             totalCost: account.totalCost - finalAmount,
             cashBalance: account.cashBalance - finalAmount,
             updatedAt: now,
           })
-          .where(eq(accounts.id, accountId))
-          .run();
+          .where(eq(accounts.id, accountId));
       }
       break;
     }

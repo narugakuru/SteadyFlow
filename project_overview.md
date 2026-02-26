@@ -25,6 +25,7 @@ src/
 │   ├── transactions/page.tsx       # 交易记录页
 │   ├── snapshots/page.tsx          # 快照历史页
 │   ├── batch-update/page.tsx       # 股价更新页
+│   ├── market/page.tsx             # 市场概览页（TradingView Widget）
 │   └── api/                        # API 路由
 │       ├── accounts/               # 账户 CRUD
 │       ├── holdings/               # 持仓 CRUD
@@ -36,6 +37,11 @@ src/
 ├── components/
 │   ├── ui/                         # shadcn 基础组件
 │   ├── navbar.tsx                  # 全局导航栏
+│   ├── tradingview/                # TradingView Widget 封装组件
+│   │   ├── ticker-tape.tsx         # Ticker Tape 滚动条
+│   │   ├── mini-chart.tsx          # Mini Symbol Overview 小图
+│   │   └── advanced-chart.tsx      # Advanced Chart K线图
+│   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域
 │   ├── account-list.tsx            # 账户列表（含本金/盈亏）
 │   ├── holdings-panel.tsx          # 持仓面板（已废弃，不再被引用）
 │   ├── holding-edit-dialog.tsx     # 持仓编辑弹窗（三字段联动，共享组件）
@@ -95,3 +101,4 @@ src/
 - [2026-02-25] 新建持仓/编辑持仓移除本金字段：本金由交易记录自动累积，不再支持手动填写；影响 HoldingEditDialog、HoldingForm（holdings-panel/account-list）、TransactionForm 内联新建持仓、holdings POST API（cost 改为可选默认0）
 - [2026-02-25] 重构账户模型：totalBalance 改为 cashBalance（现金余额），账户总价值改为实时计算（cashBalance + holdingsValue）；修复盈亏计算、资产配置总资产计算、快照数据；批量更新页面移除账户总额编辑只保留持仓市值更新；新建账户改为只填初始现金
 - [2026-02-25] 交易副作用拆分：affectBalance 单开关拆为 affectCash（影响账户现金）+ affectHolding（影响持仓数据）两个独立开关；支持录入已有持仓（只更新持仓不扣现金）；交易列表显示副作用状态标签；API 保持向后兼容
+- [2026-02-26] 新增市场概览页（/market）：嵌入 TradingView Widget 展示全球主要指数（美股S&P500/纳斯达克100/道琼斯、A股沪深300/上证/创业板/中证500、港股恒生/恒生科技、日股日经225/东证指数）；顶部 Ticker Tape 滚动条 + 中部 Mini Chart 网格 + 底部 VIX K线图 + 情绪阈值参考（5级表情+投资理念提示）；导航栏新增"市场"项

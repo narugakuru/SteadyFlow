@@ -11,7 +11,7 @@ export async function PUT(
   const body = await request.json();
   const { name, currency, cashBalance, totalCost } = body;
 
-  const result = db
+  const [result] = await db
     .update(accounts)
     .set({
       ...(name !== undefined && { name }),
@@ -21,8 +21,7 @@ export async function PUT(
       updatedAt: new Date().toISOString(),
     })
     .where(eq(accounts.id, Number(id)))
-    .returning()
-    .get();
+    .returning();
 
   if (!result) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
@@ -39,13 +38,12 @@ export async function DELETE(
   const numId = Number(id);
 
   // Manually delete transactions (cascade handles holdings)
-  db.delete(transactions).where(eq(transactions.accountId, numId)).run();
+  await db.delete(transactions).where(eq(transactions.accountId, numId));
 
-  const result = db
+  const [result] = await db
     .delete(accounts)
     .where(eq(accounts.id, numId))
-    .returning()
-    .get();
+    .returning();
 
   if (!result) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });

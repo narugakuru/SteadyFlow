@@ -35,29 +35,26 @@ async function fetchRatesFromAPI(): Promise<Record<string, number> | null> {
   }
 }
 
-function upsertRate(pair: string, rate: number) {
+async function upsertRate(pair: string, rate: number) {
   const now = new Date().toISOString();
-  const existing = db
+  const [existing] = await db
     .select()
     .from(exchangeRates)
-    .where(eq(exchangeRates.currencyPair, pair))
-    .get();
+    .where(eq(exchangeRates.currencyPair, pair));
 
   if (existing) {
-    db.update(exchangeRates)
+    await db.update(exchangeRates)
       .set({ rate, updatedAt: now })
-      .where(eq(exchangeRates.currencyPair, pair))
-      .run();
+      .where(eq(exchangeRates.currencyPair, pair));
   } else {
-    db.insert(exchangeRates)
-      .values({ currencyPair: pair, rate, updatedAt: now })
-      .run();
+    await db.insert(exchangeRates)
+      .values({ currencyPair: pair, rate, updatedAt: now });
   }
 }
 
 export async function getExchangeRates() {
   // Check cache first
-  const cached = db.select().from(exchangeRates).all();
+  const cached = await db.select().from(exchangeRates);
   const cacheMap: Record<string, { rate: number; updatedAt: string }> = {};
   for (const row of cached) {
     cacheMap[row.currencyPair] = { rate: row.rate, updatedAt: row.updatedAt };
@@ -85,7 +82,7 @@ export async function getExchangeRates() {
   const apiRates = await fetchRatesFromAPI();
   if (apiRates) {
     for (const [pair, rate] of Object.entries(apiRates)) {
-      upsertRate(pair, rate);
+      await upsertRate(pair, rate);
     }
     return {
       rates: apiRates,

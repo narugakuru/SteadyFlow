@@ -18,15 +18,11 @@ export async function PUT(request: Request) {
 
   const now = new Date().toISOString();
 
-  // Run all updates in a single transaction
-  db.transaction((tx) => {
-    for (const h of holdingUpdates) {
-      tx.update(holdings)
-        .set({ marketValue: h.marketValue, updatedAt: now })
-        .where(eq(holdings.id, h.id))
-        .run();
-    }
-  });
+  for (const h of holdingUpdates) {
+    await db.update(holdings)
+      .set({ marketValue: h.marketValue, updatedAt: now })
+      .where(eq(holdings.id, h.id));
+  }
 
   return NextResponse.json({
     success: true,
