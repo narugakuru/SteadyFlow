@@ -3,7 +3,7 @@ export interface Account {
   name: string;
   currency: "CNY" | "USD" | "HKD";
   cashBalance: number;
-  totalCost: number;
+  holdingsPnl: number;
   createdAt: string;
   updatedAt: string;
   holdingsValue: number;

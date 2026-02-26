@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { name, currency, cashBalance, totalCost } = body;
+  const { name, currency, cashBalance } = body;
 
   const [result] = await db
     .update(accounts)
@@ -17,7 +17,6 @@ export async function PUT(
       ...(name !== undefined && { name }),
       ...(currency !== undefined && { currency }),
       ...(cashBalance !== undefined && { cashBalance: parseFloat(cashBalance) }),
-      ...(totalCost !== undefined && { totalCost: parseFloat(totalCost) }),
       updatedAt: new Date().toISOString(),
     })
     .where(eq(accounts.id, Number(id)))

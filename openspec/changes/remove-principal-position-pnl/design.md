@@ -3,7 +3,7 @@
 当前 accounts 表有 `totalCost`（本金）字段，用于计算账户盈亏（accountValue - totalCost）。但实际上持仓已有独立的 `cost` 字段，本金与持仓成本存在语义重叠。用户需求是：只关心持仓盈亏，不需要账户级别的本金概念。
 
 涉及的代码路径：
-- 数据模型：`src/db/schema-sqlite.ts` accounts 表 `totalCost` 字段
+- 数据模型：`src/db/schema-sqlite.ts` 和 `src/db/schema-pg.ts` accounts 表 `totalCost` 字段
 - API：`/api/accounts` GET（返回 totalCost）、POST（接受 totalCost）、PUT（接受 totalCost）
 - API：`/api/transactions/route.ts` 交易副作用中可能更新 totalCost
 - 前端：`account-list.tsx`（本金列、表单、盈亏计算）、`discipline-table.tsx`（盈亏列标题）
@@ -34,9 +34,9 @@
 
 ### 2. 数据库迁移策略
 
-**选择**：通过 Drizzle ORM 的 schema 变更 + `drizzle-kit push` 直接删除列
+**选择**：通过 Drizzle ORM 的 schema 变更 + `drizzle-kit push` 直接删除列，SQLite 和 PG 两套 schema 同步修改
 
-**理由**：SQLite 开发环境，数据可重建，无需正式迁移脚本。totalCost 数据不再有用。
+**理由**：项目同时维护 SQLite（开发/本地）和 PostgreSQL（生产）两套 schema，两者需保持一致。数据可重建，无需正式迁移脚本。totalCost 数据不再有用。
 
 ### 3. API 返回值变更
 

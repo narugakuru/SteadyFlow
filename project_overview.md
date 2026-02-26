@@ -33,16 +33,13 @@ src/
 │       ├── asset-allocation/       # 资产配置
 │       ├── asset-classes/          # 资产类别
 │       ├── exchange-rates/         # 汇率
+│       ├── market/                 # 市场指数行情（Yahoo Finance）
 │       └── snapshots/              # 快照
 ├── components/
 │   ├── ui/                         # shadcn 基础组件
 │   ├── navbar.tsx                  # 全局导航栏
-│   ├── tradingview/                # TradingView Widget 封装组件
-│   │   ├── ticker-tape.tsx         # Ticker Tape 滚动条
-│   │   ├── mini-chart.tsx          # Mini Symbol Overview 小图
-│   │   └── advanced-chart.tsx      # Advanced Chart K线图
-│   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域
-│   ├── account-list.tsx            # 账户列表（含本金/盈亏）
+│   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域（支持当前值高亮）
+│   ├── account-list.tsx            # 账户列表（含持仓盈亏）
 │   ├── holdings-panel.tsx          # 持仓面板（已废弃，不再被引用）
 │   ├── holding-edit-dialog.tsx     # 持仓编辑弹窗（三字段联动，共享组件）
 │   ├── holding-row.tsx             # 持仓行组件（两行布局，纪律表/账户页共用）
@@ -65,14 +62,15 @@ src/
     ├── types.ts                    # 类型定义
     ├── hooks.ts                    # 自定义 Hooks
     ├── chart-colors.ts             # 图表颜色常量
-    └── exchange-rate.ts            # 汇率获取逻辑
+    ├── exchange-rate.ts            # 汇率获取逻辑
+    └── market-data.ts              # 市场指数数据获取（Yahoo Finance API）
 ```
 
 ## 数据模型
 
 | 表名 | 用途 | 关键字段 |
 |------|------|----------|
-| accounts | 投资账户 | name, currency(CNY/USD/HKD), cashBalance(现金余额), totalCost(累计本金) |
+| accounts | 投资账户 | name, currency(CNY/USD/HKD), cashBalance(现金余额) |
 | holdings | 持仓明细 | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass |
 | transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金), affectHolding(影响持仓) |
 | assetClasses | 资产类别配置 | name, targetPct(目标百分比) |
@@ -103,5 +101,6 @@ src/
 - [2026-02-25] 新建持仓/编辑持仓移除本金字段：本金由交易记录自动累积，不再支持手动填写；影响 HoldingEditDialog、HoldingForm（holdings-panel/account-list）、TransactionForm 内联新建持仓、holdings POST API（cost 改为可选默认0）
 - [2026-02-25] 重构账户模型：totalBalance 改为 cashBalance（现金余额），账户总价值改为实时计算（cashBalance + holdingsValue）；修复盈亏计算、资产配置总资产计算、快照数据；批量更新页面移除账户总额编辑只保留持仓市值更新；新建账户改为只填初始现金
 - [2026-02-25] 交易副作用拆分：affectBalance 单开关拆为 affectCash（影响账户现金）+ affectHolding（影响持仓数据）两个独立开关；支持录入已有持仓（只更新持仓不扣现金）；交易列表显示副作用状态标签；API 保持向后兼容
-- [2026-02-26] 新增市场概览页（/market）：嵌入 TradingView Widget 展示全球主要指数（美股S&P500/纳斯达克100/道琼斯、A股沪深300/上证/创业板/中证500、港股恒生/恒生科技、日股日经225/东证指数）；顶部 Ticker Tape 滚动条 + 中部 Mini Chart 网格 + 底部 VIX K线图 + 情绪阈值参考（5级表情+投资理念提示）；导航栏新增"市场"项
+- [2026-02-26] 新增市场概览页（/market）：通过 Yahoo Finance API 获取全球主要指数行情（美股S&P500/纳斯达克100/道琼斯、A股沪深300/上证/创业板/中证500、港股恒生/恒生科技、日股日经225/东证指数、VIX）；表格展示指数名称/最新价/涨跌/涨跌幅/更新时间，每行附 TradingView 跳转链接；VIX 区域含大字当前值 + 5级情绪阈值参考（自动高亮当前级别）；导航栏新增"市场"项
 - [2026-02-26] 双数据库支持：新增 PostgreSQL（Neon serverless）支持，通过 DB_TYPE 环境变量切换 SQLite/PostgreSQL；schema 拆分为 schema-sqlite.ts 和 schema-pg.ts，schema.ts 统一导出；db/index.ts 动态选择驱动；drizzle.config.ts 支持双方言配置；所有 API 路由改为标准异步 Drizzle API（移除 .all()/.get()/.run()）；seed.ts 改为 async；新增 drizzle-pg/ 迁移目录
+- [2026-02-26] 删除账户本金（totalCost）字段，盈亏改为持仓盈亏：accounts 表移除 totalCost 列（SQLite+PG 双 schema 同步）；账户列表删除本金列，添加/编辑账户表单删除本金输入项；账户盈亏改为持仓盈亏（Σ 持仓 marketValue-cost）；纪律表盈亏列标题改为"持仓盈亏"；交易副作用移除 totalCost 更新逻辑

@@ -220,7 +220,6 @@ export async function POST(request: Request) {
       if (affectCash) {
         await db.update(accounts)
           .set({
-            totalCost: account.totalCost + finalAmount,
             cashBalance: account.cashBalance + finalAmount,
             updatedAt: now,
           })
@@ -233,7 +232,6 @@ export async function POST(request: Request) {
       if (affectCash) {
         await db.update(accounts)
           .set({
-            totalCost: account.totalCost - finalAmount,
             cashBalance: account.cashBalance - finalAmount,
             updatedAt: now,
           })

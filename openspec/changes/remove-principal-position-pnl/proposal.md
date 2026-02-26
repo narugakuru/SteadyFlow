@@ -24,7 +24,7 @@
 
 ## Impact
 
-- 数据模型：accounts 表删除 `totalCost` 列（需数据库迁移）
+- 数据模型：accounts 表删除 `totalCost` 列（SQLite + PG 两套 schema 同步修改，需数据库迁移）
 - API：`/api/accounts` GET 返回值移除 totalCost，新增 holdingsPnl；POST/PUT 不再接受 totalCost 参数
 - 前端组件：`account-list.tsx`（表头、表单、盈亏计算）、`discipline-table.tsx`（列标题）
 - 类型定义：`types.ts` 中 Account 类型移除 totalCost，新增 holdingsPnl

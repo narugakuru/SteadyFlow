@@ -46,7 +46,6 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
   const [name, setName] = useState(account?.name ?? "");
   const [currency, setCurrency] = useState<string>(account?.currency ?? "CNY");
   const [cashBalance, setCashBalance] = useState(account?.cashBalance?.toString() ?? "");
-  const [totalCost, setTotalCost] = useState(account?.totalCost?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const isEdit = !!account;
 
@@ -60,7 +59,6 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
         name,
         currency,
         cashBalance: parseFloat(cashBalance) || 0,
-        totalCost: parseFloat(totalCost) || 0,
       }),
     });
     setSaving(false);
@@ -93,10 +91,6 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
           <div>
             <Label>{isEdit ? "现金余额" : "初始现金"} ({CURRENCY_SYMBOLS[currency]})</Label>
             <Input type="number" value={cashBalance} onChange={(e) => setCashBalance(e.target.value)} placeholder="0" />
-          </div>
-          <div>
-            <Label>账户本金 ({CURRENCY_SYMBOLS[currency]})（选填，不填则等于现金）</Label>
-            <Input type="number" value={totalCost} onChange={(e) => setTotalCost(e.target.value)} placeholder="不填则等于现金" />
           </div>
           <Button onClick={handleSubmit} disabled={saving || !name} className="w-full">
             {saving ? "保存中..." : "保存"}
@@ -268,8 +262,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                 <th className="text-left p-3 font-medium w-8"></th>
                 <th className="text-left p-3 font-medium">账户</th>
                 <th className="text-right p-3 font-medium">总价值</th>
-                <th className="text-right p-3 font-medium">本金</th>
-                <th className="text-right p-3 font-medium">盈亏</th>
+                <th className="text-right p-3 font-medium">持仓盈亏</th>
                 <th className="text-right p-3 font-medium">现金</th>
                 <th className="text-right p-3 font-medium">持仓数</th>
                 <th className="text-center p-3 font-medium w-20">操作</th>
@@ -278,8 +271,10 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
             <tbody>
               {accounts.map((a) => {
                 const sym = CURRENCY_SYMBOLS[a.currency];
-                const pnl = a.totalCost > 0 ? a.accountValue - a.totalCost : 0;
-                const pnlPct = a.totalCost > 0 ? ((pnl / a.totalCost) * 100).toFixed(2) : null;
+                const pnl = a.holdingsPnl;
+                const holdingsCost = a.holdingsValue - a.holdingsPnl;
+                const pnlPct = holdingsCost > 0 ? ((pnl / holdingsCost) * 100).toFixed(2) : null;
+                const hasPnl = a.holdingsCount > 0;
                 const isExpanded = expanded.has(a.id);
                 const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
                 const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
@@ -301,9 +296,8 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                         </div>
                       </td>
                       <td className="p-3 text-right font-semibold">{sym}{a.accountValue.toLocaleString()}</td>
-                      <td className="p-3 text-right">{sym}{a.totalCost.toLocaleString()}</td>
-                      <td className={`p-3 text-right ${a.totalCost > 0 ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
-                        {a.totalCost > 0 ? (
+                      <td className={`p-3 text-right ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
+                        {hasPnl ? (
                           <>
                             {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
                             {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
@@ -341,7 +335,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                     </tr>
                     {isExpanded && (
                       <tr key={`${a.id}-detail`}>
-                        <td colSpan={8} className="bg-muted/20 px-4 py-3">
+                        <td colSpan={7} className="bg-muted/20 px-4 py-3">
                           {/* Account summary */}
                           <div className="flex items-center gap-6 text-sm mb-3">
                             <span>总价值 <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span></span>

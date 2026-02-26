@@ -6,7 +6,6 @@ export const accounts = pgTable("accounts", {
   name: text("name").notNull(),
   currency: varchar("currency", { length: 3 }).notNull(),
   cashBalance: doublePrecision("cash_balance").notNull().default(0),
-  totalCost: doublePrecision("total_cost").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`now()`),
   updatedAt: text("updated_at").notNull().default(sql`now()`),
 });

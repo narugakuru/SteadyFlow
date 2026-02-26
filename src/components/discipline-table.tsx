@@ -63,7 +63,7 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
             <th className="text-left p-3 font-medium">资产类别</th>
             <th className="text-right p-3 font-medium">实际 / 目标</th>
             <th className="text-right p-3 font-medium">金额 (¥)</th>
-            <th className="text-right p-3 font-medium">盈亏</th>
+            <th className="text-right p-3 font-medium">持仓盈亏</th>
             <th className="text-center p-3 font-medium">状态</th>
           </tr>
         </thead>
