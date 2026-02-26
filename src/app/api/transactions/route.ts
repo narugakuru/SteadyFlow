@@ -23,7 +23,8 @@ export async function GET(request: Request) {
       shares: transactions.shares,
       price: transactions.price,
       fee: transactions.fee,
-      affectBalance: transactions.affectBalance,
+      affectCash: transactions.affectCash,
+      affectHolding: transactions.affectHolding,
       note: transactions.note,
       createdAt: transactions.createdAt,
       accountName: accounts.name,
@@ -39,7 +40,8 @@ export async function GET(request: Request) {
 
   const result = rows.map((r) => ({
     ...r,
-    affectBalance: !!r.affectBalance,
+    affectCash: !!r.affectCash,
+    affectHolding: !!r.affectHolding,
   }));
 
   return NextResponse.json(result);
@@ -56,9 +58,20 @@ export async function POST(request: Request) {
     shares: txShares,
     price: txPrice,
     fee = 0,
-    affectBalance = true,
     note,
   } = body;
+
+  // Resolve affectCash / affectHolding with backward compat for affectBalance
+  let affectCash: boolean;
+  let affectHolding: boolean;
+  if (body.affectCash !== undefined || body.affectHolding !== undefined) {
+    affectCash = body.affectCash !== undefined ? !!body.affectCash : true;
+    affectHolding = body.affectHolding !== undefined ? !!body.affectHolding : true;
+  } else {
+    const legacy = body.affectBalance !== undefined ? !!body.affectBalance : true;
+    affectCash = legacy;
+    affectHolding = legacy;
+  }
 
   if (!accountId || !type || !date || amount == null) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -117,21 +130,21 @@ export async function POST(request: Request) {
       shares: txShares != null ? parseFloat(txShares) : null,
       price: txPrice != null ? parseFloat(txPrice) : null,
       fee: parseFloat(fee) || 0,
-      affectBalance: affectBalance ? 1 : 0,
+      affectCash: affectCash ? 1 : 0,
+      affectHolding: affectHolding ? 1 : 0,
       note: note || null,
     })
     .returning()
     .get();
 
-  // Apply side effects only if affectBalance is true
-  if (affectBalance) {
-    const feeVal = parseFloat(fee) || 0;
-    const now = new Date().toISOString();
+  // Apply side effects
+  const feeVal = parseFloat(fee) || 0;
+  const now = new Date().toISOString();
 
-    switch (type) {
-      case "buy": {
+  switch (type) {
+    case "buy": {
+      if (affectHolding && holding) {
         if (holding.valuationMode === "shares" && txShares != null) {
-          // shares mode: cost += amount, shares += txShares, marketValue = shares * price
           const newShares = holding.shares + parseFloat(txShares);
           db.update(holdings)
             .set({
@@ -143,7 +156,6 @@ export async function POST(request: Request) {
             .where(eq(holdings.id, holdingId))
             .run();
         } else {
-          // amount mode: cost += amount, marketValue += amount
           db.update(holdings)
             .set({
               cost: holding.cost + finalAmount,
@@ -153,17 +165,19 @@ export async function POST(request: Request) {
             .where(eq(holdings.id, holdingId))
             .run();
         }
-        // account: cashBalance -= (amount + fee)
+      }
+      if (affectCash) {
         db.update(accounts)
           .set({ cashBalance: account.cashBalance - finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountId))
           .run();
-        break;
       }
+      break;
+    }
 
-      case "sell": {
+    case "sell": {
+      if (affectHolding && holding) {
         if (holding.valuationMode === "shares" && txShares != null) {
-          // shares mode: avgCost, reduce cost and shares
           const avgCost = holding.shares > 0 ? holding.cost / holding.shares : 0;
           const costReduce = parseFloat(txShares) * avgCost;
           const newShares = holding.shares - parseFloat(txShares);
@@ -177,7 +191,6 @@ export async function POST(request: Request) {
             .where(eq(holdings.id, holdingId))
             .run();
         } else {
-          // amount mode: costReduce = amount * cost / marketValue
           const costReduce = holding.marketValue > 0
             ? finalAmount * holding.cost / holding.marketValue
             : 0;
@@ -190,25 +203,28 @@ export async function POST(request: Request) {
             .where(eq(holdings.id, holdingId))
             .run();
         }
-        // account: cashBalance += (amount - fee)
+      }
+      if (affectCash) {
         db.update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountId))
           .run();
-        break;
       }
+      break;
+    }
 
-      case "dividend": {
-        // account: cashBalance += (amount - fee)
+    case "dividend": {
+      if (affectCash) {
         db.update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountId))
           .run();
-        break;
       }
+      break;
+    }
 
-      case "deposit": {
-        // account: totalCost += amount, cashBalance += amount
+    case "deposit": {
+      if (affectCash) {
         db.update(accounts)
           .set({
             totalCost: account.totalCost + finalAmount,
@@ -217,11 +233,12 @@ export async function POST(request: Request) {
           })
           .where(eq(accounts.id, accountId))
           .run();
-        break;
       }
+      break;
+    }
 
-      case "withdraw": {
-        // account: totalCost -= amount, cashBalance -= amount
+    case "withdraw": {
+      if (affectCash) {
         db.update(accounts)
           .set({
             totalCost: account.totalCost - finalAmount,
@@ -230,10 +247,14 @@ export async function POST(request: Request) {
           })
           .where(eq(accounts.id, accountId))
           .run();
-        break;
       }
+      break;
     }
   }
 
-  return NextResponse.json({ ...txRecord, affectBalance: !!txRecord.affectBalance }, { status: 201 });
+  return NextResponse.json({
+    ...txRecord,
+    affectCash: !!txRecord.affectCash,
+    affectHolding: !!txRecord.affectHolding,
+  }, { status: 201 });
 }

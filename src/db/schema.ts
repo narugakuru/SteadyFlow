@@ -68,7 +68,8 @@ export const transactions = sqliteTable("transactions", {
   shares: real("shares"),
   price: real("price"),
   fee: real("fee").notNull().default(0),
-  affectBalance: integer("affect_balance").notNull().default(1),
+  affectCash: integer("affect_cash").notNull().default(1),
+  affectHolding: integer("affect_holding").notNull().default(1),
   note: text("note"),
   createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
 });

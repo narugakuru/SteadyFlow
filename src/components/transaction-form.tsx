@@ -54,7 +54,8 @@ export function TransactionForm({
   const [fee, setFee] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [note, setNote] = useState("");
-  const [affectBalance, setAffectBalance] = useState(true);
+  const [affectCash, setAffectCash] = useState(true);
+  const [affectHolding, setAffectHolding] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   // Inline holding creation
@@ -86,7 +87,8 @@ export function TransactionForm({
       setFee("");
       setDate(new Date().toISOString().split("T")[0]);
       setNote("");
-      setAffectBalance(true);
+      setAffectCash(true);
+      setAffectHolding(true);
       setError("");
       setInlineCreateOpen(false);
       setLocalHoldings(holdings);
@@ -118,7 +120,8 @@ export function TransactionForm({
       date,
       amount: computedAmount ? parseFloat(computedAmount) : parseFloat(amount) || 0,
       fee: parseFloat(fee) || 0,
-      affectBalance,
+      affectCash,
+      affectHolding,
       note: note || null,
     };
 
@@ -395,18 +398,34 @@ export function TransactionForm({
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="affect-balance" className="cursor-pointer">
-              影响账户余额
+            <Label htmlFor="affect-cash" className="cursor-pointer">
+              影响账户现金
             </Label>
             <Switch
-              id="affect-balance"
-              checked={affectBalance}
-              onCheckedChange={setAffectBalance}
+              id="affect-cash"
+              checked={affectCash}
+              onCheckedChange={setAffectCash}
             />
           </div>
-          {!affectBalance && (
+          {(type === "buy" || type === "sell") && (
+            <div className="flex items-center justify-between">
+              <Label htmlFor="affect-holding" className="cursor-pointer">
+                影响持仓数据
+              </Label>
+              <Switch
+                id="affect-holding"
+                checked={affectHolding}
+                onCheckedChange={setAffectHolding}
+              />
+            </div>
+          )}
+          {(!affectCash || ((type === "buy" || type === "sell") && !affectHolding)) && (
             <p className="text-xs text-muted-foreground">
-              关闭后仅记录交易，不修改持仓和账户数据（适用于补录历史记录）
+              {!affectCash && !affectHolding
+                ? "仅记录交易，不修改持仓和账户数据（适用于补录历史记录）"
+                : !affectCash
+                ? "不扣减/增加账户现金（适用于录入已有持仓）"
+                : "不更新持仓数据（仅影响现金）"}
             </p>
           )}
 

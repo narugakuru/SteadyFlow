@@ -36,7 +36,8 @@ export interface Transaction {
   shares: number | null;
   price: number | null;
   fee: number;
-  affectBalance: boolean;
+  affectCash: boolean;
+  affectHolding: boolean;
   note: string | null;
   createdAt: string;
   // joined fields for display

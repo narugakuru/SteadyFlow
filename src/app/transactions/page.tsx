@@ -156,8 +156,14 @@ function TransactionsContent() {
                         · {tx.holdingName}
                       </Link>
                     )}
-                    {!tx.affectBalance && (
+                    {!tx.affectCash && !tx.affectHolding && (
                       <Badge variant="outline" className="text-xs">仅记录</Badge>
+                    )}
+                    {!tx.affectCash && tx.affectHolding && (
+                      <Badge variant="outline" className="text-xs">不扣现金</Badge>
+                    )}
+                    {tx.affectCash && !tx.affectHolding && (
+                      <Badge variant="outline" className="text-xs">不更新持仓</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
