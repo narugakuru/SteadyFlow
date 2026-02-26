@@ -83,23 +83,24 @@ src/
 
 ## 数据模型
 
-| 表名 | 用途 | 关键字段 |
-|------|------|----------|
-| users | 用户 | email(unique), password, role(admin/user), plan(free/pro), createdAt |
-| authAccounts | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken |
-| sessions | 会话 | sessionToken, userId(FK), expires |
-| verificationTokens | 验证令牌 | identifier, token, expires |
-| accounts | 投资账户 | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额) |
-| holdings | 持仓明细 | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass |
-| transactions | 交易记录 | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
-| assetClasses | 资产类别配置 | userId(FK, not null), name, targetPct(目标百分比) |
-| exchangeRates | 汇率 | currencyPair, rate |
-| snapshots | 每日快照 | userId(FK, not null), date, totalAssetCny, dataJson |
-| settings | 系统设置 | userId(FK, not null), key, value |
+| 表名               | 用途           | 关键字段                                                                                                                                                              |
+| ------------------ | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| users              | 用户           | email(unique), password, role(admin/user), plan(free/pro), createdAt                                                                                                  |
+| authAccounts       | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken                                                                                                                  |
+| sessions           | 会话           | sessionToken, userId(FK), expires                                                                                                                                     |
+| verificationTokens | 验证令牌       | identifier, token, expires                                                                                                                                            |
+| accounts           | 投资账户       | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额)                                                                                              |
+| holdings           | 持仓明细       | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass                                                               |
+| transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
+| assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                     |
+| exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                    |
+| snapshots          | 每日快照       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
+| settings           | 系统设置       | userId(FK, not null), key, value                                                                                                                                      |
 
 ## 已知待改进项
 
 详见 `docs/improvement-proposals.md`，按优先级排列：
+
 - P0：资产类别动态化（当前 enum 硬编码）、批量更新市值 （均已完成）
 - P1：~~再平衡建议~~（已完成）、~~成本基础+盈亏计算~~（已完成）、~~可视化图表~~（已完成）
 - P2：收益率追踪、~~现金处理优化~~（已完成）、快照历史增强、币种动态化
@@ -140,4 +141,5 @@ src/
 - [2026-02-26] 管理后台完成：admin API + 统计面板 + 用户管理页
 - [2026-02-26] 修复数据迁移脚本为直连 SQL，避免 Node 直接加载 TS
 - [2026-02-26] 统一交易副作用布尔字段存储为 0/1（SQLite/PG），API 读写做 0/1 ⇄ boolean 转换；不提供迁移（手动清库）
-- [2026-02-26] PostgreSQL 启动时执行 `drizzle-pg/init.sql` 完整建表，删除 PG 历史迁移文件
+- [2026-02-26] PostgreSQL 启动时执行 `drizzle-pg/drizzle-pg\0000_strange_gateway.sql` 完整建表，删除 PG 历史迁移文件
+- [2026-02-26] 配置 Husky + lint-staged + Prettier 代码质量检查，每次commit进行格式检测，push前进行类型检查。

@@ -12,12 +12,12 @@ const DEFAULT_SESSION_MAX_AGE = 60 * 60 * 24;
 const REMEMBER_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: authAccounts,
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any) as any,
   session: {
     strategy: "jwt",
@@ -28,6 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_ID ?? "",
       clientSecret: process.env.GITHUB_SECRET ?? "",
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       name: "Credentials",
@@ -70,9 +71,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const remember = typeof (user as { remember?: boolean }).remember === "boolean"
-          ? (user as { remember?: boolean }).remember
-          : false;
+        const remember =
+          typeof (user as { remember?: boolean }).remember === "boolean"
+            ? (user as { remember?: boolean }).remember
+            : false;
 
         token.userId = (user as { id?: string }).id ?? token.sub;
         token.role = (user as { role?: "admin" | "user" }).role ?? "user";
