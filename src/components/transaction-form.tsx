@@ -210,6 +210,24 @@ export function TransactionForm({
             </Select>
           </div>
 
+          {accountId && (
+            <div className="flex items-center justify-between pl-1">
+              <Label htmlFor="affect-cash" className="cursor-pointer text-sm text-muted-foreground">
+                影响账户现金
+              </Label>
+              <Switch
+                id="affect-cash"
+                checked={affectCash}
+                onCheckedChange={setAffectCash}
+              />
+            </div>
+          )}
+          {accountId && !affectCash && (
+            <p className="text-xs text-muted-foreground pl-1">
+              不扣减/增加账户现金（适用于录入已有持仓）
+            </p>
+          )}
+
           {(needsHolding || optionalHolding) && accountId && (
             <div>
               <Label>{needsHolding ? "持仓" : "关联持仓（选填）"}</Label>
@@ -247,6 +265,24 @@ export function TransactionForm({
                 </SelectContent>
               </Select>
             </div>
+          )}
+
+          {(type === "buy" || type === "sell") && holdingId && holdingId !== "none" && (
+            <div className="flex items-center justify-between pl-1">
+              <Label htmlFor="affect-holding" className="cursor-pointer text-sm text-muted-foreground">
+                影响持仓数据
+              </Label>
+              <Switch
+                id="affect-holding"
+                checked={affectHolding}
+                onCheckedChange={setAffectHolding}
+              />
+            </div>
+          )}
+          {(type === "buy" || type === "sell") && holdingId && holdingId !== "none" && !affectHolding && (
+            <p className="text-xs text-muted-foreground pl-1">
+              不更新持仓数据（仅影响现金）
+            </p>
           )}
 
           {/* Inline holding creation mini-form */}
@@ -396,38 +432,6 @@ export function TransactionForm({
               placeholder="如：定投第3期"
             />
           </div>
-
-          <div className="flex items-center justify-between">
-            <Label htmlFor="affect-cash" className="cursor-pointer">
-              影响账户现金
-            </Label>
-            <Switch
-              id="affect-cash"
-              checked={affectCash}
-              onCheckedChange={setAffectCash}
-            />
-          </div>
-          {(type === "buy" || type === "sell") && (
-            <div className="flex items-center justify-between">
-              <Label htmlFor="affect-holding" className="cursor-pointer">
-                影响持仓数据
-              </Label>
-              <Switch
-                id="affect-holding"
-                checked={affectHolding}
-                onCheckedChange={setAffectHolding}
-              />
-            </div>
-          )}
-          {(!affectCash || ((type === "buy" || type === "sell") && !affectHolding)) && (
-            <p className="text-xs text-muted-foreground">
-              {!affectCash && !affectHolding
-                ? "仅记录交易，不修改持仓和账户数据（适用于补录历史记录）"
-                : !affectCash
-                ? "不扣减/增加账户现金（适用于录入已有持仓）"
-                : "不更新持仓数据（仅影响现金）"}
-            </p>
-          )}
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
