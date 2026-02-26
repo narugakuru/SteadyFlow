@@ -1,25 +1,61 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { holdings, assetClasses } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { accounts, holdings, assetClasses } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-utils";
 
-async function getValidAssetClasses(): Promise<string[]> {
+async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db
     .select({ name: assetClasses.name })
-    .from(assetClasses);
+    .from(assetClasses)
+    .where(eq(assetClasses.userId, userId));
   return rows.map((r: any) => r.name).filter((n: string) => n !== "现金");
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
+  const { id } = await params;
+  const numId = Number(id);
+
+  const [holding] = await db.select().from(holdings).where(eq(holdings.id, numId));
+  if (!holding) {
+    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
+
+  const [account] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.id, holding.accountId), eq(accounts.userId, userId)))
+    .limit(1);
+  if (!account) {
+    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(holding);
 }
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const { id } = await params;
   const body = await request.json();
   const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass } = body;
 
   if (assetClass !== undefined) {
-    const validClasses = await getValidAssetClasses();
+    const validClasses = await getValidAssetClasses(userId);
     if (!validClasses.includes(assetClass)) {
       return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
     }
@@ -45,6 +81,15 @@ export async function PUT(
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
   }
 
+  const [account] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.id, current.accountId), eq(accounts.userId, userId)))
+    .limit(1);
+  if (!account) {
+    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
+
   const effectiveMode = valuationMode ?? current.valuationMode;
   if (effectiveMode === "shares") {
     const effectiveShares = shares !== undefined ? parseFloat(shares) : current.shares;
@@ -67,11 +112,31 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const { id } = await params;
+  const numId = Number(id);
+
+  const [holding] = await db.select().from(holdings).where(eq(holdings.id, numId));
+  if (!holding) {
+    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
+
+  const [account] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.id, holding.accountId), eq(accounts.userId, userId)))
+    .limit(1);
+  if (!account) {
+    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
 
   const [result] = await db
     .delete(holdings)
-    .where(eq(holdings.id, Number(id)))
+    .where(eq(holdings.id, numId))
     .returning();
 
   if (!result) {

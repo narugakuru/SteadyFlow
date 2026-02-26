@@ -2,22 +2,41 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses, settings } from "@/db/schema";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-utils";
 
 export async function GET() {
-  const [ratesResult, allAccounts, allHoldings, allClasses]: any[] = await Promise.all([
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
+  const [ratesResult, allAccounts, allClasses]: any[] = await Promise.all([
     getExchangeRates(),
-    db.select().from(accounts),
-    db.select().from(holdings),
-    db.select().from(assetClasses),
+    db.select().from(accounts).where(eq(accounts.userId, userId)),
+    db.select().from(assetClasses).where(eq(assetClasses.userId, userId)),
   ]);
+
+  const accountIds = allAccounts.map((account: any) => account.id);
+  const allHoldings = accountIds.length
+    ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
+    : [];
 
   const rates = ratesResult.rates;
 
   // Read global thresholds from settings
-  const [warnRow] = await db.select().from(settings).where(eq(settings.key, "warning_threshold"));
-  const [dangerRow] = await db.select().from(settings).where(eq(settings.key, "danger_threshold"));
-  const [colorRow] = await db.select().from(settings).where(eq(settings.key, "color_mode"));
+  const [warnRow] = await db
+    .select()
+    .from(settings)
+    .where(and(eq(settings.userId, userId), eq(settings.key, "warning_threshold")));
+  const [dangerRow] = await db
+    .select()
+    .from(settings)
+    .where(and(eq(settings.userId, userId), eq(settings.key, "danger_threshold")));
+  const [colorRow] = await db
+    .select()
+    .from(settings)
+    .where(and(eq(settings.userId, userId), eq(settings.key, "color_mode")));
   const warningThreshold = warnRow ? parseFloat(warnRow.value) : 5;
   const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 15;
   const colorMode = (colorRow?.value === "us" ? "us" : "cn") as "cn" | "us";

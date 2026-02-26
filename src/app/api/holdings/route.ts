@@ -1,20 +1,41 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { holdings, assetClasses } from "@/db/schema";
+import { accounts, holdings, assetClasses } from "@/db/schema";
+import { and, eq, inArray } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-utils";
 
-async function getValidAssetClasses(): Promise<string[]> {
+async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db
     .select({ name: assetClasses.name })
-    .from(assetClasses);
+    .from(assetClasses)
+    .where(eq(assetClasses.userId, userId));
   return rows.map((r: any) => r.name).filter((n: string) => n !== "现金");
 }
 
 export async function GET() {
-  const rows = await db.select().from(holdings);
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
+  const accountRows = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(eq(accounts.userId, userId));
+  const accountIds = accountRows.map((row: any) => row.id);
+
+  const rows = accountIds.length
+    ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
+    : [];
   return NextResponse.json(rows);
 }
 
 export async function POST(request: Request) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const body = await request.json();
   const { accountId, name, ticker, valuationMode = "amount", cost, marketValue, shares: inputShares, price: inputPrice, assetClass } = body;
 
@@ -22,9 +43,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const validClasses = await getValidAssetClasses();
+  const accountIdNum = Number(accountId);
+  if (!Number.isFinite(accountIdNum)) {
+    return NextResponse.json({ error: "Invalid accountId" }, { status: 400 });
+  }
+
+  const validClasses = await getValidAssetClasses(userId);
   if (!validClasses.includes(assetClass)) {
     return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
+  }
+
+  const [account] = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(and(eq(accounts.id, accountIdNum), eq(accounts.userId, userId)))
+    .limit(1);
+  if (!account) {
+    return NextResponse.json({ error: "账户不存在" }, { status: 404 });
   }
 
   const finalCost = parseFloat(cost) || 0;
@@ -37,7 +72,7 @@ export async function POST(request: Request) {
   const [result] = await db
     .insert(holdings)
     .values({
-      accountId,
+      accountId: accountIdNum,
       name,
       ticker: ticker || null,
       valuationMode,

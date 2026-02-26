@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { transactions, holdings, accounts } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { requireUser } from "@/lib/auth-utils";
 
 export async function GET(request: Request) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get("accountId");
   const type = searchParams.get("type");
 
-  const conditions = [];
+  const conditions = [eq(accounts.userId, userId)];
   if (accountId) conditions.push(eq(transactions.accountId, Number(accountId)));
   if (type) conditions.push(eq(transactions.type, type as any));
 
@@ -32,9 +38,9 @@ export async function GET(request: Request) {
       holdingName: holdings.name,
     })
     .from(transactions)
-    .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+    .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .leftJoin(holdings, eq(transactions.holdingId, holdings.id))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(transactions.date), desc(transactions.id));
 
   const result = rows.map((r: any) => ({
@@ -47,6 +53,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
   const body = await request.json();
   const {
     accountId,
@@ -59,6 +70,16 @@ export async function POST(request: Request) {
     fee = 0,
     note,
   } = body;
+
+  const accountIdNum = Number(accountId);
+  if (!Number.isFinite(accountIdNum)) {
+    return NextResponse.json({ error: "Invalid accountId" }, { status: 400 });
+  }
+
+  const holdingIdNum = holdingId != null ? Number(holdingId) : null;
+  if (holdingId != null && !Number.isFinite(holdingIdNum)) {
+    return NextResponse.json({ error: "Invalid holdingId" }, { status: 400 });
+  }
 
   // Resolve affectCash / affectHolding with backward compat for affectBalance
   let affectCash: boolean;
@@ -82,24 +103,40 @@ export async function POST(request: Request) {
   }
 
   // For buy/sell, holdingId is required
-  if ((type === "buy" || type === "sell") && !holdingId) {
+  if ((type === "buy" || type === "sell") && !holdingIdNum) {
     return NextResponse.json({ error: "买入/卖出交易必须关联持仓" }, { status: 400 });
   }
 
   // Get holding if needed
   let holding: any = null;
-  if (holdingId) {
-    const [h] = await db.select().from(holdings).where(eq(holdings.id, holdingId));
+  if (holdingIdNum) {
+    const [h] = await db.select().from(holdings).where(eq(holdings.id, holdingIdNum));
     holding = h || null;
     if (!holding) {
+      return NextResponse.json({ error: "持仓不存在" }, { status: 404 });
+    }
+
+    const [holdingAccount] = await db
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(and(eq(accounts.id, holding.accountId), eq(accounts.userId, userId)))
+      .limit(1);
+    if (!holdingAccount) {
       return NextResponse.json({ error: "持仓不存在" }, { status: 404 });
     }
   }
 
   // Get account
-  const [account] = await db.select().from(accounts).where(eq(accounts.id, accountId));
+  const [account] = await db
+    .select()
+    .from(accounts)
+    .where(and(eq(accounts.id, accountIdNum), eq(accounts.userId, userId)));
   if (!account) {
     return NextResponse.json({ error: "账户不存在" }, { status: 404 });
+  }
+
+  if (holding && holding.accountId !== accountIdNum) {
+    return NextResponse.json({ error: "持仓不属于该账户" }, { status: 400 });
   }
 
   // Sell validations
@@ -123,8 +160,8 @@ export async function POST(request: Request) {
   const [txRecord] = await db
     .insert(transactions)
     .values({
-      accountId,
-      holdingId: holdingId || null,
+      accountId: accountIdNum,
+      holdingId: holdingIdNum || null,
       type,
       date,
       amount: finalAmount,
@@ -155,7 +192,7 @@ export async function POST(request: Request) {
               marketValue: newShares * newPrice,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId));
+            .where(eq(holdings.id, holdingIdNum));
         } else {
           await db.update(holdings)
             .set({
@@ -163,13 +200,13 @@ export async function POST(request: Request) {
               marketValue: holding.marketValue + finalAmount,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId));
+            .where(eq(holdings.id, holdingIdNum));
         }
       }
       if (affectCash) {
         await db.update(accounts)
           .set({ cashBalance: account.cashBalance - finalAmount - feeVal, updatedAt: now })
-          .where(eq(accounts.id, accountId));
+          .where(eq(accounts.id, accountIdNum));
       }
       break;
     }
@@ -189,7 +226,7 @@ export async function POST(request: Request) {
               marketValue: newShares * newPrice,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId));
+            .where(eq(holdings.id, holdingIdNum));
         } else {
           const costReduce = holding.marketValue > 0
             ? finalAmount * holding.cost / holding.marketValue
@@ -200,13 +237,13 @@ export async function POST(request: Request) {
               marketValue: holding.marketValue - finalAmount,
               updatedAt: now,
             })
-            .where(eq(holdings.id, holdingId));
+            .where(eq(holdings.id, holdingIdNum));
         }
       }
       if (affectCash) {
         await db.update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
-          .where(eq(accounts.id, accountId));
+          .where(eq(accounts.id, accountIdNum));
       }
       break;
     }
@@ -215,7 +252,7 @@ export async function POST(request: Request) {
       if (affectCash) {
         await db.update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
-          .where(eq(accounts.id, accountId));
+          .where(eq(accounts.id, accountIdNum));
       }
       break;
     }
@@ -227,7 +264,7 @@ export async function POST(request: Request) {
             cashBalance: account.cashBalance + finalAmount,
             updatedAt: now,
           })
-          .where(eq(accounts.id, accountId));
+          .where(eq(accounts.id, accountIdNum));
       }
       break;
     }
@@ -239,7 +276,7 @@ export async function POST(request: Request) {
             cashBalance: account.cashBalance - finalAmount,
             updatedAt: now,
           })
-          .where(eq(accounts.id, accountId));
+          .where(eq(accounts.id, accountIdNum));
       }
       break;
     }

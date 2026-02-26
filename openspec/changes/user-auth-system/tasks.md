@@ -60,12 +60,12 @@
 
 ## 9. API 层改造 — 间接关联表
 
-- [ ] 9.1 /api/holdings GET/POST：加 session 检查，通过 JOIN accounts 验证用户归属
-- [ ] 9.2 /api/holdings/[id] GET/PUT/DELETE：加 session 检查，通过 JOIN accounts 验证用户归属
-- [ ] 9.3 /api/transactions GET/POST：加 session 检查，通过 JOIN accounts 验证用户归属
-- [ ] 9.4 /api/transactions/[id] GET/DELETE：加 session 检查，通过 JOIN accounts 验证用户归属
-- [ ] 9.5 /api/asset-allocation GET：加 session 检查，计算范围限定为当前用户数据
-- [ ] 9.6 /api/batch-update POST：加 session 检查，验证所有持仓属于当前用户
+- [x] 9.1 /api/holdings GET/POST：加 session 检查，通过 JOIN accounts 验证用户归属
+- [x] 9.2 /api/holdings/[id] GET/PUT/DELETE：加 session 检查，通过 JOIN accounts 验证用户归属
+- [x] 9.3 /api/transactions GET/POST：加 session 检查，通过 JOIN accounts 验证用户归属
+- [x] 9.4 /api/transactions/[id] GET/DELETE：加 session 检查，通过 JOIN accounts 验证用户归属
+- [x] 9.5 /api/asset-allocation GET：加 session 检查，计算范围限定为当前用户数据
+- [x] 9.6 /api/batch-update POST：加 session 检查，验证所有持仓属于当前用户
 
 ## 10. 前端 Session 适配
 

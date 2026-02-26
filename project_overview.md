@@ -130,3 +130,4 @@ src/
 - [2026-02-26] 新增数据迁移脚本与 userId NOT NULL 迁移（默认 admin 归属历史数据）
 - [2026-02-26] Seed 改造：全局仅保留汇率，新增用户级 seed 并接入注册流程
 - [2026-02-26] 完成直连表 API 鉴权与 userId 过滤（accounts/asset-classes/snapshots/settings）
+- [2026-02-26] 完成间接关联表 API 鉴权与用户隔离（holdings/transactions/asset-allocation/batch-update）
