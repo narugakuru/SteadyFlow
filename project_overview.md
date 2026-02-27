@@ -157,3 +157,4 @@ src/
 - [2026-02-27] 新增 OpenSpec 变更 `discipline-notes-and-holding-memo` 并 fast-forward 完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖全局悬浮纪律笔记入口、中心弹窗 Markdown 多笔记、持仓 memo 编辑与悬浮提示需求
 - [2026-02-27] 修复 push 前类型检查拦截：为 accounts/transactions API 的 `rows.map` 回调参数补充显式类型（`typeof rows[number]`），消除隐式 any 并恢复 `npx tsc --noEmit` 通过
 - [2026-02-27] 完成 OpenSpec 变更 `decimal-precision-config`：新增 `src/lib/format.ts`（PRECISION、formatAmount/formatPercent/formatPrice/formatShares/formatRate、roundForStorage），统一替换前后端分散的 `.toFixed()`/`toLocaleString()` 数值处理；API 写入与计算结果统一按类别截断精度，页面与图表统一显示格式；`npm run typecheck` 通过
+- [2026-02-27] 修复 PG 清库后旧登录态导致首页/账户页崩溃：`/` 与 `/accounts` 的资产配置请求增加 `res.ok` 与返回结构校验，401 自动跳转登录页，异常数据进入可重试错误态，避免 `allocation.rates.rates` 空对象解构报错
