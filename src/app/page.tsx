@@ -21,15 +21,15 @@ export default function Dashboard() {
     setLoading(false);
   }, []);
 
-  // Auto-snapshot on load
+  // Auto netvalue on load
   useEffect(() => {
     fetchAll().then(() => {
-      fetch("/api/snapshots", { method: "POST" });
+      fetch("/api/netvalue", { method: "POST" });
     });
   }, [fetchAll]);
 
-  const handleRefreshSnapshot = async () => {
-    await fetch("/api/snapshots", { method: "POST" });
+  const handleRefreshNetvalue = async () => {
+    await fetch("/api/netvalue", { method: "POST" });
   };
 
   if (loading || !allocation) {
@@ -47,8 +47,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
-        <Button variant="outline" size="sm" onClick={handleRefreshSnapshot}>
-          📸 刷新快照
+        <Button variant="outline" size="sm" onClick={handleRefreshNetvalue}>
+          📸 记录净值
         </Button>
       </div>
 

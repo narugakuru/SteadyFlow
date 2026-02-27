@@ -2,7 +2,7 @@
 
 ### Requirement: 业务表 userId 字段
 
-系统 SHALL 在以下业务表中新增 userId 字段，关联到 users 表：accounts, assetClasses, snapshots, settings。holdings 和 transactions 通过 accountId 外键间接关联用户，不新增 userId。exchangeRates 保持全局共享，不加 userId。
+系统 SHALL 在以下业务表中新增 userId 字段，关联到 users 表：accounts, assetClasses, netvalue, settings。holdings 和 transactions 通过 accountId 外键间接关联用户，不新增 userId。exchangeRates 保持全局共享，不加 userId。
 
 #### Scenario: accounts 表 userId
 
@@ -14,9 +14,9 @@
 - **WHEN** 查看 assetClasses 表定义
 - **THEN** 包含 userId 字段（NOT NULL，外键关联 users.id）
 
-#### Scenario: snapshots 表 userId
+#### Scenario: netvalue 表 userId
 
-- **WHEN** 查看 snapshots 表定义
+- **WHEN** 查看 netvalue 表定义
 - **THEN** 包含 userId 字段（NOT NULL，外键关联 users.id），date 的唯一约束改为 (userId, date) 联合唯一
 
 #### Scenario: settings 表 userId
@@ -60,7 +60,7 @@
 #### Scenario: 迁移脚本执行
 
 - **WHEN** 执行数据迁移
-- **THEN** 系统创建一个默认 admin 用户，将所有现有 accounts、assetClasses、snapshots、settings 的 userId 设为该用户 ID
+- **THEN** 系统创建一个默认 admin 用户，将所有现有 accounts、assetClasses、netvalue、settings 的 userId 设为该用户 ID
 
 #### Scenario: 迁移后 userId 非空
 

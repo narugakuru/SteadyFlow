@@ -98,7 +98,7 @@ export interface AllocationData {
   settings: Settings;
 }
 
-export interface Snapshot {
+export interface NetvalueRecord {
   id: number;
   date: string;
   totalAssetCny: number;

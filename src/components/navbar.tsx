@@ -21,7 +21,7 @@ export function Navbar() {
     { href: "/market", label: "市场" },
     { href: "/accounts", label: "账户" },
     { href: "/transactions", label: "交易" },
-    { href: "/snapshots", label: "快照" },
+    { href: "/netvalue", label: "净值" },
     { href: "/batch-update", label: "股价更新" },
     ...(isAdmin ? [{ href: "/admin", label: "管理" }] : []),
   ];
@@ -35,7 +35,7 @@ export function Navbar() {
       <nav className="border-b bg-background">
         <div className="max-w-4xl mx-auto px-4 md:px-6 flex items-center justify-between h-12">
           {/* Logo */}
-          <span className="font-semibold shrink-0">📊 资产管理</span>
+          <span className="font-semibold shrink-0">📊 SteadyFlow</span>
 
           {/* Desktop nav items */}
           <div className="hidden md:flex items-center gap-1 ml-3">
@@ -102,7 +102,7 @@ export function Navbar() {
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetContent side="right" className="w-64 p-0">
           <SheetHeader className="border-b px-4 py-3">
-            <SheetTitle className="text-base">📊 资产管理</SheetTitle>
+            <SheetTitle className="text-base">📊 SteadyFlow</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col py-2">
             {navItems.map((item) => (

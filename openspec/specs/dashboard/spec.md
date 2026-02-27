@@ -68,9 +68,9 @@
 
 ### Requirement: Dashboard 导航
 
-系统 SHALL 移除 Dashboard header 区域的导航按钮（批量更新、快照历史等），这些入口已迁移到全局导航栏。Dashboard header 只保留标题和刷新快照按钮。
+系统 SHALL 移除 Dashboard header 区域的导航按钮（批量更新、净值历史等），这些入口已迁移到全局导航栏。Dashboard header 只保留标题和刷新净值按钮。
 
 #### Scenario: Dashboard header 简化
 
 - **WHEN** 用户打开 Dashboard
-- **THEN** header 区域只显示标题和刷新快照按钮，不再显示批量更新、快照历史等导航按钮
+- **THEN** header 区域只显示标题和刷新净值按钮，不再显示批量更新、净值历史等导航按钮

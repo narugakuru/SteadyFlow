@@ -12,18 +12,18 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { Snapshot } from "@/lib/types";
+import { NetvalueRecord } from "@/lib/types";
 import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/chart-colors";
 
-interface SnapshotChartsProps {
-  snapshots: Snapshot[];
+interface NetvalueChartsProps {
+  records: NetvalueRecord[];
 }
 
-export function SnapshotCharts({ snapshots }: SnapshotChartsProps) {
-  if (snapshots.length < 2) return null;
+export function NetvalueCharts({ records }: NetvalueChartsProps) {
+  if (records.length < 2) return null;
 
   // 按日期正序排列
-  const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
 
   // 折线图数据
   const trendData = sorted.map((s) => ({

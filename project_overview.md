@@ -24,7 +24,7 @@ src/
 │   ├── layout.tsx                  # 根布局（含全局导航栏）
 │   ├── accounts/page.tsx           # 账户管理页
 │   ├── transactions/page.tsx       # 交易记录页
-│   ├── snapshots/page.tsx          # 快照历史页
+│   ├── netvalue/page.tsx            # 净值历史页
 │   ├── batch-update/page.tsx       # 股价更新页
 │   ├── market/page.tsx             # 市场概览页（TradingView Widget）
 │   ├── login/page.tsx              # 登录页
@@ -42,7 +42,7 @@ src/
 │       ├── asset-classes/          # 资产类别
 │       ├── exchange-rates/         # 汇率
 │       ├── market/                 # 市场指数行情（Yahoo Finance）
-│       └── snapshots/              # 快照
+│       └── netvalue/                # 净值
 ├── middleware.ts                  # 路由守卫（JWT + 管理员权限）
 ├── components/
 │   ├── ui/                         # shadcn 基础组件
@@ -56,7 +56,7 @@ src/
 │   ├── transaction-form.tsx        # 交易表单（共享组件，支持预填+内联新建持仓）
 │   ├── portfolio-chart.tsx          # 资产分布双环饼图
 │   ├── deviation-chart.tsx          # 偏离度柱状图
-│   ├── snapshot-charts.tsx          # 快照走势图表（折线图+面积图）
+│   ├── netvalue-charts.tsx          # 净值走势图表（折线图+面积图）
 │   ├── discipline-table.tsx        # 投资纪律表（含进度条+盈亏列）
 │   ├── rebalance-panel.tsx         # 再平衡建议面板
 │   ├── asset-class-view.tsx        # 资产类别视图
@@ -94,7 +94,7 @@ src/
 | transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
 | assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                     |
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                    |
-| snapshots          | 每日快照       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
+| netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
 | settings           | 系统设置       | userId(FK, not null), key, value                                                                                                                                      |
 
 ## 已知待改进项
@@ -103,23 +103,23 @@ src/
 
 - P0：资产类别动态化（当前 enum 硬编码）、批量更新市值 （均已完成）
 - P1：~~再平衡建议~~（已完成）、~~成本基础+盈亏计算~~（已完成）、~~可视化图表~~（已完成）
-- P2：收益率追踪、~~现金处理优化~~（已完成）、快照历史增强、币种动态化
+- P2：收益率追踪、~~现金处理优化~~（已完成）、净值历史增强、币种动态化
 - P3：移动端优化、汇率来源冗余、数据导入导出
 
 ## 进展日志
 
 - [2026-02-24] 项目初始化，生成 OpenSpec 方案
-- [2026-02-24] V1.0.0 MVP 完成：账户管理、持仓管理、资产配置纪律表、汇率自动获取、每日快照
+- [2026-02-24] V1.0.0 MVP 完成：账户管理、持仓管理、资产配置纪律表、汇率自动获取、每日净值
 - [2026-02-24] 新增 UI 改进提案（`docs/improvement-proposals.md`），梳理 12 项改进建议及优先级
 - [2026-02-24] 新增 `project_overview.md`，建立多终端协作规范
-- [2026-02-24] 完成可视化图表（P1 #6）：双环饼图、偏离度柱状图、纪律表进度条、总资产走势折线图、资产占比堆叠面积图；新增 chart-colors.ts、deviation-chart.tsx、snapshot-charts.tsx，改造 portfolio-chart.tsx 和 discipline-table.tsx
+- [2026-02-24] 完成可视化图表（P1 #6）：双环饼图、偏离度柱状图、纪律表进度条、总资产走势折线图、资产占比堆叠面积图；新增 chart-colors.ts、deviation-chart.tsx、netvalue-charts.tsx，改造 portfolio-chart.tsx 和 discipline-table.tsx
 - [2026-02-25] 完成再平衡建议（P1 #2）+ 盈亏展示补全（P1 #4）：新增 rebalance-panel.tsx，纪律表增加盈亏列，API 返回 adjustAmount/totalCost/totalPnl/pnlAmount 等字段
-- [2026-02-25] 完成交易系统+多页导航重构：新增 transactions 表和交易 API（买入/卖出/股息/现金存取，含副作用逻辑和 affectBalance 开关）；holdings 新增 ticker/valuationMode/shares/price 字段支持双估值模式；accounts 新增 totalCost 字段支持账户盈亏；重构为多页导航（总览/账户/交易/快照/股价更新），新增全局导航栏；总览页精简，账户管理和交易记录独立为新页面
+- [2026-02-25] 完成交易系统+多页导航重构：新增 transactions 表和交易 API（买入/卖出/股息/现金存取，含副作用逻辑和 affectBalance 开关）；holdings 新增 ticker/valuationMode/shares/price 字段支持双估值模式；accounts 新增 totalCost 字段支持账户盈亏；重构为多页导航（总览/账户/交易/净值/股价更新），新增全局导航栏；总览页精简，账户管理和交易记录独立为新页面
 - [2026-02-25] 新增 Windows 独立打包能力：next.config.ts 启用 standalone 输出，新增 server.js 启动脚本（端口检测+自动开浏览器）、启动.bat 用户入口、scripts/package.js 打包脚本（构建+组装+嵌入 node.exe+zip），业务代码零改动
 - [2026-02-25] 统一持仓与交易 UX：新增 useTriFieldLinked hook（三字段联动编辑）和 HoldingEditDialog 共享组件；纪律表编辑弹窗升级为模式感知（区分 amount/shares）；账户详情页持仓编辑支持三字段联动；TransactionForm 提取为独立共享组件并增加快捷交易入口（买入/卖出按钮）；交易表单内可直接新建持仓；账户页和交易页支持 URL 参数预选；页面间增加交叉导航链接
 - [2026-02-25] 统一持仓展示与账户展开模式：新增 HoldingRow 共享组件（两行布局：核心信息+详细信息，支持 compact/full 操作模式）；纪律表展开区域升级为 HoldingRow（含交易+编辑按钮）；账户页从跳转子页面改为展开/折叠模式（内嵌持仓列表+编辑账户+添加持仓）；holdings-panel.tsx 不再被引用
 - [2026-02-25] 新建持仓/编辑持仓移除本金字段：本金由交易记录自动累积，不再支持手动填写；影响 HoldingEditDialog、HoldingForm（holdings-panel/account-list）、TransactionForm 内联新建持仓、holdings POST API（cost 改为可选默认0）
-- [2026-02-25] 重构账户模型：totalBalance 改为 cashBalance（现金余额），账户总价值改为实时计算（cashBalance + holdingsValue）；修复盈亏计算、资产配置总资产计算、快照数据；批量更新页面移除账户总额编辑只保留持仓市值更新；新建账户改为只填初始现金
+- [2026-02-25] 重构账户模型：totalBalance 改为 cashBalance（现金余额），账户总价值改为实时计算（cashBalance + holdingsValue）；修复盈亏计算、资产配置总资产计算、净值数据；批量更新页面移除账户总额编辑只保留持仓市值更新；新建账户改为只填初始现金
 - [2026-02-25] 交易副作用拆分：affectBalance 单开关拆为 affectCash（影响账户现金）+ affectHolding（影响持仓数据）两个独立开关；支持录入已有持仓（只更新持仓不扣现金）；交易列表显示副作用状态标签；API 保持向后兼容
 - [2026-02-26] 新增市场概览页（/market）：通过 Yahoo Finance API 获取全球主要指数行情（美股S&P500/纳斯达克100/道琼斯、A股沪深300/上证/创业板/中证500、港股恒生/恒生科技、日股日经225/东证指数、VIX）；表格展示指数名称/最新价/涨跌/涨跌幅/更新时间，每行附 TradingView 跳转链接；VIX 区域含大字当前值 + 5级情绪阈值参考（自动高亮当前级别）；导航栏新增"市场"项
 - [2026-02-26] 双数据库支持：新增 PostgreSQL（Neon serverless）支持，通过 DB_TYPE 环境变量切换 SQLite/PostgreSQL；schema 拆分为 schema-sqlite.ts 和 schema-pg.ts，schema.ts 统一导出；db/index.ts 动态选择驱动；drizzle.config.ts 支持双方言配置；所有 API 路由改为标准异步 Drizzle API（移除 .all()/.get()/.run()）；seed.ts 改为 async；新增 drizzle-pg/ 迁移目录
@@ -135,7 +135,7 @@ src/
 - [2026-02-26] 新增全局 middleware 路由守卫（登录校验 + 管理员权限）
 - [2026-02-26] 新增数据迁移脚本与 userId NOT NULL 迁移（默认 admin 归属历史数据）
 - [2026-02-26] Seed 改造：全局仅保留汇率，新增用户级 seed 并接入注册流程
-- [2026-02-26] 完成直连表 API 鉴权与 userId 过滤（accounts/asset-classes/snapshots/settings）
+- [2026-02-26] 完成直连表 API 鉴权与 userId 过滤（accounts/asset-classes/netvalue/settings）
 - [2026-02-26] 完成间接关联表 API 鉴权与用户隔离（holdings/transactions/asset-allocation/batch-update）
 - [2026-02-26] 前端接入 SessionProvider，导航栏显示用户信息与登出
 - [2026-02-26] 管理后台完成：admin API + 统计面板 + 用户管理页
@@ -145,3 +145,4 @@ src/
 - [2026-02-26] 配置 Husky + lint-staged + Prettier 代码质量检查，每次commit进行格式检测，push前进行类型检查。
 - [2026-02-27] 归档 3 个已完成 changes（market-overview-page、bool-to-int-storage、user-auth-system），delta specs 全部同步到主 specs
 - [2026-02-27] 完成移动端响应式适配（P3）：导航栏改为汉堡菜单+Sheet抽屉（新增shadcn Sheet组件）；Dialog移动端底部弹出+可滚动；纪律表和账户列表移动端改为卡片布局；HoldingRow移动端垂直堆叠；所有表单网格移动端降为单列；页面容器响应式padding；表格横向滚动；使用md:断点渐进增强，同一套代码
+- [2026-02-27] 全面重命名"快照/snapshot"为"净值/netvalue"：数据库表 snapshots→netvalue（含 SQLite+PG 迁移）、API 路由 /api/snapshots→/api/netvalue、页面路由 /snapshots→/netvalue、组件 snapshot-charts→netvalue-charts、类型 Snapshot→NetvalueRecord、spec 目录 daily-snapshot→daily-netvalue、所有文档同步更新

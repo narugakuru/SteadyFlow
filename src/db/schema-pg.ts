@@ -126,8 +126,8 @@ export const exchangeRates = pgTable("exchange_rates", {
   updatedAt: text("updated_at").notNull().default(sql`now()`),
 });
 
-export const snapshots = pgTable(
-  "snapshots",
+export const netvalue = pgTable(
+  "netvalue",
   {
     id: serial("id").primaryKey(),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -137,7 +137,7 @@ export const snapshots = pgTable(
     createdAt: text("created_at").notNull().default(sql`now()`),
   },
   (table) => ({
-    userDateUnique: uniqueIndex("snapshots_user_date_idx").on(table.userId, table.date),
+    userDateUnique: uniqueIndex("netvalue_user_date_idx").on(table.userId, table.date),
   })
 );
 

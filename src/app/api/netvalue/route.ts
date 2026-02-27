@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { accounts, holdings, assetClasses, snapshots } from "@/db/schema";
+import { accounts, holdings, assetClasses, netvalue } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { requireUser } from "@/lib/auth-utils";
@@ -13,9 +14,9 @@ export async function GET() {
 
   const rows = await db
     .select()
-    .from(snapshots)
-    .where(eq(snapshots.userId, userId))
-    .orderBy(desc(snapshots.date));
+    .from(netvalue)
+    .where(eq(netvalue.userId, userId))
+    .orderBy(desc(netvalue.date));
 
   return NextResponse.json(
     rows.map((r: any) => ({
@@ -95,21 +96,21 @@ export async function POST() {
     rates: ratesResult.rates,
   };
 
-  // Upsert today's snapshot
+  // Upsert today's netvalue
   const [existing] = await db
     .select()
-    .from(snapshots)
-    .where(and(eq(snapshots.userId, userId), eq(snapshots.date, today)));
+    .from(netvalue)
+    .where(and(eq(netvalue.userId, userId), eq(netvalue.date, today)));
 
   if (existing) {
-    await db.update(snapshots)
+    await db.update(netvalue)
       .set({
         totalAssetCny: +totalAssetCny.toFixed(2),
         dataJson: JSON.stringify(data),
       })
-      .where(and(eq(snapshots.userId, userId), eq(snapshots.date, today)));
+      .where(and(eq(netvalue.userId, userId), eq(netvalue.date, today)));
   } else {
-    await db.insert(snapshots)
+    await db.insert(netvalue)
       .values({
         userId,
         date: today,

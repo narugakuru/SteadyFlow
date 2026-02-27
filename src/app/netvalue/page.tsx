@@ -1,13 +1,13 @@
 "use client";
 
 import { useFetch } from "@/lib/hooks";
-import { Snapshot } from "@/lib/types";
+import { NetvalueRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { SnapshotCharts } from "@/components/snapshot-charts";
+import { NetvalueCharts } from "@/components/netvalue-charts";
 import Link from "next/link";
 
-export default function SnapshotsPage() {
-  const { data: snapshots, loading } = useFetch<Snapshot[]>("/api/snapshots");
+export default function NetvaluePage() {
+  const { data: records, loading } = useFetch<NetvalueRecord[]>("/api/netvalue");
 
   if (loading) {
     return (
@@ -20,17 +20,17 @@ export default function SnapshotsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl md:text-2xl font-bold">📸 快照历史</h1>
+        <h1 className="text-xl md:text-2xl font-bold">📸 净值历史</h1>
         <Link href="/">
           <Button variant="outline" size="sm">← 返回 Dashboard</Button>
         </Link>
       </div>
 
-      {!snapshots || snapshots.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8">暂无快照记录</p>
+      {!records || records.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">暂无净值记录</p>
       ) : (
         <>
-          <SnapshotCharts snapshots={snapshots} />
+          <NetvalueCharts records={records} />
           <div className="border rounded-lg overflow-x-auto">
           <table className="w-full text-sm min-w-[500px]">
             <thead className="bg-muted/50">
@@ -44,7 +44,7 @@ export default function SnapshotsPage() {
               </tr>
             </thead>
             <tbody>
-              {snapshots.map((s) => {
+              {records.map((s) => {
                 const alloc = s.dataJson.allocation;
                 const getPct = (name: string) => {
                   const item = alloc.find((a) => a.name === name);
