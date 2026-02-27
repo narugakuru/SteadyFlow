@@ -3,6 +3,78 @@ import fs from "fs";
 
 const dbType = process.env.DB_TYPE || "sqlite";
 let pgMigratePromise: Promise<void> | null = null;
+const PG_MIGRATIONS_SCHEMA = "drizzle";
+const PG_MIGRATIONS_TABLE = "__drizzle_migrations";
+
+async function shouldResetPgMigrationState(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sqlClient: any
+): Promise<boolean> {
+  const appTablesResult = await sqlClient`
+    select count(*)::int as table_count
+    from information_schema.tables
+    where table_schema = 'public'
+      and table_name in (
+        'accounts',
+        'asset_classes',
+        'auth_accounts',
+        'exchange_rates',
+        'holdings',
+        'sessions',
+        'settings',
+        'netvalue',
+        'transactions',
+        'users',
+        'verification_tokens'
+      )
+  `;
+
+  const existingAppTables = Number(appTablesResult?.[0]?.table_count ?? 0);
+  if (existingAppTables > 0) {
+    return false;
+  }
+
+  const migrationRowsResult = await sqlClient`
+    select count(*)::int as migration_count
+    from "drizzle"."__drizzle_migrations"
+  `;
+
+  const migrationRows = Number(migrationRowsResult?.[0]?.migration_count ?? 0);
+  return migrationRows > 0;
+}
+
+async function preparePostgresMigrations(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sqlClient: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  migrate: any,
+  migrationsFolder: string
+) {
+  await sqlClient`create schema if not exists "drizzle"`;
+  await sqlClient`
+    create table if not exists "drizzle"."__drizzle_migrations" (
+      id serial primary key,
+      hash text not null,
+      created_at bigint
+    )
+  `;
+
+  const resetMigrationState = await shouldResetPgMigrationState(sqlClient);
+  if (resetMigrationState) {
+    console.warn(
+      "[db] Detected empty public schema with stale drizzle migration records. Resetting migration history."
+    );
+    await sqlClient`truncate table "drizzle"."__drizzle_migrations"`;
+  }
+
+  await migrate(db, {
+    migrationsFolder,
+    migrationsSchema: PG_MIGRATIONS_SCHEMA,
+    migrationsTable: PG_MIGRATIONS_TABLE,
+  });
+}
 
 // Dynamically create the correct db instance based on DB_TYPE
 function createDb() {
@@ -27,7 +99,7 @@ function createDb() {
     // Auto-migrate PostgreSQL
     const migrationsFolder = path.join(process.cwd(), "drizzle-pg");
     if (fs.existsSync(migrationsFolder)) {
-      pgMigratePromise = migrate(db, { migrationsFolder });
+      pgMigratePromise = preparePostgresMigrations(db, sql, migrate, migrationsFolder);
     }
 
     return db;
@@ -75,7 +147,7 @@ if (dbType === "postgres") {
     (pgMigratePromise as Promise<void>)
       .then(() => seed(db))
       .catch((error: unknown) => {
-        console.error("Postgres migrate failed:", error);
+        console.error("Postgres startup init failed:", error);
       });
   } else {
     seed(db);

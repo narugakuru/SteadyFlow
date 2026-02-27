@@ -152,3 +152,4 @@ src/
 - [2026-02-27] 归档 3 个已完成 changes（loading-spinner、market-page-revamp、stooq-price-integration），delta specs 已同步到主 specs（其中 loading-spinner 的 market-overview 条目按实现状态跳过）
 - [2026-02-27] 修复 SQLite 场景下会话与用户表不一致导致的外键失败：`requireUser` 增加 users 存在性校验（无效会话返回 401），账户创建表单补充错误提示与响应状态校验，避免“保存失败但无提示”
 - [2026-02-27] 新增 OpenSpec 变更 `mobile-ui-and-asset-class-consistency` 并完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖移动端弹窗与批量更新 UI 修复、移除冗余返回总览按钮、资产类别“股票基金→股票”统一与默认排序规范
+- [2026-02-27] 修复 PostgreSQL 清库后自动迁移失效：启动时新增自愈逻辑，若检测到 `public` 业务表为空但 `drizzle.__drizzle_migrations` 仍有记录，则自动重置迁移记录并重新执行 migrate，确保 `npm run dev` 无需手动干预即可重建表并继续 seed
