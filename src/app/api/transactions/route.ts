@@ -4,6 +4,7 @@ import { transactions, holdings, accounts } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { fromDbBool, toDbBool } from "@/lib/utils";
+import { roundForStorage } from "@/lib/format";
 
 export async function GET(request: Request) {
   const { userId, response } = await requireUser();
@@ -151,25 +152,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "持仓不属于该账户" }, { status: 400 });
   }
 
+  const parsedAmount = roundForStorage(parseFloat(amount) || 0, "amount");
+  const parsedTxShares =
+    txShares != null ? roundForStorage(parseFloat(txShares) || 0, "shares") : null;
+  const parsedTxPrice =
+    txPrice != null ? roundForStorage(parseFloat(txPrice) || 0, "price") : null;
+  const parsedFee = roundForStorage(parseFloat(fee) || 0, "amount");
+
   // Sell validations
   if (type === "sell" && holding) {
     if (holding.valuationMode === "amount" && holding.marketValue <= 0) {
       return NextResponse.json({ error: "当前市值为0，无法卖出" }, { status: 400 });
     }
-    if (holding.valuationMode === "shares" && txShares != null && txShares > holding.shares) {
+    if (
+      holding.valuationMode === "shares" &&
+      parsedTxShares != null &&
+      parsedTxShares > holding.shares
+    ) {
       return NextResponse.json({ error: "卖出份额不能超过持有份额" }, { status: 400 });
     }
   }
 
   // Calculate actual amount for shares mode buy/sell
-  let finalAmount = parseFloat(amount);
+  let finalAmount = parsedAmount;
   if (
     holding?.valuationMode === "shares" &&
     (type === "buy" || type === "sell") &&
-    txShares != null &&
-    txPrice != null
+    parsedTxShares != null &&
+    parsedTxPrice != null
   ) {
-    finalAmount = txShares * txPrice;
+    finalAmount = roundForStorage(parsedTxShares * parsedTxPrice, "amount");
   }
 
   // Create transaction record
@@ -182,9 +194,9 @@ export async function POST(request: Request) {
       type,
       date,
       amount: finalAmount,
-      shares: txShares != null ? parseFloat(txShares) : null,
-      price: txPrice != null ? parseFloat(txPrice) : null,
-      fee: parseFloat(fee) || 0,
+      shares: parsedTxShares,
+      price: parsedTxPrice,
+      fee: parsedFee,
       affectCash: toDbBool(affectCash),
       affectHolding: toDbBool(affectHolding),
       note: note || null,
@@ -192,29 +204,32 @@ export async function POST(request: Request) {
     .returning();
 
   // Apply side effects
-  const feeVal = parseFloat(fee) || 0;
+  const feeVal = parsedFee;
   const now = new Date().toISOString();
 
   switch (type) {
     case "buy": {
       if (affectHolding && holding) {
-        if (holding.valuationMode === "shares" && txShares != null) {
-          const parsedShares = parseFloat(txShares);
-          const newShares = holding.shares + parsedShares;
-          const newPrice = txPrice != null ? parseFloat(txPrice) : holding.price;
+        if (holding.valuationMode === "shares" && parsedTxShares != null) {
+          const newShares = roundForStorage(holding.shares + parsedTxShares, "shares");
+          const newPrice =
+            parsedTxPrice != null
+              ? parsedTxPrice
+              : roundForStorage(holding.price, "price");
           // 加权平均成本法：newCost = (oldCost × oldShares + txPrice × txShares) / newShares
           // cost 在 shares 模式下存储的是"平均每股成本"
-          const newCost =
+          const newCostRaw =
             newShares > 0
-              ? (holding.cost * holding.shares + newPrice * parsedShares) / newShares
+              ? (holding.cost * holding.shares + newPrice * parsedTxShares) / newShares
               : newPrice;
+          const newCost = roundForStorage(newCostRaw, "price");
           await db
             .update(holdings)
             .set({
               cost: newCost,
               shares: newShares,
               price: newPrice,
-              marketValue: newShares * newPrice,
+              marketValue: roundForStorage(newShares * newPrice, "amount"),
               updatedAt: now,
             })
             .where(eq(holdings.id, holdingIdNum));
@@ -223,8 +238,8 @@ export async function POST(request: Request) {
           await db
             .update(holdings)
             .set({
-              cost: holding.cost + finalAmount,
-              marketValue: holding.marketValue + finalAmount,
+              cost: roundForStorage(holding.cost + finalAmount, "amount"),
+              marketValue: roundForStorage(holding.marketValue + finalAmount, "amount"),
               updatedAt: now,
             })
             .where(eq(holdings.id, holdingIdNum));
@@ -233,7 +248,10 @@ export async function POST(request: Request) {
       if (affectCash) {
         await db
           .update(accounts)
-          .set({ cashBalance: account.cashBalance - finalAmount - feeVal, updatedAt: now })
+          .set({
+            cashBalance: roundForStorage(account.cashBalance - finalAmount - feeVal, "amount"),
+            updatedAt: now,
+          })
           .where(eq(accounts.id, accountIdNum));
       }
       break;
@@ -241,17 +259,20 @@ export async function POST(request: Request) {
 
     case "sell": {
       if (affectHolding && holding) {
-        if (holding.valuationMode === "shares" && txShares != null) {
+        if (holding.valuationMode === "shares" && parsedTxShares != null) {
           // shares 模式卖出：cost（平均每股成本）不变，只减少份额
-          const newShares = holding.shares - parseFloat(txShares);
-          const newPrice = txPrice != null ? parseFloat(txPrice) : holding.price;
+          const newShares = roundForStorage(holding.shares - parsedTxShares, "shares");
+          const newPrice =
+            parsedTxPrice != null
+              ? parsedTxPrice
+              : roundForStorage(holding.price, "price");
           await db
             .update(holdings)
             .set({
-              cost: holding.cost, // 卖出不改变平均成本
+              cost: roundForStorage(holding.cost, "price"), // 卖出不改变平均成本
               shares: newShares,
               price: newPrice,
-              marketValue: newShares * newPrice,
+              marketValue: roundForStorage(newShares * newPrice, "amount"),
               updatedAt: now,
             })
             .where(eq(holdings.id, holdingIdNum));
@@ -262,8 +283,8 @@ export async function POST(request: Request) {
           await db
             .update(holdings)
             .set({
-              cost: holding.cost - costReduce,
-              marketValue: holding.marketValue - finalAmount,
+              cost: roundForStorage(holding.cost - costReduce, "amount"),
+              marketValue: roundForStorage(holding.marketValue - finalAmount, "amount"),
               updatedAt: now,
             })
             .where(eq(holdings.id, holdingIdNum));
@@ -272,7 +293,10 @@ export async function POST(request: Request) {
       if (affectCash) {
         await db
           .update(accounts)
-          .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
+          .set({
+            cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+            updatedAt: now,
+          })
           .where(eq(accounts.id, accountIdNum));
       }
       break;
@@ -282,7 +306,10 @@ export async function POST(request: Request) {
       if (affectCash) {
         await db
           .update(accounts)
-          .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
+          .set({
+            cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+            updatedAt: now,
+          })
           .where(eq(accounts.id, accountIdNum));
       }
       break;
@@ -293,7 +320,7 @@ export async function POST(request: Request) {
         await db
           .update(accounts)
           .set({
-            cashBalance: account.cashBalance + finalAmount,
+            cashBalance: roundForStorage(account.cashBalance + finalAmount, "amount"),
             updatedAt: now,
           })
           .where(eq(accounts.id, accountIdNum));
@@ -306,7 +333,7 @@ export async function POST(request: Request) {
         await db
           .update(accounts)
           .set({
-            cashBalance: account.cashBalance - finalAmount,
+            cashBalance: roundForStorage(account.cashBalance - finalAmount, "amount"),
             updatedAt: now,
           })
           .where(eq(accounts.id, accountIdNum));

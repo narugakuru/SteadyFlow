@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { AllocationItem, AllocationHolding, Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { HoldingRow } from "@/components/holding-row";
+import { formatAmount, formatPercent } from "@/lib/format";
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
@@ -64,9 +65,9 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
 
   const getDeviationLabel = (deviation: number) =>
     deviation > 0
-      ? `超配 +${deviation}%`
+      ? `超配 +${formatPercent(deviation)}%`
       : deviation < 0
-      ? `低配 ${deviation}%`
+      ? `低配 ${formatPercent(deviation)}%`
       : "正常";
 
   // Shared expanded holdings content
@@ -87,8 +88,8 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                   <Badge variant="outline" className="text-xs">{ah.accountName}</Badge>
                 </div>
                 <span>
-                  {ah.currency !== "CNY" ? `${sym}${ah.marketValue.toLocaleString()} ≈ ` : ""}
-                  ¥{ah.marketValueCny.toLocaleString()}
+                  {ah.currency !== "CNY" ? `${sym}${formatAmount(ah.marketValue)} ≈ ` : ""}
+                  ¥{formatAmount(ah.marketValueCny)}
                 </span>
               </div>
             );
@@ -167,16 +168,19 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                             style={{ left: `${Math.min(item.targetPct, 100)}%` }}
                           />
                         </div>
-                        <span className="text-sm tabular-nums whitespace-nowrap">{item.actualPct}% / {item.targetPct}%</span>
+                        <span className="text-sm tabular-nums whitespace-nowrap">
+                          {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
+                        </span>
                       </div>
                     </td>
-                    <td className="p-3 text-right">¥{item.actualValue.toLocaleString()}</td>
+                    <td className="p-3 text-right">¥{formatAmount(item.actualValue)}</td>
                     <td className="p-3 text-right">
                       {item.name === "现金" ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
                         <span className={pnlColorClass(item.totalPnl, colorMode)}>
-                          {item.totalPnl > 0 ? "+" : ""}{item.totalPnl !== 0 ? `¥${item.totalPnl.toLocaleString()}` : "--"}
+                          {item.totalPnl > 0 ? "+" : ""}
+                          {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
                         </span>
                       )}
                     </td>
@@ -231,17 +235,20 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                       style={{ left: `${Math.min(item.targetPct, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs tabular-nums whitespace-nowrap">{item.actualPct}% / {item.targetPct}%</span>
+                  <span className="text-xs tabular-nums whitespace-nowrap">
+                    {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
+                  </span>
                 </div>
                 {/* Value + PnL + Status */}
                 <div className="flex items-center justify-between text-sm">
-                  <span>¥{item.actualValue.toLocaleString()}</span>
+                  <span>¥{formatAmount(item.actualValue)}</span>
                   <div className="flex items-center gap-2">
                     {item.name === "现金" ? (
                       <span className="text-muted-foreground text-xs">--</span>
                     ) : (
                       <span className={`text-xs ${pnlColorClass(item.totalPnl, colorMode)}`}>
-                        {item.totalPnl > 0 ? "+" : ""}{item.totalPnl !== 0 ? `¥${item.totalPnl.toLocaleString()}` : "--"}
+                        {item.totalPnl > 0 ? "+" : ""}
+                        {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
                       </span>
                     )}
                     <Badge variant="secondary" className={`text-xs ${getStatusStyle(item.status)}`}>

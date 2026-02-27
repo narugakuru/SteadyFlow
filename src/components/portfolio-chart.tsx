@@ -5,6 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recha
 import { Button } from "@/components/ui/button";
 import { AllocationItem } from "@/lib/types";
 import { getClassColor, getClassGradients } from "@/lib/chart-colors";
+import { formatAmount, formatPercent } from "@/lib/format";
 
 type ViewMode = "category" | "holding";
 
@@ -126,9 +127,9 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
                 formatter={(value: any, name: any, props: any) => {
                   const ring = props?.payload?.ring;
                   if (ring === "inner") {
-                    return [`${Number(value)}%`, name];
+                    return [`${formatPercent(Number(value))}%`, name];
                   }
-                  return [`¥${Number(value).toLocaleString()}`, name];
+                  return [`¥${formatAmount(Number(value))}`, name];
                 }}
               />
               <Legend />

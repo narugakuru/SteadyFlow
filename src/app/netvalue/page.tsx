@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { NetvalueCharts } from "@/components/netvalue-charts";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Link from "next/link";
+import { formatAmount } from "@/lib/format";
 
 export default function NetvaluePage() {
   const { data: records, loading } = useFetch<NetvalueRecord[]>("/api/netvalue");
@@ -53,7 +54,7 @@ export default function NetvaluePage() {
                     <tr key={s.id} className="border-t">
                       <td className="p-3">{s.date}</td>
                       <td className="p-3 text-right font-medium">
-                        ¥{s.totalAssetCny.toLocaleString()}
+                        ¥{formatAmount(s.totalAssetCny)}
                       </td>
                       <td className="p-3 text-right">{getPct("股票")}</td>
                       <td className="p-3 text-right">{getPct("黄金")}</td>

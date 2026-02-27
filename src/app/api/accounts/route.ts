@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -29,7 +30,7 @@ export async function GET() {
 
   const result = rows.map((row: (typeof rows)[number]) => ({
     ...row,
-    accountValue: row.cashBalance + row.holdingsValue,
+    accountValue: roundForStorage(row.cashBalance + row.holdingsValue, "amount"),
   }));
 
   return NextResponse.json(result);
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const cashVal = parseFloat(cashBalance) || 0;
+  const cashVal = roundForStorage(parseFloat(cashBalance) || 0, "amount");
 
   const [result] = await db
     .insert(accounts)

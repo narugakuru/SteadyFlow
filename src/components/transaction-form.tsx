@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Account, Holding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
+import { formatAmount, roundForStorage } from "@/lib/format";
 
 export interface TransactionFormProps {
   open: boolean;
@@ -103,7 +104,7 @@ export function TransactionForm({
   // Auto-calculate amount for shares mode
   const computedAmount =
     isSharesMode && txShares && txPrice
-      ? (parseFloat(txShares) * parseFloat(txPrice)).toFixed(2)
+      ? roundForStorage(parseFloat(txShares) * parseFloat(txPrice), "amount")
       : null;
 
   const handleSubmit = async () => {
@@ -115,7 +116,7 @@ export function TransactionForm({
       accountId: Number(accountId),
       type,
       date,
-      amount: computedAmount ? parseFloat(computedAmount) : parseFloat(amount) || 0,
+      amount: computedAmount ?? (parseFloat(amount) || 0),
       fee: parseFloat(fee) || 0,
       affectCash,
       affectHolding,
@@ -411,7 +412,7 @@ export function TransactionForm({
               {computedAmount && (
                 <p className="text-sm text-muted-foreground">
                   金额（自动计算）：{sym}
-                  {parseFloat(computedAmount).toLocaleString()}
+                  {formatAmount(computedAmount)}
                 </p>
               )}
             </>

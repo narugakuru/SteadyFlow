@@ -26,6 +26,7 @@ import {
 import { Transaction, Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { TransactionForm } from "@/components/transaction-form";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { formatAmount, formatPrice, formatShares } from "@/lib/format";
 
 const TX_TYPE_LABELS: Record<string, string> = {
   buy: "买入",
@@ -166,10 +167,10 @@ function TransactionsContent() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
-                    <span className="font-semibold text-foreground">{sym}{tx.amount.toLocaleString()}</span>
-                    {tx.shares != null && <span>股数: {tx.shares}</span>}
-                    {tx.price != null && <span>价格: {sym}{tx.price}</span>}
-                    {tx.fee > 0 && <span>手续费: {sym}{tx.fee}</span>}
+                    <span className="font-semibold text-foreground">{sym}{formatAmount(tx.amount)}</span>
+                    {tx.shares != null && <span>股数: {formatShares(tx.shares)}</span>}
+                    {tx.price != null && <span>价格: {sym}{formatPrice(tx.price)}</span>}
+                    {tx.fee > 0 && <span>手续费: {sym}{formatAmount(tx.fee)}</span>}
                     {tx.note && <span>· {tx.note}</span>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{tx.date}</p>

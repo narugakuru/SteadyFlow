@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { NetvalueRecord } from "@/lib/types";
 import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/chart-colors";
+import { formatAmount, formatNumber, formatPercent } from "@/lib/format";
 
 interface NetvalueChartsProps {
   records: NetvalueRecord[];
@@ -60,11 +61,11 @@ export function NetvalueCharts({ records }: NetvalueChartsProps) {
             <XAxis dataKey="date" tick={{ fontSize: 12 }} />
             <YAxis
               tick={{ fontSize: 12 }}
-              tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`}
+              tickFormatter={(v) => `¥${formatNumber(v / 10000, 0)}万`}
             />
             <Tooltip
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any) => [`¥${Number(value).toLocaleString()}`, "总资产"]}
+              formatter={(value: any) => [`¥${formatAmount(Number(value))}`, "总资产"]}
               labelFormatter={(label) => `日期: ${label}`}
             />
             <Line
@@ -93,7 +94,7 @@ export function NetvalueCharts({ records }: NetvalueChartsProps) {
             />
             <Tooltip
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => [`${value}%`, name]}
+              formatter={(value: any, name: any) => [`${formatPercent(Number(value))}%`, name]}
               labelFormatter={(label) => `日期: ${label}`}
             />
             <Legend />

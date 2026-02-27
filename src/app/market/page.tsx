@@ -8,6 +8,7 @@ import { TradingViewChart } from "@/components/tradingview-chart";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, ExternalLink } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 
 // --- 静态分组配置 ---
 
@@ -99,9 +100,11 @@ const STATIC_ROWS: StaticRow[] = INDEX_CONFIG.map((c) => ({
 // --- 工具函数 ---
 
 function formatPrice(price: number): string {
-  if (price >= 1000)
-    return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return price.toFixed(2);
+  return price.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: price >= 1000,
+  });
 }
 
 function formatTime(isoStr: string): string {
@@ -249,7 +252,7 @@ export default function MarketPage() {
                           {loading && !data ? (
                             <span className="inline-block w-12 h-4 bg-muted animate-pulse rounded" />
                           ) : hasData ? (
-                            `${isUp ? "+" : ""}${live.change.toFixed(2)}`
+                            `${isUp ? "+" : ""}${formatNumber(live.change, 2)}`
                           ) : (
                             <span className="text-muted-foreground">--</span>
                           )}
@@ -258,7 +261,7 @@ export default function MarketPage() {
                           {loading && !data ? (
                             <span className="inline-block w-12 h-4 bg-muted animate-pulse rounded" />
                           ) : hasData ? (
-                            `${isUp ? "+" : ""}${live.changePercent.toFixed(2)}%`
+                            `${isUp ? "+" : ""}${formatNumber(live.changePercent, 2)}%`
                           ) : (
                             <span className="text-muted-foreground">--</span>
                           )}

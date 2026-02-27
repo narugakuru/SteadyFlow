@@ -18,6 +18,7 @@ import {
 import { Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { HoldingEditDialog } from "@/components/holding-edit-dialog";
 import { TransactionForm } from "@/components/transaction-form";
+import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/format";
 
 interface HoldingRowProps {
   holding: Holding;
@@ -63,11 +64,11 @@ export function HoldingRow({
   };
 
   const valueCny = toCny(h.marketValue);
-  const pctOfTotal = totalAssetCny > 0 ? ((valueCny / totalAssetCny) * 100).toFixed(2) : "0";
+  const pctOfTotal = totalAssetCny > 0 ? (valueCny / totalAssetCny) * 100 : 0;
   // shares 模式：总成本 = cost(平均每股成本) × shares；amount 模式：总成本 = cost
   const totalCost = h.valuationMode === "shares" ? h.cost * h.shares : h.cost;
   const pnl = totalCost > 0 ? h.marketValue - totalCost : 0;
-  const returnRate = totalCost > 0 ? +((pnl / totalCost) * 100).toFixed(2) : null;
+  const returnRate = totalCost > 0 ? (pnl / totalCost) * 100 : null;
 
   const openTx = (type: "buy" | "sell") => {
     setTxType(type);
@@ -79,10 +80,10 @@ export function HoldingRow({
       <span className={`text-sm ${pnlColorClass(pnl, colorMode)}`}>
         {pnl > 0 ? "+" : ""}
         {sym}
-        {pnl.toLocaleString()}
+        {formatAmount(pnl)}
         <span className="ml-1">
           ({returnRate > 0 ? "+" : ""}
-          {returnRate.toFixed(2)}%)
+          {formatPercent(returnRate)}%)
         </span>
       </span>
     ) : (
@@ -149,10 +150,10 @@ export function HoldingRow({
             <div className="flex items-center gap-4 shrink-0">
               <span className="font-semibold">
                 {sym}
-                {h.marketValue.toLocaleString()}
+                {formatAmount(h.marketValue)}
                 {currency !== "CNY" && (
                   <span className="text-xs text-muted-foreground ml-1">
-                    ≈ ¥{valueCny.toLocaleString()}
+                    ≈ ¥{formatAmount(valueCny)}
                   </span>
                 )}
               </span>
@@ -164,25 +165,25 @@ export function HoldingRow({
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {h.valuationMode === "shares" && (
                 <>
-                  <span>份额 {h.shares.toLocaleString()}</span>
+                  <span>份额 {formatShares(h.shares)}</span>
                   <span>·</span>
                   {h.cost > 0 && (
                     <>
                       <span>
                         成本价 {sym}
-                        {h.cost.toFixed(4)}
+                        {formatPrice(h.cost)}
                       </span>
                       <span>·</span>
                     </>
                   )}
                   <span>
                     现价 {sym}
-                    {h.price}
+                    {formatPrice(h.price)}
                   </span>
                   <span>·</span>
                 </>
               )}
-              <span>占比 {pctOfTotal}%</span>
+              <span>占比 {formatPercent(pctOfTotal)}%</span>
             </div>
             <div className="flex items-center gap-1 shrink-0">{actionButtons}</div>
           </div>
@@ -204,10 +205,10 @@ export function HoldingRow({
           <div className="flex items-center justify-between">
             <span className="font-semibold text-sm">
               {sym}
-              {h.marketValue.toLocaleString()}
+              {formatAmount(h.marketValue)}
               {currency !== "CNY" && (
                 <span className="text-xs text-muted-foreground ml-1">
-                  ≈ ¥{valueCny.toLocaleString()}
+                  ≈ ¥{formatAmount(valueCny)}
                 </span>
               )}
             </span>
@@ -217,25 +218,25 @@ export function HoldingRow({
           <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             {h.valuationMode === "shares" && (
               <>
-                <span>份额 {h.shares.toLocaleString()}</span>
+                <span>份额 {formatShares(h.shares)}</span>
                 <span>·</span>
                 {h.cost > 0 && (
                   <>
                     <span>
                       成本价 {sym}
-                      {h.cost.toFixed(4)}
+                      {formatPrice(h.cost)}
                     </span>
                     <span>·</span>
                   </>
                 )}
                 <span>
                   现价 {sym}
-                  {h.price}
+                  {formatPrice(h.price)}
                 </span>
                 <span>·</span>
               </>
             )}
-            <span>占比 {pctOfTotal}%</span>
+            <span>占比 {formatPercent(pctOfTotal)}%</span>
           </div>
           {/* Row 4: actions */}
           <div className="flex items-center gap-1 flex-wrap">{actionButtons}</div>

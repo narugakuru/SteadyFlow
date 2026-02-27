@@ -1,6 +1,7 @@
 "use client";
 
 import { AllocationItem, pnlColorClass } from "@/lib/types";
+import { formatAmount, formatPercent } from "@/lib/format";
 
 interface RebalancePanelProps {
   allocation: AllocationItem[];
@@ -30,11 +31,13 @@ export function RebalancePanel({ allocation, warningThreshold, colorMode }: Reba
                 <div className="flex items-center gap-3">
                   <span className="font-medium">{item.name}</span>
                   <span className="text-sm text-muted-foreground">
-                    {item.deviation > 0 ? `超配 +${item.deviation}%` : `低配 ${item.deviation}%`}
+                    {item.deviation > 0
+                      ? `超配 +${formatPercent(item.deviation)}%`
+                      : `低配 ${formatPercent(item.deviation)}%`}
                   </span>
                 </div>
                 <span className={`text-sm font-medium ${pnlColorClass(item.adjustAmount, colorMode)}`}>
-                  {isBuy ? "建议买入" : "建议卖出"} ¥{absAmount.toLocaleString()}
+                  {isBuy ? "建议买入" : "建议卖出"} ¥{formatAmount(absAmount)}
                 </span>
               </div>
             );

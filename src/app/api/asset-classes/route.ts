@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { assetClasses } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -60,7 +61,11 @@ export async function PUT(request: Request) {
   }
 
   // Validate total = 100%
-  const total = classes.reduce((sum, c) => sum + c.targetPct, 0);
+  const normalizedClasses = classes.map((c) => ({
+    ...c,
+    targetPct: roundForStorage(c.targetPct, "percent"),
+  }));
+  const total = normalizedClasses.reduce((sum, c) => sum + c.targetPct, 0);
   if (Math.abs(total - 100) > 0.01) {
     return NextResponse.json(
       { error: "目标占比总和必须为 100%" },
@@ -68,7 +73,7 @@ export async function PUT(request: Request) {
     );
   }
 
-  for (const cls of classes) {
+  for (const cls of normalizedClasses) {
     await db.update(assetClasses)
       .set({ targetPct: cls.targetPct })
       .where(and(eq(assetClasses.id, cls.id), eq(assetClasses.userId, userId)));

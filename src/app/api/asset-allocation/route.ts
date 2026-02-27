@@ -5,6 +5,7 @@ import { accounts, holdings, assetClasses, settings } from "@/db/schema";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -95,8 +96,11 @@ export async function GET() {
   const allocation = allClasses.map((cls: any) => {
     const isCash = cls.name === "现金";
     const actualValue = isCash ? totalCashCny : classValues[cls.name] || 0;
-    const actualPct = totalAssetCny > 0 ? +((actualValue / totalAssetCny) * 100).toFixed(2) : 0;
-    const deviation = +(actualPct - cls.targetPct).toFixed(2);
+    const actualPct =
+      totalAssetCny > 0
+        ? roundForStorage((actualValue / totalAssetCny) * 100, "percent")
+        : 0;
+    const deviation = roundForStorage(actualPct - cls.targetPct, "percent");
     const absDeviation = Math.abs(deviation);
 
     let status: "normal" | "warning" | "danger" = "normal";
@@ -120,7 +124,10 @@ export async function GET() {
           returnRate: null as number | null,
           pnlAmount: 0,
           pnlAmountCny: 0,
-          pctOfTotal: totalAssetCny > 0 ? +((ac.cashCny / totalAssetCny) * 100).toFixed(2) : 0,
+          pctOfTotal:
+            totalAssetCny > 0
+              ? roundForStorage((ac.cashCny / totalAssetCny) * 100, "percent")
+              : 0,
         }))
       : (classHoldings[cls.name] || []).map((h: any) => {
           const account = accountMap.get(h.accountId)!;
@@ -130,11 +137,16 @@ export async function GET() {
           const holdingTotalCost = h.valuationMode === "shares" ? h.cost * h.shares : h.cost;
           const returnRate =
             holdingTotalCost > 0
-              ? +(((h.marketValue - holdingTotalCost) / holdingTotalCost) * 100).toFixed(2)
+              ? roundForStorage(
+                  ((h.marketValue - holdingTotalCost) / holdingTotalCost) * 100,
+                  "percent"
+                )
               : null;
-          const pnlAmount = holdingTotalCost > 0 ? +(h.marketValue - holdingTotalCost) : 0;
+          const pnlAmount =
+            holdingTotalCost > 0 ? roundForStorage(h.marketValue - holdingTotalCost, "amount") : 0;
           const totalCostCny = convertToCNY(holdingTotalCost, account.currency, rates);
-          const pnlAmountCny = holdingTotalCost > 0 ? +(valueCny - totalCostCny) : 0;
+          const pnlAmountCny =
+            holdingTotalCost > 0 ? roundForStorage(valueCny - totalCostCny, "amount") : 0;
           return {
             id: h.id,
             name: h.name,
@@ -143,11 +155,14 @@ export async function GET() {
             currency: account.currency,
             cost: holdingTotalCost,
             marketValue: h.marketValue,
-            marketValueCny: +valueCny.toFixed(2),
+            marketValueCny: roundForStorage(valueCny, "amount"),
             returnRate,
-            pnlAmount: +pnlAmount.toFixed(2),
-            pnlAmountCny: +pnlAmountCny.toFixed(2),
-            pctOfTotal: totalAssetCny > 0 ? +((valueCny / totalAssetCny) * 100).toFixed(2) : 0,
+            pnlAmount: roundForStorage(pnlAmount, "amount"),
+            pnlAmountCny: roundForStorage(pnlAmountCny, "amount"),
+            pctOfTotal:
+              totalAssetCny > 0
+                ? roundForStorage((valueCny / totalAssetCny) * 100, "percent")
+                : 0,
           };
         });
 
@@ -155,26 +170,29 @@ export async function GET() {
     const totalCost = isCash
       ? 0
       : holdingsList.reduce((s: number, h: any) => s + convertToCNY(h.cost, h.currency, rates), 0);
-    const totalPnl = isCash ? 0 : +(actualValue - totalCost).toFixed(2);
-    const adjustAmount = +((cls.targetPct / 100) * totalAssetCny - actualValue).toFixed(2);
+    const totalPnl = isCash ? 0 : roundForStorage(actualValue - totalCost, "amount");
+    const adjustAmount = roundForStorage(
+      (cls.targetPct / 100) * totalAssetCny - actualValue,
+      "amount"
+    );
 
     return {
       id: cls.id,
       name: cls.name,
       targetPct: cls.targetPct,
       actualPct,
-      actualValue: +actualValue.toFixed(2),
+      actualValue: roundForStorage(actualValue, "amount"),
       deviation,
       status,
       adjustAmount,
-      totalCost: +totalCost.toFixed(2),
+      totalCost: roundForStorage(totalCost, "amount"),
       totalPnl,
       holdings: holdingsList,
     };
   });
 
   return NextResponse.json({
-    totalAssetCny: +totalAssetCny.toFixed(2),
+    totalAssetCny: roundForStorage(totalAssetCny, "amount"),
     allocation,
     rates: ratesResult,
     settings: { warningThreshold, dangerThreshold, colorMode },

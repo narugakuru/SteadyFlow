@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db
@@ -68,12 +69,12 @@ export async function PUT(
   if (name !== undefined) updateSet.name = name;
   if (ticker !== undefined) updateSet.ticker = ticker || null;
   if (valuationMode !== undefined) updateSet.valuationMode = valuationMode;
-  if (cost !== undefined) updateSet.cost = parseFloat(cost);
+  if (cost !== undefined) updateSet.cost = roundForStorage(parseFloat(cost) || 0, "amount");
   if (assetClass !== undefined) updateSet.assetClass = assetClass;
 
   // For shares mode: if shares or price updated, recalculate marketValue
-  if (shares !== undefined) updateSet.shares = parseFloat(shares);
-  if (price !== undefined) updateSet.price = parseFloat(price);
+  if (shares !== undefined) updateSet.shares = roundForStorage(parseFloat(shares) || 0, "shares");
+  if (price !== undefined) updateSet.price = roundForStorage(parseFloat(price) || 0, "price");
 
   // Get current holding to determine mode for auto-calc
   const [current] = await db.select().from(holdings).where(eq(holdings.id, Number(id)));
@@ -92,11 +93,13 @@ export async function PUT(
 
   const effectiveMode = valuationMode ?? current.valuationMode;
   if (effectiveMode === "shares") {
-    const effectiveShares = shares !== undefined ? parseFloat(shares) : current.shares;
-    const effectivePrice = price !== undefined ? parseFloat(price) : current.price;
-    updateSet.marketValue = effectiveShares * effectivePrice;
+    const effectiveShares =
+      shares !== undefined ? roundForStorage(parseFloat(shares) || 0, "shares") : current.shares;
+    const effectivePrice =
+      price !== undefined ? roundForStorage(parseFloat(price) || 0, "price") : current.price;
+    updateSet.marketValue = roundForStorage(effectiveShares * effectivePrice, "amount");
   } else if (marketValue !== undefined) {
-    updateSet.marketValue = parseFloat(marketValue);
+    updateSet.marketValue = roundForStorage(parseFloat(marketValue) || 0, "amount");
   }
 
   const [result] = await db

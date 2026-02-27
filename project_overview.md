@@ -73,6 +73,7 @@ src/
 │   ├── auth-utils.ts               # Session 获取与 401 封装
 │   ├── user-seed.ts                # 用户级默认数据初始化
 │   ├── utils.ts                    # 工具函数
+│   ├── format.ts                   # 数值精度配置与统一格式化/截断函数
 │   ├── types.ts                    # 类型定义
 │   ├── hooks.ts                    # 自定义 Hooks
 │   ├── chart-colors.ts             # 图表颜色常量
@@ -155,3 +156,4 @@ src/
 - [2026-02-27] 修复 PostgreSQL 清库后自动迁移失效：启动时新增自愈逻辑，若检测到 `public` 业务表为空但 `drizzle.__drizzle_migrations` 仍有记录，则自动重置迁移记录并重新执行 migrate，确保 `npm run dev` 无需手动干预即可重建表并继续 seed
 - [2026-02-27] 新增 OpenSpec 变更 `discipline-notes-and-holding-memo` 并 fast-forward 完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖全局悬浮纪律笔记入口、中心弹窗 Markdown 多笔记、持仓 memo 编辑与悬浮提示需求
 - [2026-02-27] 修复 push 前类型检查拦截：为 accounts/transactions API 的 `rows.map` 回调参数补充显式类型（`typeof rows[number]`），消除隐式 any 并恢复 `npx tsc --noEmit` 通过
+- [2026-02-27] 完成 OpenSpec 变更 `decimal-precision-config`：新增 `src/lib/format.ts`（PRECISION、formatAmount/formatPercent/formatPrice/formatShares/formatRate、roundForStorage），统一替换前后端分散的 `.toFixed()`/`toLocaleString()` 数值处理；API 写入与计算结果统一按类别截断精度，页面与图表统一显示格式；`npm run typecheck` 通过

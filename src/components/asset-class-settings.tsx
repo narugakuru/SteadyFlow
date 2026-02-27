@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AssetClass, Settings } from "@/lib/types";
+import { formatNumber } from "@/lib/format";
 
 interface AssetClassSettingsProps {
   open: boolean;
@@ -142,7 +143,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
 
           <div className="flex items-center justify-between text-sm">
             <span className={Math.abs(total - 100) > 0.01 ? "text-destructive font-medium" : "text-muted-foreground"}>
-              目标占比总和: {total.toFixed(1)}%
+              目标占比总和: {formatNumber(total, 1)}%
             </span>
           </div>
 

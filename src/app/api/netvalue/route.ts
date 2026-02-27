@@ -5,6 +5,7 @@ import { accounts, holdings, assetClasses, netvalue } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -80,8 +81,11 @@ export async function POST() {
   const data = {
     allocation: allClasses.map((cls: any) => {
       const actualValue = cls.name === "现金" ? totalCashCny : (classValues[cls.name] || 0);
-      const actualPct = totalAssetCny > 0 ? +((actualValue / totalAssetCny) * 100).toFixed(2) : 0;
-      return { name: cls.name, actualValue: +actualValue.toFixed(2), actualPct };
+      const actualPct =
+        totalAssetCny > 0
+          ? roundForStorage((actualValue / totalAssetCny) * 100, "percent")
+          : 0;
+      return { name: cls.name, actualValue: roundForStorage(actualValue, "amount"), actualPct };
     }),
     accounts: allAccounts.map((a: any) => {
       const holdingsVal = accountHoldingsValue[a.id] || 0;
@@ -89,8 +93,8 @@ export async function POST() {
       return {
         name: a.name,
         currency: a.currency,
-        totalCny: +convertToCNY(accountValue, a.currency, rates).toFixed(2),
-        cashCny: +convertToCNY(a.cashBalance, a.currency, rates).toFixed(2),
+        totalCny: roundForStorage(convertToCNY(accountValue, a.currency, rates), "amount"),
+        cashCny: roundForStorage(convertToCNY(a.cashBalance, a.currency, rates), "amount"),
       };
     }),
     rates: ratesResult.rates,
@@ -105,7 +109,7 @@ export async function POST() {
   if (existing) {
     await db.update(netvalue)
       .set({
-        totalAssetCny: +totalAssetCny.toFixed(2),
+        totalAssetCny: roundForStorage(totalAssetCny, "amount"),
         dataJson: JSON.stringify(data),
       })
       .where(and(eq(netvalue.userId, userId), eq(netvalue.date, today)));
@@ -114,10 +118,14 @@ export async function POST() {
       .values({
         userId,
         date: today,
-        totalAssetCny: +totalAssetCny.toFixed(2),
+        totalAssetCny: roundForStorage(totalAssetCny, "amount"),
         dataJson: JSON.stringify(data),
       });
   }
 
-  return NextResponse.json({ date: today, totalAssetCny: +totalAssetCny.toFixed(2), data });
+  return NextResponse.json({
+    date: today,
+    totalAssetCny: roundForStorage(totalAssetCny, "amount"),
+    data,
+  });
 }

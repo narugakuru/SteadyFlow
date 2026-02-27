@@ -9,6 +9,7 @@ import { DeviationChart } from "@/components/deviation-chart";
 import { RebalancePanel } from "@/components/rebalance-panel";
 import { AllocationData } from "@/lib/types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { formatAmount, formatRate } from "@/lib/format";
 
 export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
@@ -82,12 +83,12 @@ export default function Dashboard() {
           <CardTitle className="text-sm text-muted-foreground">总资产 (CNY)</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">¥{allocation.totalAssetCny.toLocaleString()}</p>
+          <p className="text-3xl font-bold">¥{formatAmount(allocation.totalAssetCny)}</p>
           <p className="text-xs text-muted-foreground mt-1">
             汇率更新: {allocation.rates.updatedAt === "default" ? "使用默认汇率" : new Date(allocation.rates.updatedAt).toLocaleString()}
             {allocation.rates.source === "stale_cache" && " (缓存)"}
             {allocation.rates.source === "default" && " ⚠️"}
-            {Object.entries(rates).map(([pair, rate]) => ` · ${pair}: ${rate}`).join("")}
+            {Object.entries(rates).map(([pair, rate]) => ` · ${pair}: ${formatRate(rate)}`).join("")}
           </p>
         </CardContent>
       </Card>

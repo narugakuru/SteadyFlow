@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { exchangeRates } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { roundForStorage } from "@/lib/format";
 
 const DEFAULT_RATES: Record<string, number> = {
   "USD/CNY": 7.2,
@@ -27,8 +28,8 @@ async function fetchRatesFromAPI(): Promise<Record<string, number> | null> {
     if (!usdRate || !hkdRate) return null;
 
     return {
-      "USD/CNY": +(1 / usdRate).toFixed(4),
-      "HKD/CNY": +(1 / hkdRate).toFixed(4),
+      "USD/CNY": roundForStorage(1 / usdRate, "rate"),
+      "HKD/CNY": roundForStorage(1 / hkdRate, "rate"),
     };
   } catch {
     return null;
@@ -118,8 +119,8 @@ export function convertToCNY(
   currency: string,
   rates: Record<string, number>
 ): number {
-  if (currency === "CNY") return amount;
+  if (currency === "CNY") return roundForStorage(amount, "amount");
   const pair = `${currency}/CNY`;
   const rate = rates[pair] ?? 1;
-  return +(amount * rate).toFixed(2);
+  return roundForStorage(amount * rate, "amount");
 }

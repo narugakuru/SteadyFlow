@@ -32,6 +32,7 @@ import {
 import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Pencil, Trash2 } from "lucide-react";
 import { HoldingRow } from "@/components/holding-row";
+import { formatAmount, formatPercent } from "@/lib/format";
 
 // ─── Account Form (create/edit) ───
 
@@ -278,9 +279,9 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
       <div className="bg-muted/20 px-3 md:px-4 py-3">
         {/* Account summary */}
         <div className="flex flex-wrap items-center gap-3 md:gap-6 text-sm mb-3">
-          <span>总价值 <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span></span>
-          <span>持仓 <span className="font-semibold">{sym}{holdingsTotal.toLocaleString()}</span></span>
-          <span>现金 <span className="font-semibold">{sym}{a.cashBalance.toLocaleString()}</span></span>
+          <span>总价值 <span className="font-semibold">{sym}{formatAmount(a.accountValue)}</span></span>
+          <span>持仓 <span className="font-semibold">{sym}{formatAmount(holdingsTotal)}</span></span>
+          <span>现金 <span className="font-semibold">{sym}{formatAmount(a.cashBalance)}</span></span>
           <div className="flex-1 hidden md:block" />
           <div className="flex gap-2 w-full md:w-auto">
             <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>✏️ 编辑账户</Button>
@@ -350,7 +351,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                   const sym = CURRENCY_SYMBOLS[a.currency];
                   const pnl = a.holdingsPnl;
                   const holdingsCost = a.holdingsValue - a.holdingsPnl;
-                  const pnlPct = holdingsCost > 0 ? ((pnl / holdingsCost) * 100).toFixed(2) : null;
+                  const pnlPct = holdingsCost > 0 ? (pnl / holdingsCost) * 100 : null;
                   const hasPnl = a.holdingsCount > 0;
                   const isExpanded = expanded.has(a.id);
 
@@ -369,16 +370,21 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                             <Badge variant="outline" className="text-xs">{a.currency}</Badge>
                           </div>
                         </td>
-                        <td className="p-3 text-right font-semibold">{sym}{a.accountValue.toLocaleString()}</td>
+                        <td className="p-3 text-right font-semibold">{sym}{formatAmount(a.accountValue)}</td>
                         <td className={`p-3 text-right ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
                           {hasPnl ? (
                             <>
-                              {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
-                              {pnlPct && <span className="text-xs ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
+                              {pnl > 0 ? "+" : ""}{sym}{formatAmount(pnl)}
+                              {pnlPct !== null && (
+                                <span className="text-xs ml-1">
+                                  ({pnl > 0 ? "+" : ""}
+                                  {formatPercent(pnlPct)}%)
+                                </span>
+                              )}
                             </>
                           ) : "--"}
                         </td>
-                        <td className="p-3 text-right">{sym}{a.cashBalance.toLocaleString()}</td>
+                        <td className="p-3 text-right">{sym}{formatAmount(a.cashBalance)}</td>
                         <td className="p-3 text-right">{a.holdingsCount}</td>
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-center gap-0.5">
@@ -427,7 +433,7 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
               const sym = CURRENCY_SYMBOLS[a.currency];
               const pnl = a.holdingsPnl;
               const holdingsCost = a.holdingsValue - a.holdingsPnl;
-              const pnlPct = holdingsCost > 0 ? ((pnl / holdingsCost) * 100).toFixed(2) : null;
+              const pnlPct = holdingsCost > 0 ? (pnl / holdingsCost) * 100 : null;
               const hasPnl = a.holdingsCount > 0;
               const isExpanded = expanded.has(a.id);
 
@@ -473,19 +479,24 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
                     </div>
                     {/* Value row */}
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold">{sym}{a.accountValue.toLocaleString()}</span>
+                      <span className="font-semibold">{sym}{formatAmount(a.accountValue)}</span>
                       <span className={`text-xs ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}>
                         {hasPnl ? (
                           <>
-                            {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
-                            {pnlPct && <span className="ml-1">({pnl > 0 ? "+" : ""}{pnlPct}%)</span>}
+                            {pnl > 0 ? "+" : ""}{sym}{formatAmount(pnl)}
+                            {pnlPct !== null && (
+                              <span className="ml-1">
+                                ({pnl > 0 ? "+" : ""}
+                                {formatPercent(pnlPct)}%)
+                              </span>
+                            )}
                           </>
                         ) : "--"}
                       </span>
                     </div>
                     {/* Sub info */}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      <span>现金 {sym}{a.cashBalance.toLocaleString()}</span>
+                      <span>现金 {sym}{formatAmount(a.cashBalance)}</span>
                       <span>持仓 {a.holdingsCount} 个</span>
                     </div>
                   </div>

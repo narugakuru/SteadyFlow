@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 interface BatchPayload {
   holdings?: { id: number; marketValue: number; price?: number }[];
@@ -35,9 +36,12 @@ async function handleBatchUpdate(request: Request) {
   const now = new Date().toISOString();
 
   for (const h of holdingUpdates) {
-    const updateData: Record<string, any> = { marketValue: h.marketValue, updatedAt: now };
+    const updateData: Record<string, any> = {
+      marketValue: roundForStorage(h.marketValue, "amount"),
+      updatedAt: now,
+    };
     if (h.price !== undefined) {
-      updateData.price = h.price;
+      updateData.price = roundForStorage(h.price, "price");
     }
     await db.update(holdings)
       .set(updateData)

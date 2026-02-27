@@ -34,6 +34,7 @@ import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@
 import { useFetch, useTriFieldLinked } from "@/lib/hooks";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
 import { TransactionForm } from "@/components/transaction-form";
+import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/format";
 
 interface HoldingFormProps {
   holding?: Holding;
@@ -276,7 +277,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
 
   const calcReturn = (h: Holding) => {
     if (h.cost <= 0) return null;
-    return +(((h.marketValue - h.cost) / h.cost) * 100).toFixed(2);
+    return ((h.marketValue - h.cost) / h.cost) * 100;
   };
 
   return (
@@ -293,15 +294,15 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div className="border rounded p-3">
           <p className="text-muted-foreground">总额</p>
-          <p className="font-semibold">{sym}{account.accountValue.toLocaleString()}</p>
+          <p className="font-semibold">{sym}{formatAmount(account.accountValue)}</p>
         </div>
         <div className="border rounded p-3">
           <p className="text-muted-foreground">持仓</p>
-          <p className="font-semibold">{sym}{holdingsTotal.toLocaleString()}</p>
+          <p className="font-semibold">{sym}{formatAmount(holdingsTotal)}</p>
         </div>
         <div className="border rounded p-3">
           <p className="text-muted-foreground">现金</p>
-          <p className="font-semibold">{sym}{cash.toLocaleString()}</p>
+          <p className="font-semibold">{sym}{formatAmount(cash)}</p>
         </div>
       </div>
 
@@ -316,7 +317,7 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
         <div className="space-y-2">
           {holdings.map((h) => {
             const valueCny = toCny(h.marketValue);
-            const pctOfTotal = totalAssetCny > 0 ? ((valueCny / totalAssetCny) * 100).toFixed(2) : "0";
+            const pctOfTotal = totalAssetCny > 0 ? (valueCny / totalAssetCny) * 100 : 0;
             const returnRate = calcReturn(h);
             return (
               <div key={h.id} className="border rounded-lg p-3 flex items-center justify-between">
@@ -332,20 +333,21 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    本金 {sym}{h.cost.toLocaleString()}
-                    {" · "}市值 {sym}{h.marketValue.toLocaleString()}
-                    {account.currency !== "CNY" && ` ≈ ¥${valueCny.toLocaleString()}`}
-                    {" · "}占总资产 {pctOfTotal}%
+                    本金 {sym}{formatAmount(h.cost)}
+                    {" · "}市值 {sym}{formatAmount(h.marketValue)}
+                    {account.currency !== "CNY" && ` ≈ ¥${formatAmount(valueCny)}`}
+                    {" · "}占总资产 {formatPercent(pctOfTotal)}%
                   </p>
                   {h.valuationMode === "shares" && (
                     <p className="text-sm text-muted-foreground">
-                      份额 {h.shares.toLocaleString()} · 股价 {sym}{h.price}
-                      {h.shares > 0 && ` · 均价 ${sym}${(h.cost / h.shares).toFixed(4)}`}
+                      份额 {formatShares(h.shares)} · 股价 {sym}{formatPrice(h.price)}
+                      {h.shares > 0 && ` · 均价 ${sym}${formatPrice(h.cost / h.shares)}`}
                     </p>
                   )}
                   {returnRate !== null && (
                     <p className={`text-sm mt-0.5 ${pnlColorClass(returnRate, colorMode)}`}>
-                      收益率 {returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%
+                      收益率 {returnRate > 0 ? "+" : ""}
+                      {formatPercent(returnRate)}%
                     </p>
                   )}
                 </div>

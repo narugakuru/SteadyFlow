@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Holding, Account, CURRENCY_SYMBOLS } from "@/lib/types";
+import { formatAmount, formatPercent } from "@/lib/format";
 
 interface AssetClassViewProps {
   allocation: { name: string; actualValue: number; actualPct: number; targetPct: number; deviation: number }[];
@@ -39,9 +40,9 @@ export function AssetClassView({ allocation, holdings, accounts, rates, totalAss
                 <span className="font-medium">{cls.name}</span>
               </div>
               <div className="text-right text-sm">
-                <span className="font-semibold">¥{cls.actualValue.toLocaleString()}</span>
-                <span className="text-muted-foreground ml-2">{cls.actualPct}%</span>
-                <span className="text-muted-foreground ml-1">(目标 {cls.targetPct}%)</span>
+                <span className="font-semibold">¥{formatAmount(cls.actualValue)}</span>
+                <span className="text-muted-foreground ml-2">{formatPercent(cls.actualPct)}%</span>
+                <span className="text-muted-foreground ml-1">(目标 {formatPercent(cls.targetPct)}%)</span>
               </div>
             </div>
             {isExpanded && (
@@ -55,8 +56,8 @@ export function AssetClassView({ allocation, holdings, accounts, rates, totalAss
                       <div key={a.id} className="flex items-center justify-between text-sm py-1">
                         <span>{a.name}</span>
                         <span>
-                          {sym}{a.cashBalance.toLocaleString()}
-                          {a.currency !== "CNY" && ` ≈ ¥${cashCny.toLocaleString()}`}
+                          {sym}{formatAmount(a.cashBalance)}
+                          {a.currency !== "CNY" && ` ≈ ¥${formatAmount(cashCny)}`}
                         </span>
                       </div>
                     );
@@ -68,7 +69,7 @@ export function AssetClassView({ allocation, holdings, accounts, rates, totalAss
                       const account = accountMap.get(h.accountId);
                       if (!account) return null;
                       const valueCny = toCny(h.marketValue, account.currency);
-                      const pct = totalAssetCny > 0 ? ((valueCny / totalAssetCny) * 100).toFixed(2) : "0";
+                      const pct = totalAssetCny > 0 ? (valueCny / totalAssetCny) * 100 : 0;
                       const sym = CURRENCY_SYMBOLS[account.currency];
                       return (
                         <div key={h.id} className="flex items-center justify-between text-sm py-1">
@@ -77,9 +78,9 @@ export function AssetClassView({ allocation, holdings, accounts, rates, totalAss
                             <Badge variant="outline" className="text-xs">{account.name}</Badge>
                           </div>
                           <span>
-                            {sym}{h.marketValue.toLocaleString()}
-                            {account.currency !== "CNY" && ` ≈ ¥${valueCny.toLocaleString()}`}
-                            <span className="text-muted-foreground ml-1">({pct}%)</span>
+                            {sym}{formatAmount(h.marketValue)}
+                            {account.currency !== "CNY" && ` ≈ ¥${formatAmount(valueCny)}`}
+                            <span className="text-muted-foreground ml-1">({formatPercent(pct)}%)</span>
                           </span>
                         </div>
                       );

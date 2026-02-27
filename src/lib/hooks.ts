@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { roundForStorage } from "@/lib/format";
 
 export type TriField = "price" | "shares" | "marketValue";
 
@@ -58,15 +59,27 @@ export function useTriFieldLinked(initial: UseTriFieldLinkedOptions): UseTriFiel
     const mv = parseFloat(mvStr) || 0;
 
     if (computed === "marketValue") {
-      return { price: pStr, shares: sStr, marketValue: (p * s).toFixed(2) };
+      return {
+        price: pStr,
+        shares: sStr,
+        marketValue: roundForStorage(p * s, "amount").toString(),
+      };
     }
     if (computed === "price") {
       if (s === 0) return { price: pStr, shares: sStr, marketValue: mvStr };
-      return { price: (mv / s).toFixed(4), shares: sStr, marketValue: mvStr };
+      return {
+        price: roundForStorage(mv / s, "price").toString(),
+        shares: sStr,
+        marketValue: mvStr,
+      };
     }
     // computed === "shares"
     if (p === 0) return { price: pStr, shares: sStr, marketValue: mvStr };
-    return { price: pStr, shares: (mv / p).toFixed(4), marketValue: mvStr };
+    return {
+      price: pStr,
+      shares: roundForStorage(mv / p, "shares").toString(),
+      marketValue: mvStr,
+    };
   };
 
   const onPriceChange = (val: string) => {

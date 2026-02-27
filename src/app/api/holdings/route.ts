@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db
@@ -62,12 +63,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "账户不存在" }, { status: 404 });
   }
 
-  const finalCost = parseFloat(cost) || 0;
-  const finalShares = parseFloat(inputShares) || 0;
-  const finalPrice = parseFloat(inputPrice) || 0;
+  const finalCost = roundForStorage(parseFloat(cost) || 0, "amount");
+  const finalShares = roundForStorage(parseFloat(inputShares) || 0, "shares");
+  const finalPrice = roundForStorage(parseFloat(inputPrice) || 0, "price");
   const finalMarketValue = valuationMode === "shares"
-    ? finalShares * finalPrice
-    : (marketValue != null ? parseFloat(marketValue) : finalCost);
+    ? roundForStorage(finalShares * finalPrice, "amount")
+    : roundForStorage((marketValue != null ? parseFloat(marketValue) : finalCost), "amount");
 
   const [result] = await db
     .insert(holdings)

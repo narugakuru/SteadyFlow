@@ -8,6 +8,7 @@ import { Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
 import Link from "next/link";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { formatAmount, formatShares } from "@/lib/format";
 
 interface HoldingEdit {
   marketValue: number;
@@ -161,8 +162,8 @@ export default function BatchUpdatePage() {
                     <Badge variant="outline">{acc.currency}</Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>总价值 {sym}{acc.accountValue.toLocaleString()}</span>
-                    <span>现金 {sym}{acc.cashBalance.toLocaleString()}</span>
+                    <span>总价值 {sym}{formatAmount(acc.accountValue)}</span>
+                    <span>现金 {sym}{formatAmount(acc.cashBalance)}</span>
                   </div>
                 </div>
 
@@ -195,7 +196,7 @@ export default function BatchUpdatePage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <span className="text-muted-foreground text-xs">股数</span>
-                                <span className="w-20 text-right inline-block">{h.shares.toLocaleString()}</span>
+                                <span className="w-20 text-right inline-block">{formatShares(h.shares)}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <span className="text-muted-foreground text-xs">股价</span>

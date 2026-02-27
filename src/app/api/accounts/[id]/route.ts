@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, transactions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { roundForStorage } from "@/lib/format";
 
 export async function GET(
   _request: Request,
@@ -47,7 +48,9 @@ export async function PUT(
     .set({
       ...(name !== undefined && { name }),
       ...(currency !== undefined && { currency }),
-      ...(cashBalance !== undefined && { cashBalance: parseFloat(cashBalance) }),
+      ...(cashBalance !== undefined && {
+        cashBalance: roundForStorage(parseFloat(cashBalance) || 0, "amount"),
+      }),
       updatedAt: new Date().toISOString(),
     })
     .where(and(eq(accounts.id, Number(id)), eq(accounts.userId, userId)))
