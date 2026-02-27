@@ -151,3 +151,4 @@ src/
 - [2026-02-27] 新增全局 LoadingSpinner 加载动画组件（Loader2 + animate-spin，支持 sm/md/lg 尺寸和可选文字），替换 7 个页面的纯文本"加载中..."为统一动画组件（Dashboard、账户、交易、净值、股价更新、管理后台、用户管理）
 - [2026-02-27] 归档 3 个已完成 changes（loading-spinner、market-page-revamp、stooq-price-integration），delta specs 已同步到主 specs（其中 loading-spinner 的 market-overview 条目按实现状态跳过）
 - [2026-02-27] 修复 SQLite 场景下会话与用户表不一致导致的外键失败：`requireUser` 增加 users 存在性校验（无效会话返回 401），账户创建表单补充错误提示与响应状态校验，避免“保存失败但无提示”
+- [2026-02-27] 新增 OpenSpec 变更 `mobile-ui-and-asset-class-consistency` 并完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖移动端弹窗与批量更新 UI 修复、移除冗余返回总览按钮、资产类别“股票基金→股票”统一与默认排序规范
