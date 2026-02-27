@@ -153,4 +153,5 @@ src/
 - [2026-02-27] 修复 SQLite 场景下会话与用户表不一致导致的外键失败：`requireUser` 增加 users 存在性校验（无效会话返回 401），账户创建表单补充错误提示与响应状态校验，避免“保存失败但无提示”
 - [2026-02-27] 新增 OpenSpec 变更 `mobile-ui-and-asset-class-consistency` 并完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖移动端弹窗与批量更新 UI 修复、移除冗余返回总览按钮、资产类别“股票基金→股票”统一与默认排序规范
 - [2026-02-27] 修复 PostgreSQL 清库后自动迁移失效：启动时新增自愈逻辑，若检测到 `public` 业务表为空但 `drizzle.__drizzle_migrations` 仍有记录，则自动重置迁移记录并重新执行 migrate，确保 `npm run dev` 无需手动干预即可重建表并继续 seed
+- [2026-02-27] 新增 OpenSpec 变更 `discipline-notes-and-holding-memo` 并 fast-forward 完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖全局悬浮纪律笔记入口、中心弹窗 Markdown 多笔记、持仓 memo 编辑与悬浮提示需求
 - [2026-02-27] 修复 push 前类型检查拦截：为 accounts/transactions API 的 `rows.map` 回调参数补充显式类型（`typeof rows[number]`），消除隐式 any 并恢复 `npx tsc --noEmit` 通过
