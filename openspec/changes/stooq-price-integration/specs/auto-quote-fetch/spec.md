@@ -2,21 +2,31 @@
 
 ### Requirement: 自动获取持仓报价 API
 
-系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户所有 shares 模式且 ticker 匹配 Stooq 格式（`*.us`、`*.jp`）的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。MUST 验证所有持仓属于当前登录用户。
+系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户所有 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。按 ticker 后缀分发数据源：`.us`/`.jp` 使用 Stooq，`.SS`/`.SZ`/`.HK` 使用 Yahoo。拉取失败时 MUST NOT 修改该持仓的 price 和 marketValue。MUST 验证所有持仓属于当前登录用户。
 
-#### Scenario: 成功更新美股持仓价格
+#### Scenario: 成功更新美股持仓价格（Stooq）
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us`，shares=100，旧 price=150
 - **THEN** 系统从 Stooq 获取 AAPL 最新收盘价（如 175），更新 price=175，marketValue=100×175=17500，返回该持仓在 updated 列表中
 
-#### Scenario: Stooq 拉取失败的持仓
+#### Scenario: 成功更新 A 股持仓价格（Yahoo）
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`600519.SS`，shares=200，旧 price=1800
+- **THEN** 系统从 Yahoo 获取贵州茅台最新价格（如 1850），更新 price=1850，marketValue=200×1850=370000，返回该持仓在 updated 列表中
+
+#### Scenario: 成功更新港股持仓价格（Yahoo）
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`0700.HK`，shares=100，旧 price=380
+- **THEN** 系统从 Yahoo 获取腾讯最新价格（如 400），更新 price=400，marketValue=100×400=40000，返回该持仓在 updated 列表中
+
+#### Scenario: 拉取失败不修改股价
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`xyz.us`，但 Stooq 返回无数据
-- **THEN** 该持仓的 price 和 marketValue 不变，返回该持仓在 failed 列表中
+- **THEN** 该持仓的 price 和 marketValue 保持不变，返回该持仓在 failed 列表中
 
 #### Scenario: 跳过不符合格式的持仓
 
-- **WHEN** 当前用户有持仓 ticker=`600519`（无 Stooq 后缀）或 ticker 为空
+- **WHEN** 当前用户有持仓 ticker=`600519`（无可识别后缀）或 ticker 为空
 - **THEN** 该持仓不参与自动拉取，返回在 skipped 列表中
 
 #### Scenario: 跳过 amount 模式持仓
@@ -45,7 +55,7 @@
 
 #### Scenario: 无可更新持仓
 
-- **WHEN** 用户没有任何 Stooq 格式 ticker 的 shares 模式持仓
+- **WHEN** 用户没有任何可识别 ticker 格式的 shares 模式持仓
 - **THEN** toast 提示"没有可自动更新的持仓"
 
 ### Requirement: 批量更新页面自动报价按钮

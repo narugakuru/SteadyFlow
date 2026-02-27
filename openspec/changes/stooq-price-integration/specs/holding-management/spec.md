@@ -2,7 +2,7 @@
 
 ### Requirement: 添加持仓
 
-系统 SHALL 允许已登录用户在自己的账户下添加持仓，包含以下字段：持仓名称（必填）、股票代码 ticker（选填，附格式提示）、估值模式 valuationMode（必填，"amount" 或 "shares"，默认 "amount"）、所属资产类别（必填，从当前用户的 `asset_classes` 表动态获取可选值，排除"现金"类别）。shares 模式下额外显示：份额 shares（必填）、股价 price（必填），市值自动计算为 shares × price。创建持仓前 MUST 验证目标账户属于当前用户。ticker 输入框 SHALL 显示格式提示（placeholder 或 helper text），引导用户填写 Stooq 格式（如 `aapl.us`、`7203.jp`），说明填写正确格式后可自动获取报价。
+系统 SHALL 允许已登录用户在自己的账户下添加持仓，包含以下字段：持仓名称（必填）、股票代码 ticker（选填，附格式提示）、估值模式 valuationMode（必填，"amount" 或 "shares"，默认 "amount"）、所属资产类别（必填，从当前用户的 `asset_classes` 表动态获取可选值，排除"现金"类别）。shares 模式下额外显示：份额 shares（必填）、股价 price（必填），市值自动计算为 shares × price。创建持仓前 MUST 验证目标账户属于当前用户。ticker 输入框 SHALL 显示格式提示（placeholder 或 helper text），引导用户填写正确格式（美股 `aapl.us`、日股 `7203.jp`、A 股 `600519.SS`/`000001.SZ`、港股 `0700.HK`），说明填写正确格式后可自动获取报价。
 
 #### Scenario: 资产类别下拉动态加载
 
@@ -12,7 +12,7 @@
 #### Scenario: ticker 格式提示
 
 - **WHEN** 用户在新建持仓表单中看到 ticker 输入框
-- **THEN** 输入框显示 placeholder 提示如 `aapl.us / 7203.jp`，下方显示帮助文本说明格式规则（美股 `.us`、日股 `.jp`，填写后可自动获取报价）
+- **THEN** 输入框显示 placeholder 提示如 `aapl.us / 600519.SS`，下方显示帮助文本说明格式规则（美股 `.us`、日股 `.jp`、A 股 `.SS`/`.SZ`、港股 `.HK`，填写后可自动获取报价）
 
 #### Scenario: 不能在他人账户下添加持仓
 
