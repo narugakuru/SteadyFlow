@@ -4,6 +4,46 @@
 
 系统 SHALL 允许已登录用户为自己的账户创建交易记录，交易类型包括：买入(buy)、卖出(sell)、股息(dividend)、现金存入(deposit)、现金取出(withdraw)。创建交易前 MUST 验证目标账户属于当前用户。交易记录 SHALL 存储 `affectCash` 和 `affectHolding` 两个独立字段。API SHALL 同时支持旧参数 `affectBalance`（等价于同时设置两个新字段）以保持兼容。
 
+shares 模式买入副作用（affectHolding=true）：
+
+- cost 按加权平均法重算：`newCost = (oldCost × oldShares + txPrice × txShares) / (oldShares + txShares)`
+- shares += txShares
+- price = txPrice（更新为成交价）
+- marketValue = newShares × newPrice
+
+shares 模式卖出副作用（affectHolding=true）：
+
+- cost 不变
+- shares -= txShares
+- price = txPrice（更新为成交价）
+- marketValue = newShares × newPrice
+
+amount 模式买入副作用（affectHolding=true）：
+
+- cost += amount
+- marketValue += amount
+
+amount 模式卖出副作用（affectHolding=true）：
+
+- costReduce = amount × cost / marketValue（按比例扣减）
+- cost -= costReduce
+- marketValue -= amount
+
+#### Scenario: shares 模式买入（加权平均成本）
+
+- **WHEN** 已登录用户对 shares 模式持仓（cost=10, shares=100）创建买入交易，txShares=50, txPrice=12, affectHolding=true
+- **THEN** newCost = (10×100 + 12×50) / 150 = 10.67, shares=150, price=12, marketValue=150×12=1800
+
+#### Scenario: shares 模式首次买入
+
+- **WHEN** 已登录用户对 shares 模式持仓（cost=0, shares=0）创建买入交易，txShares=100, txPrice=15, affectHolding=true
+- **THEN** cost=15（成交价即初始成本价）, shares=100, price=15, marketValue=100×15=1500
+
+#### Scenario: shares 模式卖出（成本不变）
+
+- **WHEN** 已登录用户对 shares 模式持仓（cost=10.67, shares=150）创建卖出交易，txShares=50, txPrice=15, affectHolding=true
+- **THEN** cost=10.67（不变）, shares=100, price=15, marketValue=100×15=1500
+
 #### Scenario: 创建买入交易（amount模式）
 
 - **WHEN** 已登录用户为自己账户中 amount 模式的持仓"余额宝"创建买入交易，金额 5000，手续费 0，affectCash=true，affectHolding=true
@@ -141,35 +181,16 @@
 - **WHEN** 用户点击"新建持仓"后在创建表单中点击取消
 - **THEN** 返回交易表单，持仓选择器保持之前的状态
 
-### Requirement: 交易表单根据估值模式显示不同字段
+### Requirement: 交易记录页使用 LoadingSpinner 加载动画
 
-系统 SHALL 根据所选持仓的 valuationMode 显示不同的交易表单字段。
+交易记录页 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代纯文本"加载中..."，包括 Suspense fallback。
 
-#### Scenario: shares模式买入表单
+#### Scenario: 交易页加载中
 
-- **WHEN** 用户选择 shares 模式的持仓进行买入
-- **THEN** 表单显示：股数（必填）、成交价（必填）、金额（自动计算=股数×成交价）、手续费（选填）、备注（选填）
+- **WHEN** 交易记录页正在获取交易、账户、持仓数据
+- **THEN** 页面显示 LoadingSpinner 组件，替代原有纯文本
 
-#### Scenario: amount模式买入表单
+#### Scenario: 交易页 Suspense fallback
 
-- **WHEN** 用户选择 amount 模式的持仓进行买入
-- **THEN** 表单显示：金额（必填）、手续费（选填）、备注（选填）
-
-#### Scenario: deposit/withdraw表单
-
-- **WHEN** 用户选择现金存入或取出类型
-- **THEN** 表单只显示：账户（必填）、金额（必填）、备注（选填），不显示持仓选择
-
-### Requirement: 卖出校验
-
-系统 SHALL 在卖出时进行校验，防止无效操作。
-
-#### Scenario: amount模式卖出时市值为零
-
-- **WHEN** 用户尝试对 marketValue=0 的持仓创建卖出交易
-- **THEN** 系统拒绝操作，提示"当前市值为0，无法卖出"
-
-#### Scenario: shares模式卖出超过持有份额
-
-- **WHEN** 用户尝试卖出 600 股，但持仓只有 500 股
-- **THEN** 系统拒绝操作，提示"卖出份额不能超过持有份额"
+- **WHEN** 交易页 Suspense 边界等待异步内容
+- **THEN** fallback 显示 LoadingSpinner 组件

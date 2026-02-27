@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses, settings } from "@/db/schema";
@@ -50,13 +51,10 @@ export async function GET() {
   }
 
   // Calculate total asset in CNY: Σ(cashBalance + holdingsValue) per account
-  const totalAssetCny = allAccounts.reduce(
-    (sum: number, a: any) => {
-      const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
-      return sum + convertToCNY(accountValue, a.currency, rates);
-    },
-    0
-  );
+  const totalAssetCny = allAccounts.reduce((sum: number, a: any) => {
+    const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
+    return sum + convertToCNY(accountValue, a.currency, rates);
+  }, 0);
 
   // Group holdings by asset class with details
   const classHoldings: Record<string, typeof allHoldings> = {};
@@ -71,20 +69,32 @@ export async function GET() {
   }
 
   // Calculate total cash in CNY directly from cashBalance
-  const accountCash: { accountId: number; accountName: string; currency: string; cash: number; cashCny: number }[] = [];
+  const accountCash: {
+    accountId: number;
+    accountName: string;
+    currency: string;
+    cash: number;
+    cashCny: number;
+  }[] = [];
   let totalCashCny = 0;
   for (const a of allAccounts) {
     const cashCny = convertToCNY(a.cashBalance, a.currency, rates);
     totalCashCny += cashCny;
     if (a.cashBalance > 0) {
-      accountCash.push({ accountId: a.id, accountName: a.name, currency: a.currency, cash: a.cashBalance, cashCny });
+      accountCash.push({
+        accountId: a.id,
+        accountName: a.name,
+        currency: a.currency,
+        cash: a.cashBalance,
+        cashCny,
+      });
     }
   }
 
   // Build allocation result
   const allocation = allClasses.map((cls: any) => {
     const isCash = cls.name === "现金";
-    const actualValue = isCash ? totalCashCny : (classValues[cls.name] || 0);
+    const actualValue = isCash ? totalCashCny : classValues[cls.name] || 0;
     const actualPct = totalAssetCny > 0 ? +((actualValue / totalAssetCny) * 100).toFixed(2) : 0;
     const deviation = +(actualPct - cls.targetPct).toFixed(2);
     const absDeviation = Math.abs(deviation);
@@ -115,17 +125,23 @@ export async function GET() {
       : (classHoldings[cls.name] || []).map((h: any) => {
           const account = accountMap.get(h.accountId)!;
           const valueCny = convertToCNY(h.marketValue, account.currency, rates);
-          const returnRate = h.cost > 0 ? +(((h.marketValue - h.cost) / h.cost) * 100).toFixed(2) : null;
-          const pnlAmount = h.cost > 0 ? +(h.marketValue - h.cost) : 0;
-          const costCny = convertToCNY(h.cost, account.currency, rates);
-          const pnlAmountCny = h.cost > 0 ? +(valueCny - costCny) : 0;
+          // shares 模式：cost 是平均每股成本，总成本 = cost × shares
+          // amount 模式：cost 就是总成本
+          const holdingTotalCost = h.valuationMode === "shares" ? h.cost * h.shares : h.cost;
+          const returnRate =
+            holdingTotalCost > 0
+              ? +(((h.marketValue - holdingTotalCost) / holdingTotalCost) * 100).toFixed(2)
+              : null;
+          const pnlAmount = holdingTotalCost > 0 ? +(h.marketValue - holdingTotalCost) : 0;
+          const totalCostCny = convertToCNY(holdingTotalCost, account.currency, rates);
+          const pnlAmountCny = holdingTotalCost > 0 ? +(valueCny - totalCostCny) : 0;
           return {
             id: h.id,
             name: h.name,
             accountId: h.accountId,
             accountName: account.name,
             currency: account.currency,
-            cost: h.cost,
+            cost: holdingTotalCost,
             marketValue: h.marketValue,
             marketValueCny: +valueCny.toFixed(2),
             returnRate,
@@ -136,7 +152,9 @@ export async function GET() {
         });
 
     // Category-level cost, P&L, and rebalance adjustment
-    const totalCost = isCash ? 0 : holdingsList.reduce((s: number, h: any) => s + convertToCNY(h.cost, h.currency, rates), 0);
+    const totalCost = isCash
+      ? 0
+      : holdingsList.reduce((s: number, h: any) => s + convertToCNY(h.cost, h.currency, rates), 0);
     const totalPnl = isCash ? 0 : +(actualValue - totalCost).toFixed(2);
     const adjustAmount = +((cls.targetPct / 100) * totalAssetCny - actualValue).toFixed(2);
 

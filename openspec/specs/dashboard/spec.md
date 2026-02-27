@@ -52,25 +52,30 @@
 - **WHEN** 已登录用户打开 Dashboard（/）
 - **THEN** 页面从上到下依次显示：当前用户的总资产卡片、饼状图（按大类）、纪律表（含偏离度柱状图）、再平衡建议。不显示账户列表。不显示其他用户的数据
 
-### Requirement: 资产类别视角展示
+### Requirement: Dashboard 使用 LoadingSpinner 加载动画
 
-系统 SHALL 在资产类别视角中动态展示所有资产类别，颜色从预定义颜色数组中按顺序循环分配，不再使用硬编码的类别-颜色映射。
+Dashboard 页面 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代纯文本"加载中..."。
 
-#### Scenario: 动态颜色分配
+#### Scenario: Dashboard 加载中
 
-- **WHEN** 系统渲染资产类别视角或持仓列表中的类别标签
-- **THEN** 每个资产类别的颜色从预定义数组（8-10 种）中按 `asset_classes` 表顺序循环分配
-
-#### Scenario: 新增类别自动获得颜色
-
-- **WHEN** 用户添加了第 9 个资产类别
-- **THEN** 该类别的颜色从预定义数组的第 1 个颜色重新开始循环
+- **WHEN** Dashboard 页面正在获取资产配置数据
+- **THEN** 页面显示 LoadingSpinner 组件（带"加载中..."文字），替代原有纯文本
 
 ### Requirement: Dashboard 导航
 
-系统 SHALL 移除 Dashboard header 区域的导航按钮（批量更新、净值历史等），这些入口已迁移到全局导航栏。Dashboard header 只保留标题和刷新净值按钮。
+系统 SHALL 在 Dashboard header 区域保留标题，并在右侧提供「自动获取报价」按钮和「记录净值」按钮（从左到右排列）。「自动获取报价」按钮点击后调用 `POST /api/holdings/fetch-prices`，显示加载状态，完成后展示更新结果摘要 toast，并刷新页面数据。
 
-#### Scenario: Dashboard header 简化
+#### Scenario: Dashboard header 布局
 
 - **WHEN** 用户打开 Dashboard
-- **THEN** header 区域只显示标题和刷新净值按钮，不再显示批量更新、净值历史等导航按钮
+- **THEN** header 区域显示标题，右侧依次显示「自动获取报价」按钮和「记录净值」按钮
+
+#### Scenario: 点击自动获取报价
+
+- **WHEN** 用户在 Dashboard 点击「自动获取报价」按钮
+- **THEN** 按钮显示加载状态，调用 `POST /api/holdings/fetch-prices`，完成后显示 toast 提示更新结果摘要（成功 N 个、失败 N 个、跳过 N 个），页面资产数据自动刷新
+
+#### Scenario: 无可更新持仓
+
+- **WHEN** 用户没有任何 Stooq 格式 ticker 的 shares 模式持仓
+- **THEN** toast 提示"没有可自动更新的持仓"

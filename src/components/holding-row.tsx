@@ -64,41 +64,59 @@ export function HoldingRow({
 
   const valueCny = toCny(h.marketValue);
   const pctOfTotal = totalAssetCny > 0 ? ((valueCny / totalAssetCny) * 100).toFixed(2) : "0";
-  const pnl = h.cost > 0 ? h.marketValue - h.cost : 0;
-  const returnRate = h.cost > 0 ? +((pnl / h.cost) * 100).toFixed(2) : null;
+  // shares 模式：总成本 = cost(平均每股成本) × shares；amount 模式：总成本 = cost
+  const totalCost = h.valuationMode === "shares" ? h.cost * h.shares : h.cost;
+  const pnl = totalCost > 0 ? h.marketValue - totalCost : 0;
+  const returnRate = totalCost > 0 ? +((pnl / totalCost) * 100).toFixed(2) : null;
 
   const openTx = (type: "buy" | "sell") => {
     setTxType(type);
     setTxOpen(true);
   };
 
-  const pnlDisplay = returnRate !== null ? (
-    <span className={`text-sm ${pnlColorClass(pnl, colorMode)}`}>
-      {pnl > 0 ? "+" : ""}{sym}{pnl.toLocaleString()}
-      <span className="ml-1">({returnRate > 0 ? "+" : ""}{returnRate.toFixed(2)}%)</span>
-    </span>
-  ) : (
-    <span className="text-sm text-muted-foreground">--</span>
-  );
+  const pnlDisplay =
+    returnRate !== null ? (
+      <span className={`text-sm ${pnlColorClass(pnl, colorMode)}`}>
+        {pnl > 0 ? "+" : ""}
+        {sym}
+        {pnl.toLocaleString()}
+        <span className="ml-1">
+          ({returnRate > 0 ? "+" : ""}
+          {returnRate.toFixed(2)}%)
+        </span>
+      </span>
+    ) : (
+      <span className="text-sm text-muted-foreground">--</span>
+    );
 
   const actionButtons = (
     <>
-      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openTx("buy")}>交易</Button>
-      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditOpen(true)}>编辑</Button>
+      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openTx("buy")}>
+        交易
+      </Button>
+      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditOpen(true)}>
+        编辑
+      </Button>
       {actions === "full" && (
         <>
           <Link href={`/transactions?accountId=${accountId}`}>
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">交易记录 →</Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+              交易记录 →
+            </Button>
           </Link>
           {onDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive">删除</Button>
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive">
+                  删除
+                </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>确认删除</AlertDialogTitle>
-                  <AlertDialogDescription>确定删除持仓"{h.name}"？</AlertDialogDescription>
+                  <AlertDialogDescription>
+                    确定删除持仓&ldquo;{h.name}&rdquo;？
+                  </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
@@ -123,14 +141,19 @@ export function HoldingRow({
               <span className="font-medium truncate">{h.name}</span>
               {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
               {showAccountName && accountName && (
-                <Badge variant="outline" className="text-xs shrink-0">{accountName}</Badge>
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {accountName}
+                </Badge>
               )}
             </div>
             <div className="flex items-center gap-4 shrink-0">
               <span className="font-semibold">
-                {sym}{h.marketValue.toLocaleString()}
+                {sym}
+                {h.marketValue.toLocaleString()}
                 {currency !== "CNY" && (
-                  <span className="text-xs text-muted-foreground ml-1">≈ ¥{valueCny.toLocaleString()}</span>
+                  <span className="text-xs text-muted-foreground ml-1">
+                    ≈ ¥{valueCny.toLocaleString()}
+                  </span>
                 )}
               </span>
               {pnlDisplay}
@@ -143,21 +166,25 @@ export function HoldingRow({
                 <>
                   <span>份额 {h.shares.toLocaleString()}</span>
                   <span>·</span>
-                  {h.shares > 0 && (
+                  {h.cost > 0 && (
                     <>
-                      <span>均价 {sym}{(h.cost / h.shares).toFixed(4)}</span>
+                      <span>
+                        成本价 {sym}
+                        {h.cost.toFixed(4)}
+                      </span>
                       <span>·</span>
                     </>
                   )}
-                  <span>股价 {sym}{h.price}</span>
+                  <span>
+                    现价 {sym}
+                    {h.price}
+                  </span>
                   <span>·</span>
                 </>
               )}
               <span>占比 {pctOfTotal}%</span>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              {actionButtons}
-            </div>
+            <div className="flex items-center gap-1 shrink-0">{actionButtons}</div>
           </div>
         </div>
 
@@ -168,15 +195,20 @@ export function HoldingRow({
             <span className="font-medium truncate">{h.name}</span>
             {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
             {showAccountName && accountName && (
-              <Badge variant="outline" className="text-xs shrink-0">{accountName}</Badge>
+              <Badge variant="outline" className="text-xs shrink-0">
+                {accountName}
+              </Badge>
             )}
           </div>
           {/* Row 2: value + pnl */}
           <div className="flex items-center justify-between">
             <span className="font-semibold text-sm">
-              {sym}{h.marketValue.toLocaleString()}
+              {sym}
+              {h.marketValue.toLocaleString()}
               {currency !== "CNY" && (
-                <span className="text-xs text-muted-foreground ml-1">≈ ¥{valueCny.toLocaleString()}</span>
+                <span className="text-xs text-muted-foreground ml-1">
+                  ≈ ¥{valueCny.toLocaleString()}
+                </span>
               )}
             </span>
             {pnlDisplay}
@@ -187,22 +219,26 @@ export function HoldingRow({
               <>
                 <span>份额 {h.shares.toLocaleString()}</span>
                 <span>·</span>
-                {h.shares > 0 && (
+                {h.cost > 0 && (
                   <>
-                    <span>均价 {sym}{(h.cost / h.shares).toFixed(4)}</span>
+                    <span>
+                      成本价 {sym}
+                      {h.cost.toFixed(4)}
+                    </span>
                     <span>·</span>
                   </>
                 )}
-                <span>股价 {sym}{h.price}</span>
+                <span>
+                  现价 {sym}
+                  {h.price}
+                </span>
                 <span>·</span>
               </>
             )}
             <span>占比 {pctOfTotal}%</span>
           </div>
           {/* Row 4: actions */}
-          <div className="flex items-center gap-1 flex-wrap">
-            {actionButtons}
-          </div>
+          <div className="flex items-center gap-1 flex-wrap">{actionButtons}</div>
         </div>
       </div>
 
@@ -212,6 +248,7 @@ export function HoldingRow({
           holdingId={h.id}
           name={h.name}
           ticker={h.ticker}
+          cost={h.cost}
           marketValue={h.marketValue}
           valuationMode={h.valuationMode}
           shares={h.shares}

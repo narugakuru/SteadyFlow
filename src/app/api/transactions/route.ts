@@ -17,7 +17,10 @@ export async function GET(request: Request) {
 
   const conditions = [eq(accounts.userId, userId)];
   if (accountId) conditions.push(eq(transactions.accountId, Number(accountId)));
-  if (type) conditions.push(eq(transactions.type, type as any));
+  if (type)
+    conditions.push(
+      eq(transactions.type, type as "buy" | "sell" | "dividend" | "deposit" | "withdraw")
+    );
 
   const rows = await db
     .select({
@@ -44,7 +47,7 @@ export async function GET(request: Request) {
     .where(and(...conditions))
     .orderBy(desc(transactions.date), desc(transactions.id));
 
-  const result = rows.map((r: any) => ({
+  const result = rows.map((r) => ({
     ...r,
     affectCash: fromDbBool(r.affectCash),
     affectHolding: fromDbBool(r.affectHolding),
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
     return response;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any;
   try {
     body = await request.json();
@@ -115,6 +119,7 @@ export async function POST(request: Request) {
   }
 
   // Get holding if needed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let holding: any = null;
   if (holdingIdNum) {
     const [h] = await db.select().from(holdings).where(eq(holdings.id, holdingIdNum));
@@ -158,7 +163,12 @@ export async function POST(request: Request) {
 
   // Calculate actual amount for shares mode buy/sell
   let finalAmount = parseFloat(amount);
-  if (holding?.valuationMode === "shares" && (type === "buy" || type === "sell") && txShares != null && txPrice != null) {
+  if (
+    holding?.valuationMode === "shares" &&
+    (type === "buy" || type === "sell") &&
+    txShares != null &&
+    txPrice != null
+  ) {
     finalAmount = txShares * txPrice;
   }
 
@@ -189,11 +199,19 @@ export async function POST(request: Request) {
     case "buy": {
       if (affectHolding && holding) {
         if (holding.valuationMode === "shares" && txShares != null) {
-          const newShares = holding.shares + parseFloat(txShares);
+          const parsedShares = parseFloat(txShares);
+          const newShares = holding.shares + parsedShares;
           const newPrice = txPrice != null ? parseFloat(txPrice) : holding.price;
-          await db.update(holdings)
+          // 加权平均成本法：newCost = (oldCost × oldShares + txPrice × txShares) / newShares
+          // cost 在 shares 模式下存储的是"平均每股成本"
+          const newCost =
+            newShares > 0
+              ? (holding.cost * holding.shares + newPrice * parsedShares) / newShares
+              : newPrice;
+          await db
+            .update(holdings)
             .set({
-              cost: holding.cost + finalAmount,
+              cost: newCost,
               shares: newShares,
               price: newPrice,
               marketValue: newShares * newPrice,
@@ -201,7 +219,9 @@ export async function POST(request: Request) {
             })
             .where(eq(holdings.id, holdingIdNum));
         } else {
-          await db.update(holdings)
+          // amount 模式：cost 累加总成本
+          await db
+            .update(holdings)
             .set({
               cost: holding.cost + finalAmount,
               marketValue: holding.marketValue + finalAmount,
@@ -211,7 +231,8 @@ export async function POST(request: Request) {
         }
       }
       if (affectCash) {
-        await db.update(accounts)
+        await db
+          .update(accounts)
           .set({ cashBalance: account.cashBalance - finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountIdNum));
       }
@@ -221,13 +242,13 @@ export async function POST(request: Request) {
     case "sell": {
       if (affectHolding && holding) {
         if (holding.valuationMode === "shares" && txShares != null) {
-          const avgCost = holding.shares > 0 ? holding.cost / holding.shares : 0;
-          const costReduce = parseFloat(txShares) * avgCost;
+          // shares 模式卖出：cost（平均每股成本）不变，只减少份额
           const newShares = holding.shares - parseFloat(txShares);
           const newPrice = txPrice != null ? parseFloat(txPrice) : holding.price;
-          await db.update(holdings)
+          await db
+            .update(holdings)
             .set({
-              cost: holding.cost - costReduce,
+              cost: holding.cost, // 卖出不改变平均成本
               shares: newShares,
               price: newPrice,
               marketValue: newShares * newPrice,
@@ -235,10 +256,11 @@ export async function POST(request: Request) {
             })
             .where(eq(holdings.id, holdingIdNum));
         } else {
-          const costReduce = holding.marketValue > 0
-            ? finalAmount * holding.cost / holding.marketValue
-            : 0;
-          await db.update(holdings)
+          // amount 模式卖出：按比例扣减成本
+          const costReduce =
+            holding.marketValue > 0 ? (finalAmount * holding.cost) / holding.marketValue : 0;
+          await db
+            .update(holdings)
             .set({
               cost: holding.cost - costReduce,
               marketValue: holding.marketValue - finalAmount,
@@ -248,7 +270,8 @@ export async function POST(request: Request) {
         }
       }
       if (affectCash) {
-        await db.update(accounts)
+        await db
+          .update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountIdNum));
       }
@@ -257,7 +280,8 @@ export async function POST(request: Request) {
 
     case "dividend": {
       if (affectCash) {
-        await db.update(accounts)
+        await db
+          .update(accounts)
           .set({ cashBalance: account.cashBalance + finalAmount - feeVal, updatedAt: now })
           .where(eq(accounts.id, accountIdNum));
       }
@@ -266,7 +290,8 @@ export async function POST(request: Request) {
 
     case "deposit": {
       if (affectCash) {
-        await db.update(accounts)
+        await db
+          .update(accounts)
           .set({
             cashBalance: account.cashBalance + finalAmount,
             updatedAt: now,
@@ -278,7 +303,8 @@ export async function POST(request: Request) {
 
     case "withdraw": {
       if (affectCash) {
-        await db.update(accounts)
+        await db
+          .update(accounts)
           .set({
             cashBalance: account.cashBalance - finalAmount,
             updatedAt: now,
@@ -289,9 +315,12 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    ...txRecord,
-    affectCash: fromDbBool(txRecord.affectCash),
-    affectHolding: fromDbBool(txRecord.affectHolding),
-  }, { status: 201 });
+  return NextResponse.json(
+    {
+      ...txRecord,
+      affectCash: fromDbBool(txRecord.affectCash),
+      affectHolding: fromDbBool(txRecord.affectHolding),
+    },
+    { status: 201 }
+  );
 }

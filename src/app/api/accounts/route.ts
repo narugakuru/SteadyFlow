@@ -19,7 +19,7 @@ export async function GET() {
       createdAt: accounts.createdAt,
       updatedAt: accounts.updatedAt,
       holdingsValue: sql<number>`coalesce(sum(${holdings.marketValue}), 0)`,
-      holdingsPnl: sql<number>`coalesce(sum(${holdings.marketValue} - ${holdings.cost}), 0)`,
+      holdingsPnl: sql<number>`coalesce(sum(${holdings.marketValue} - CASE WHEN ${holdings.valuationMode} = 'shares' THEN ${holdings.cost} * ${holdings.shares} ELSE ${holdings.cost} END), 0)`,
       holdingsCount: sql<number>`count(${holdings.id})`,
     })
     .from(accounts)
@@ -27,7 +27,7 @@ export async function GET() {
     .where(eq(accounts.userId, userId))
     .groupBy(accounts.id);
 
-  const result = rows.map((row: any) => ({
+  const result = rows.map((row) => ({
     ...row,
     accountValue: row.cashBalance + row.holdingsValue,
   }));

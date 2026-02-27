@@ -17,11 +17,11 @@ interface GroupConfig {
 }
 
 const GROUP_CONFIG: GroupConfig[] = [
-  { label: "🇺🇸 美股", symbols: ["^GSPC", "^NDX", "^DJI"] },
+  { label: "🇺🇸 美股", symbols: ["^spx", "^ndq", "^dji"] },
   { label: "🇨🇳 A股", symbols: ["000300.SS", "000001.SS", "399006.SZ", "000905.SS"] },
-  { label: "🇭🇰 港股", symbols: ["^HSI", "^HSTECH"] },
-  { label: "🇯🇵 日股", symbols: ["^N225", "^TOPX"] },
-  { label: "📉 波动", symbols: ["^VIX"] },
+  { label: "🇭🇰 港股", symbols: ["^hsi", "^HSTECH"] },
+  { label: "🇯🇵 日股", symbols: ["^nkx", "东证指数"] },
+  { label: "📉 波动", symbols: ["^vix"] },
 ];
 
 // Tab 图表配置：每个 tab 的默认 symbol 和可切换列表
@@ -90,7 +90,7 @@ interface StaticRow {
 }
 
 const STATIC_ROWS: StaticRow[] = INDEX_CONFIG.map((c) => ({
-  symbol: c.yahoo,
+  symbol: c.sourceSymbol ?? c.name,
   name: c.name,
   tradingViewUrl: `https://www.tradingview.com/chart/?symbol=${c.tradingView}`,
   group: c.group,
@@ -139,7 +139,7 @@ export default function MarketPage() {
     }
   }
 
-  const vixData = priceMap.get("^VIX");
+  const vixData = priceMap.get("^vix");
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">

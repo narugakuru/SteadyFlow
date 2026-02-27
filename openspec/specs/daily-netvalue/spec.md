@@ -42,11 +42,11 @@
 - **WHEN** 用户更新了持仓数据后点击"刷新净值"按钮
 - **THEN** 系统用当前最新数据覆盖今日净值记录
 
-### Requirement: 净值历史查询
+### Requirement: 净值历史页使用 LoadingSpinner 加载动画
 
-系统 SHALL 提供当前用户的净值历史列表，按日期倒序展示，每条显示：日期、总资产、各类别占比。页面顶部 SHALL 展示总资产走势折线图和资产类别占比堆叠面积图（当净值数据 >= 2 条时）。页面路由为 `/netvalue`，API 路由为 `/api/netvalue`，数据库表名为 `netvalue`。
+净值历史页 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代纯文本"加载中..."。
 
-#### Scenario: 查看历史净值
+#### Scenario: 净值页加载中
 
-- **WHEN** 已登录用户打开净值历史页面（/netvalue）
-- **THEN** 页面顶部显示总资产走势折线图和占比堆叠面积图，下方按日期倒序显示当前用户的所有净值记录表格，不显示其他用户的记录
+- **WHEN** 净值历史页通过 useFetch 获取净值数据
+- **THEN** 页面显示 LoadingSpinner 组件，替代原有纯文本

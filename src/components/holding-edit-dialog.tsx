@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -18,12 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
-import { useTriFieldLinked, TriField } from "@/lib/hooks";
+import { useTriFieldLinked } from "@/lib/hooks";
 
 interface HoldingEditDialogProps {
   holdingId: number;
   name: string;
   ticker?: string | null;
+  cost: number;
   marketValue: number;
   valuationMode: "amount" | "shares";
   shares: number;
@@ -39,6 +35,7 @@ export function HoldingEditDialog({
   holdingId,
   name: initName,
   ticker: initTicker,
+  cost: initCost,
   marketValue: initMarketValue,
   valuationMode,
   shares: initShares,
@@ -51,6 +48,7 @@ export function HoldingEditDialog({
 }: HoldingEditDialogProps) {
   const [name, setName] = useState(initName);
   const [ticker, setTicker] = useState(initTicker || "");
+  const [cost, setCost] = useState(initCost.toString());
   const [marketValue, setMarketValue] = useState(initMarketValue.toString());
   const [assetClass, setAssetClass] = useState(initAssetClass);
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
@@ -79,6 +77,7 @@ export function HoldingEditDialog({
 
   const handleSave = async () => {
     setSaving(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: Record<string, any> = {
       name,
       ticker: ticker || null,
@@ -89,6 +88,7 @@ export function HoldingEditDialog({
       payload.price = parseFloat(tri.price) || 0;
       payload.shares = parseFloat(tri.shares) || 0;
       payload.marketValue = parseFloat(tri.marketValue) || 0;
+      payload.cost = parseFloat(cost) || 0;
     } else {
       payload.marketValue = parseFloat(marketValue) || 0;
     }
@@ -116,16 +116,29 @@ export function HoldingEditDialog({
             </div>
             <div>
               <Label>股票代码（选填）</Label>
-              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
+              <Input
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value)}
+                placeholder="aapl.us / 600519.SS"
+              />
             </div>
           </div>
 
           {isShares ? (
             <>
+              {/* 成本价修正 */}
+              <div>
+                <Label>成本价 ({sym})</Label>
+                <Input type="number" value={cost} onChange={(e) => setCost(e.target.value)} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  平均每股成本，通常由交易自动计算
+                </p>
+              </div>
+              {/* 三字段联动：现价 / 份额 / 市值 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <Label className={tri.computedField === "price" ? computedStyle : ""}>
-                    股价 ({sym}) {tri.computedField === "price" && "·自动"}
+                    现价 ({sym}) {tri.computedField === "price" && "·自动"}
                   </Label>
                   <Input
                     type="number"
@@ -153,12 +166,14 @@ export function HoldingEditDialog({
                     type="number"
                     value={tri.marketValue}
                     onChange={(e) => tri.onMarketValueChange(e.target.value)}
-                    className={tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""}
+                    className={
+                      tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""
+                    }
                   />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                编辑任意两个字段，第三个自动计算（标记为"·自动"）
+                编辑任意两个字段，第三个自动计算（标记为&ldquo;·自动&rdquo;）
               </p>
             </>
           ) : (
@@ -175,10 +190,14 @@ export function HoldingEditDialog({
           <div>
             <Label>资产类别</Label>
             <Select value={assetClass} onValueChange={setAssetClass}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {assetClasses.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

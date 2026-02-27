@@ -119,11 +119,16 @@
 - **WHEN** 用户有 CNY 和 USD 两个账户
 - **THEN** 列表中每个账户显示原始币种总价值、持仓盈亏和现金余额
 
-### Requirement: 账户展开区域编辑账户
+### Requirement: 账户管理页使用 LoadingSpinner 加载动画
 
-系统 SHALL 在账户展开区域提供"编辑账户"按钮，点击后弹出账户编辑弹窗，可修改账户名称、币种、现金余额。不再包含本金编辑项。
+账户管理页 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代纯文本"加载中..."，包括 Suspense fallback。
 
-#### Scenario: 从展开区域编辑账户
+#### Scenario: 账户页加载中
 
-- **WHEN** 用户展开某账户后点击"编辑账户"按钮
-- **THEN** 弹出账户编辑弹窗（无本金字段），保存后账户信息和持仓列表自动刷新
+- **WHEN** 账户管理页正在获取账户和资产配置数据
+- **THEN** 页面显示 LoadingSpinner 组件，替代原有纯文本
+
+#### Scenario: 账户页 Suspense fallback
+
+- **WHEN** 账户页 Suspense 边界等待异步内容
+- **THEN** fallback 显示 LoadingSpinner 组件

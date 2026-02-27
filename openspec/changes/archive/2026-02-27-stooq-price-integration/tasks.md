@@ -1,0 +1,53 @@
+## 1. Stooq 数据获取层
+
+- [x] 1.1 新建 `src/lib/stooq.ts`，实现 `fetchStooqQuote(symbol)` 单个符号获取函数（HTTP fetch → CSV 解析 → 返回数据对象或 null）
+- [x] 1.2 在 `src/lib/stooq.ts` 中实现 `fetchStooqQuotes(symbols[])` 批量获取函数（逐个请求，收集结果）
+
+## 2. Yahoo 数据获取层封装
+
+- [x] 2.1 新建 `src/lib/yahoo.ts`，封装 yahoo-finance2 的 quote 调用，提供 `fetchYahooQuotes(symbols[])` 函数，失败返回空列表不抛异常
+- [x] 2.2 提供 `fetchYahooQuote(symbol)` 单个符号获取函数，失败返回 null
+
+## 3. 市场指数双数据源替换
+
+- [x] 3.1 重写 `src/lib/market-config.ts`：`yahoo` 字段改为 `source`（"stooq"/"yahoo"/null）+ `sourceSymbol`，配置 11 个有数据的指数 + 1 个无源指数（东证）
+- [x] 3.2 重写 `src/lib/market-data.ts`：按 source 字段分组，Stooq 源调用 stooq.ts，Yahoo 源调用 yahoo.ts，合并结果返回；任一源失败不影响另一源
+
+## 4. cost 字段语义变更与数据迁移
+
+- [x] 4.1 编写数据迁移脚本：`UPDATE holdings SET cost = cost / shares WHERE shares > 0 AND valuationMode = 'shares'`（支持 SQLite 和 PG）
+- [x] 4.2 在 `src/lib/types.ts` 等关键文件中添加 cost 字段语义注释（shares 模式=平均每股成本，amount 模式=总成本）
+
+## 5. 交易副作用逻辑调整
+
+- [x] 5.1 修改 `POST /api/transactions` 中 shares 模式买入逻辑：cost 按加权平均法重算 `(oldCost × oldShares + txPrice × txShares) / newShares`，price = txPrice，marketValue = newShares × newPrice
+- [x] 5.2 修改 `POST /api/transactions` 中 shares 模式卖出逻辑：cost 不变，shares -= txShares，price = txPrice，marketValue = newShares × newPrice
+
+## 6. 盈亏计算公式适配
+
+- [x] 6.1 修改 `HoldingRow` 组件：shares 模式盈亏 = marketValue - (cost × shares)，amount 模式不变
+- [x] 6.2 修改 `asset-allocation` API：shares 模式总成本 = cost × shares，盈亏 = marketValue - 总成本
+- [x] 6.3 检查并修改其他引用 cost 计算盈亏的位置（discipline-table、account-list 等）
+
+## 7. 持仓自动报价 API
+
+- [x] 7.1 新建 `src/app/api/holdings/fetch-prices/route.ts`：查询当前用户 shares 模式持仓，按 ticker 后缀分组（`.us`/`.jp` → Stooq，`.SS`/`.SZ`/`.HK` → Yahoo），分别调用对应数据源拉取价格，成功则更新 price 和 marketValue，失败则不修改，返回 updated/failed/skipped 结果
+
+## 8. 编辑持仓对话框增强
+
+- [x] 8.1 修改 `HoldingEditDialog`：shares 模式新增成本价（cost）输入框，允许手动修正
+- [x] 8.2 修改 `HoldingEditDialog`：shares 模式新增现价（price）独立修正入口，修改后联动更新 marketValue
+- [x] 8.3 修改 `PUT /api/holdings/[id]`：支持接收并更新 cost 字段
+
+## 9. 新建持仓表单 ticker 提示
+
+- [x] 9.1 修改新建持仓表单（account-list 内联新建 + TransactionForm 内联新建）：ticker 输入框添加 placeholder `aapl.us / 600519.SS` 和帮助文本（美股 `.us`、日股 `.jp`、A 股 `.SS`/`.SZ`、港股 `.HK`）
+
+## 10. 自动报价按钮（前端）
+
+- [x] 10.1 修改 Dashboard 页面（`src/app/page.tsx`）：在记录净值按钮左边新增「自动获取报价」按钮，调用 `POST /api/holdings/fetch-prices`，显示加载状态和 toast 结果摘要，完成后刷新数据
+- [x] 10.2 修改 batch-update 页面（`src/app/batch-update/page.tsx`）：顶部新增「自动获取报价」按钮，功能同上
+
+## 11. 持仓展示文案调整
+
+- [x] 11.1 修改 `HoldingRow`：第二行 shares 模式从"均价"改为"成本价"，确认"股价"改为"现价"

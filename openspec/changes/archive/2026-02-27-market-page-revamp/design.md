@@ -3,6 +3,7 @@
 当前市场概览页通过裸 HTTP 请求调用 Yahoo Finance 非官方 API（`query1.finance.yahoo.com/v7/finance/quote`），获取 12 个全球指数的实时行情。该 API 无认证机制，近年 Yahoo 加强了反爬（cookie/crumb 验证），导致请求频繁失败。失败时页面显示空白错误提示，完全不可用。
 
 现有代码：
+
 - `src/lib/market-data.ts`：裸请求 + INDEX_CONFIG 静态配置
 - `src/app/market/page.tsx`：客户端组件，useFetch 获取数据后渲染表格
 - `src/app/api/market/route.ts`：简单代理，调用 fetchMarketData()
@@ -13,12 +14,14 @@
 ## Goals / Non-Goals
 
 **Goals:**
+
 - 页面永不空白：即使所有 API 失败，也显示完整的指数表格骨架和 TradingView 链接
 - 提升数据获取稳定性：使用 yahoo-finance2 替代裸请求
 - 新增图表区域：TradingView Advanced Chart Widget 嵌入，按市场分 tab
 - 保持页面轻量，无需后端数据库存储市场数据
 
 **Non-Goals:**
+
 - 不实现 Google Sheets 数据源（预留扩展空间）
 - 不实现历史 K 线数据存储
 - 不实现 TradingView Ticker Tape 滚动条（旧 spec 中的计划，本次不做）
@@ -33,6 +36,7 @@
 **理由**: yahoo-finance2 是社区维护最活跃的 Yahoo Finance wrapper，自动处理 cookie/crumb 认证流程，有错误重试机制。底层数据源相同，但封装层显著提升稳定性。
 
 **替代方案**:
+
 - Alpha Vantage API：免费额度仅 25 次/天，不够用
 - Twelve Data：免费 800 次/天但只支持 8 个 symbol
 - Google Sheets GOOGLEFINANCE：刷新时机不可控，延迟不确定

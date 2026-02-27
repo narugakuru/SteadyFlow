@@ -47,21 +47,16 @@
 - **WHEN** admin 访问 /admin
 - **THEN** 页面显示：总用户数、今日新增用户数、各角色用户数、各计划用户数
 
-### Requirement: 管理后台 API
+### Requirement: 管理后台使用 LoadingSpinner 加载动画
 
-系统 SHALL 提供管理后台专用 API，仅 admin 角色可调用。
+管理后台页面（统计面板和用户管理）SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代纯文本"加载中..."。
 
-#### Scenario: admin API 权限检查
+#### Scenario: 管理后台统计页加载中
 
-- **WHEN** role="user" 的用户请求 /api/admin/users
-- **THEN** 系统返回 403 Forbidden
+- **WHEN** 管理后台统计页正在获取统计数据
+- **THEN** 页面显示 LoadingSpinner 组件，替代原有纯文本
 
-#### Scenario: 获取用户列表
+#### Scenario: 用户管理页加载中
 
-- **WHEN** admin 请求 GET /api/admin/users
-- **THEN** 系统返回所有用户列表（不含 password 字段）
-
-#### Scenario: 更新用户信息
-
-- **WHEN** admin 请求 PUT /api/admin/users/[id] 修改角色或计划
-- **THEN** 系统更新对应用户的 role 或 plan 字段
+- **WHEN** 用户管理页正在获取用户列表
+- **THEN** 页面显示 LoadingSpinner 组件，替代原有纯文本

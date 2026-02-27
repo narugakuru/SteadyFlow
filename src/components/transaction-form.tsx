@@ -5,12 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -72,13 +67,14 @@ export function TransactionForm({
   // Reset form when opened
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setType(defaultType || "buy");
       setAccountId(
         defaultAccountId
           ? String(defaultAccountId)
           : accounts.length > 0
-          ? String(accounts[0].id)
-          : ""
+            ? String(accounts[0].id)
+            : ""
       );
       setHoldingId(defaultHoldingId ? String(defaultHoldingId) : "");
       setAmount("");
@@ -114,6 +110,7 @@ export function TransactionForm({
     setSaving(true);
     setError("");
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: Record<string, any> = {
       accountId: Number(accountId),
       type,
@@ -161,7 +158,10 @@ export function TransactionForm({
   const canSubmit =
     accountId &&
     date &&
-    ((needsHolding && holdingId && holdingId !== "none" && (isSharesMode ? txShares && txPrice : amount)) ||
+    ((needsHolding &&
+      holdingId &&
+      holdingId !== "none" &&
+      (isSharesMode ? txShares && txPrice : amount)) ||
       (optionalHolding && amount) ||
       (!needsHolding && !optionalHolding && amount));
 
@@ -221,11 +221,7 @@ export function TransactionForm({
               <Label htmlFor="affect-cash" className="cursor-pointer text-sm text-muted-foreground">
                 影响账户现金
               </Label>
-              <Switch
-                id="affect-cash"
-                checked={affectCash}
-                onCheckedChange={setAffectCash}
-              />
+              <Switch id="affect-cash" checked={affectCash} onCheckedChange={setAffectCash} />
             </div>
           )}
           {accountId && !affectCash && (
@@ -237,37 +233,36 @@ export function TransactionForm({
           {(needsHolding || optionalHolding) && accountId && (
             <div>
               <Label>{needsHolding ? "持仓" : "关联持仓（选填）"}</Label>
-              <Select value={holdingId} onValueChange={(v) => {
-                if (v === "__new__") {
-                  setInlineCreateOpen(true);
-                  // Fetch asset classes for the mini form
-                  fetch("/api/asset-classes")
-                    .then((r) => r.json())
-                    .then((data: AssetClass[]) => {
-                      const filtered = data.filter((c) => c.name !== "现金");
-                      setAssetClasses(filtered);
-                      if (filtered.length > 0) setNewHoldingAssetClass(filtered[0].name);
-                    });
-                  return;
-                }
-                setHoldingId(v);
-              }}>
+              <Select
+                value={holdingId}
+                onValueChange={(v) => {
+                  if (v === "__new__") {
+                    setInlineCreateOpen(true);
+                    // Fetch asset classes for the mini form
+                    fetch("/api/asset-classes")
+                      .then((r) => r.json())
+                      .then((data: AssetClass[]) => {
+                        const filtered = data.filter((c) => c.name !== "现金");
+                        setAssetClasses(filtered);
+                        if (filtered.length > 0) setNewHoldingAssetClass(filtered[0].name);
+                      });
+                    return;
+                  }
+                  setHoldingId(v);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="选择持仓" />
                 </SelectTrigger>
                 <SelectContent>
-                  {optionalHolding && (
-                    <SelectItem value="none">不关联持仓</SelectItem>
-                  )}
+                  {optionalHolding && <SelectItem value="none">不关联持仓</SelectItem>}
                   {accountHoldings.map((h) => (
                     <SelectItem key={h.id} value={String(h.id)}>
                       {h.name} {h.ticker ? `(${h.ticker})` : ""} [
                       {h.valuationMode === "shares" ? "份额" : "金额"}]
                     </SelectItem>
                   ))}
-                  {needsHolding && (
-                    <SelectItem value="__new__">➕ 新建持仓...</SelectItem>
-                  )}
+                  {needsHolding && <SelectItem value="__new__">➕ 新建持仓...</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
@@ -275,7 +270,10 @@ export function TransactionForm({
 
           {(type === "buy" || type === "sell") && holdingId && holdingId !== "none" && (
             <div className="flex items-center justify-between pl-1">
-              <Label htmlFor="affect-holding" className="cursor-pointer text-sm text-muted-foreground">
+              <Label
+                htmlFor="affect-holding"
+                className="cursor-pointer text-sm text-muted-foreground"
+              >
                 影响持仓数据
               </Label>
               <Switch
@@ -285,11 +283,12 @@ export function TransactionForm({
               />
             </div>
           )}
-          {(type === "buy" || type === "sell") && holdingId && holdingId !== "none" && !affectHolding && (
-            <p className="text-xs text-muted-foreground pl-1">
-              不更新持仓数据（仅影响现金）
-            </p>
-          )}
+          {(type === "buy" || type === "sell") &&
+            holdingId &&
+            holdingId !== "none" &&
+            !affectHolding && (
+              <p className="text-xs text-muted-foreground pl-1">不更新持仓数据（仅影响现金）</p>
+            )}
 
           {/* Inline holding creation mini-form */}
           {inlineCreateOpen && (
@@ -298,18 +297,31 @@ export function TransactionForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">名称</Label>
-                  <Input value={newHoldingName} onChange={(e) => setNewHoldingName(e.target.value)} placeholder="如：沪深300ETF" />
+                  <Input
+                    value={newHoldingName}
+                    onChange={(e) => setNewHoldingName(e.target.value)}
+                    placeholder="如：沪深300ETF"
+                  />
                 </div>
                 <div>
                   <Label className="text-xs">代码（选填）</Label>
-                  <Input value={newHoldingTicker} onChange={(e) => setNewHoldingTicker(e.target.value)} placeholder="如：510300" />
+                  <Input
+                    value={newHoldingTicker}
+                    onChange={(e) => setNewHoldingTicker(e.target.value)}
+                    placeholder="aapl.us / 600519.SS"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs">估值模式</Label>
-                  <Select value={newHoldingMode} onValueChange={(v) => setNewHoldingMode(v as "amount" | "shares")}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={newHoldingMode}
+                    onValueChange={(v) => setNewHoldingMode(v as "amount" | "shares")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="amount">金额模式</SelectItem>
                       <SelectItem value="shares">份额模式</SelectItem>
@@ -319,10 +331,14 @@ export function TransactionForm({
                 <div>
                   <Label className="text-xs">资产类别</Label>
                   <Select value={newHoldingAssetClass} onValueChange={setNewHoldingAssetClass}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {assetClasses.map((c) => (
-                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                        <SelectItem key={c.id} value={c.name}>
+                          {c.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -423,11 +439,7 @@ export function TransactionForm({
 
           <div>
             <Label>交易日期</Label>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
 
           <div>
@@ -441,11 +453,7 @@ export function TransactionForm({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button
-            onClick={handleSubmit}
-            disabled={saving || !canSubmit}
-            className="w-full"
-          >
+          <Button onClick={handleSubmit} disabled={saving || !canSubmit} className="w-full">
             {saving ? "保存中..." : "确认"}
           </Button>
         </div>
