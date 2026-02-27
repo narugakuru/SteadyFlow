@@ -8,22 +8,27 @@ interface TradingViewChartProps {
   height?: number;
 }
 
-function TradingViewChartInner({ symbol, height = 500 }: TradingViewChartProps) {
+function TradingViewChartInner({ symbol, height = 600 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 清空旧 widget
     container.innerHTML = "";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "tradingview-widget-container__widget";
+    wrapper.style.height = `${height}px`;
+    wrapper.style.width = "100%";
 
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
     script.innerHTML = JSON.stringify({
-      autosize: true,
+      width: "100%",
+      height: height,
       symbol,
       interval: "D",
       timezone: "Asia/Shanghai",
@@ -34,20 +39,14 @@ function TradingViewChartInner({ symbol, height = 500 }: TradingViewChartProps) 
       support_host: "https://www.tradingview.com",
     });
 
-    // 加载失败兜底
     script.onerror = () => {
       container.innerHTML = "";
       const fallback = document.createElement("div");
-      fallback.className =
-        "flex flex-col items-center justify-center h-full text-muted-foreground gap-2";
+      fallback.className = "flex flex-col items-center justify-center text-muted-foreground gap-2";
+      fallback.style.height = `${height}px`;
       fallback.innerHTML = `<p>该指数暂不支持图表展示</p>`;
       container.appendChild(fallback);
     };
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "tradingview-widget-container__widget";
-    wrapper.style.height = "calc(100% - 32px)";
-    wrapper.style.width = "100%";
 
     container.appendChild(wrapper);
     container.appendChild(script);
@@ -55,14 +54,13 @@ function TradingViewChartInner({ symbol, height = 500 }: TradingViewChartProps) 
     return () => {
       container.innerHTML = "";
     };
-  }, [symbol]);
+  }, [symbol, height]);
 
   return (
     <div>
       <div
         ref={containerRef}
         className="tradingview-widget-container rounded-lg overflow-hidden border"
-        style={{ height }}
       />
       <div className="flex justify-end mt-2">
         <a
