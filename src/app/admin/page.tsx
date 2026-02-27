@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface AdminStats {
   total: number;
@@ -35,11 +36,7 @@ export default function AdminPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
   }
 
   if (error || !stats) {

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
 import Link from "next/link";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface HoldingEdit {
   marketValue: number;
@@ -96,11 +97,7 @@ export default function BatchUpdatePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingSpinner text="加载中..." className="min-h-screen" />;
   }
 
   return (

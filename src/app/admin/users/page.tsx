@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 interface AdminUser {
   id: string;
@@ -74,11 +75,7 @@ export default function AdminUsersPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
   }
 
   return (

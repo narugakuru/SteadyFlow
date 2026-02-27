@@ -45,7 +45,7 @@ src/
 │       └── netvalue/                # 净值
 ├── middleware.ts                  # 路由守卫（JWT + 管理员权限）
 ├── components/
-│   ├── ui/                         # shadcn 基础组件
+│   ├── ui/                         # shadcn 基础组件（含 loading-spinner）
 │   ├── navbar.tsx                  # 全局导航栏
 │   ├── session-provider.tsx        # SessionProvider 包装
 │   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域（支持当前值高亮）
@@ -148,3 +148,4 @@ src/
 - [2026-02-27] 完成移动端响应式适配（P3）：导航栏改为汉堡菜单+Sheet抽屉（新增shadcn Sheet组件）；Dialog移动端底部弹出+可滚动；纪律表和账户列表移动端改为卡片布局；HoldingRow移动端垂直堆叠；所有表单网格移动端降为单列；页面容器响应式padding；表格横向滚动；使用md:断点渐进增强，同一套代码
 - [2026-02-27] 全面重命名"快照/snapshot"为"净值/netvalue"：数据库表 snapshots→netvalue（含 SQLite+PG 迁移）、API 路由 /api/snapshots→/api/netvalue、页面路由 /snapshots→/netvalue、组件 snapshot-charts→netvalue-charts、类型 Snapshot→NetvalueRecord、spec 目录 daily-snapshot→daily-netvalue、所有文档同步更新
 - [2026-02-27] 重构市场概览页：数据获取层从 Yahoo Finance 裸请求改为 yahoo-finance2 v3；表格改为静态骨架模式（API 失败显示"--"不空白）；新增 TradingView Advanced Chart Widget 图表区域，按市场分 Tab（A股/美股/港股/日股/波动率），Tab 内可切换指数；VIX 情绪参考移至波动率 Tab；新增 tradingview-chart.tsx 组件
+- [2026-02-27] 新增全局 LoadingSpinner 加载动画组件（Loader2 + animate-spin，支持 sm/md/lg 尺寸和可选文字），替换 7 个页面的纯文本"加载中..."为统一动画组件（Dashboard、账户、交易、净值、股价更新、管理后台、用户管理）

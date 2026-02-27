@@ -8,6 +8,7 @@ import { PortfolioChart } from "@/components/portfolio-chart";
 import { DeviationChart } from "@/components/deviation-chart";
 import { RebalancePanel } from "@/components/rebalance-panel";
 import { AllocationData } from "@/lib/types";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
@@ -33,11 +34,7 @@ export default function Dashboard() {
   };
 
   if (loading || !allocation) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
   }
 
   const rates = allocation.rates.rates;

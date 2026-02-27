@@ -4,6 +4,7 @@ import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { AccountList } from "@/components/account-list";
 import { Account, AllocationData } from "@/lib/types";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 function AccountsContent() {
   const searchParams = useSearchParams();
@@ -35,11 +36,7 @@ function AccountsContent() {
   }, [fetchAll]);
 
   if (loading || !allocation) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
   }
 
   const rates = allocation.rates.rates;
@@ -61,11 +58,7 @@ function AccountsContent() {
 export default function AccountsPage() {
   return (
     <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <p className="text-muted-foreground">加载中...</p>
-        </div>
-      }
+      fallback={<LoadingSpinner text="加载中..." className="min-h-[50vh]" />}
     >
       <AccountsContent />
     </Suspense>

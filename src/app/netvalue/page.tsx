@@ -4,17 +4,14 @@ import { useFetch } from "@/lib/hooks";
 import { NetvalueRecord } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { NetvalueCharts } from "@/components/netvalue-charts";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import Link from "next/link";
 
 export default function NetvaluePage() {
   const { data: records, loading } = useFetch<NetvalueRecord[]>("/api/netvalue");
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">加载中...</p>
-      </div>
-    );
+    return <LoadingSpinner text="加载中..." className="min-h-screen" />;
   }
 
   return (

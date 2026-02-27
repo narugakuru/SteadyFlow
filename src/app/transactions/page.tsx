@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Transaction, Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { TransactionForm } from "@/components/transaction-form";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const TX_TYPE_LABELS: Record<string, string> = {
   buy: "买入",
@@ -45,9 +46,7 @@ const TX_TYPE_COLORS: Record<string, string> = {
 export default function TransactionsPage() {
   return (
     <Suspense
-      fallback={
-        <p className="text-muted-foreground text-center py-8">加载中...</p>
-      }
+      fallback={<LoadingSpinner text="加载中..." className="py-8" />}
     >
       <TransactionsContent />
     </Suspense>
@@ -136,7 +135,7 @@ function TransactionsContent() {
 
       {/* Transaction List */}
       {loading ? (
-        <p className="text-muted-foreground text-center py-8">加载中...</p>
+        <LoadingSpinner text="加载中..." className="py-8" />
       ) : transactions.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无交易记录</p>
       ) : (
