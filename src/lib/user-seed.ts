@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { assetClasses, settings } from "@/db/schema";
 
 const DEFAULT_ASSET_CLASSES = [
-  { name: "股票基金", targetPct: 40 },
+  { name: "股票", targetPct: 40 },
   { name: "黄金", targetPct: 20 },
   { name: "债券", targetPct: 25 },
   { name: "现金", targetPct: 15 },
