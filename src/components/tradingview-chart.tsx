@@ -1,15 +1,29 @@
 "use client";
 
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, useState, memo, useCallback } from "react";
 import { ExternalLink } from "lucide-react";
 
 interface TradingViewChartProps {
   symbol: string;
-  height?: number;
+  /** 高度占视口百分比，默认 60 即 60vh */
+  heightVh?: number;
 }
 
-function TradingViewChartInner({ symbol, height = 600 }: TradingViewChartProps) {
+function TradingViewChartInner({ symbol, heightVh = 60 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [computedHeight, setComputedHeight] = useState(() =>
+    typeof window !== "undefined" ? Math.round(window.innerHeight * (heightVh / 100)) : 600
+  );
+
+  // 监听窗口 resize，重新计算高度
+  const updateHeight = useCallback(() => {
+    setComputedHeight(Math.round(window.innerHeight * (heightVh / 100)));
+  }, [heightVh]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, [updateHeight]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -19,7 +33,7 @@ function TradingViewChartInner({ symbol, height = 600 }: TradingViewChartProps) 
 
     const wrapper = document.createElement("div");
     wrapper.className = "tradingview-widget-container__widget";
-    wrapper.style.height = `${height}px`;
+    wrapper.style.height = `${computedHeight}px`;
     wrapper.style.width = "100%";
 
     const script = document.createElement("script");
@@ -28,7 +42,7 @@ function TradingViewChartInner({ symbol, height = 600 }: TradingViewChartProps) 
     script.async = true;
     script.innerHTML = JSON.stringify({
       width: "100%",
-      height: height,
+      height: computedHeight,
       symbol,
       interval: "D",
       timezone: "Asia/Shanghai",
@@ -43,7 +57,7 @@ function TradingViewChartInner({ symbol, height = 600 }: TradingViewChartProps) 
       container.innerHTML = "";
       const fallback = document.createElement("div");
       fallback.className = "flex flex-col items-center justify-center text-muted-foreground gap-2";
-      fallback.style.height = `${height}px`;
+      fallback.style.height = `${computedHeight}px`;
       fallback.innerHTML = `<p>该指数暂不支持图表展示</p>`;
       container.appendChild(fallback);
     };
@@ -54,7 +68,7 @@ function TradingViewChartInner({ symbol, height = 600 }: TradingViewChartProps) 
     return () => {
       container.innerHTML = "";
     };
-  }, [symbol, height]);
+  }, [symbol, computedHeight]);
 
   return (
     <div>

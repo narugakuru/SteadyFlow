@@ -190,7 +190,7 @@ export default function MarketPage() {
 
           {TAB_CONFIG.map((tab) => (
             <TabsContent key={tab.id} value={tab.id} className="mt-0">
-              <TradingViewChart symbol={tabSymbols[tab.id]} height={660} />
+              <TradingViewChart symbol={tabSymbols[tab.id]} />
 
               {/* 波动率 Tab 特殊：显示 VIX 情绪参考 */}
               {tab.id === "vix" && (
