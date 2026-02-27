@@ -120,7 +120,7 @@ function formatTime(isoStr: string): string {
 export default function MarketPage() {
   const { data, loading, refetch } = useFetch<MarketIndex[]>("/api/market");
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState("cn");
+  const [activeTab, setActiveTab] = useState("us");
   const [tabSymbols, setTabSymbols] = useState<Record<string, string>>(
     Object.fromEntries(TAB_CONFIG.map((t) => [t.id, t.defaultSymbol]))
   );
@@ -156,6 +156,52 @@ export default function MarketPage() {
           刷新
         </Button>
       </div>
+
+      {/* 图表区域：按市场分 Tab（置顶，大图） */}
+      <section>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex items-center gap-3 mb-3">
+            <TabsList>
+              {TAB_CONFIG.map((tab) => (
+                <TabsTrigger key={tab.id} value={tab.id}>
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {/* 当前 Tab 的指数切换 */}
+            {TAB_CONFIG.map((tab) =>
+              tab.id === activeTab && tab.indices.length > 1 ? (
+                <div key={tab.id} className="flex flex-wrap gap-1.5">
+                  {tab.indices.map((idx) => (
+                    <Button
+                      key={idx.symbol}
+                      variant={tabSymbols[tab.id] === idx.symbol ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTabSymbols((prev) => ({ ...prev, [tab.id]: idx.symbol }))}
+                    >
+                      {idx.name}
+                    </Button>
+                  ))}
+                </div>
+              ) : null
+            )}
+          </div>
+
+          {TAB_CONFIG.map((tab) => (
+            <TabsContent key={tab.id} value={tab.id} className="mt-0">
+              <TradingViewChart symbol={tabSymbols[tab.id]} height={660} />
+
+              {/* 波动率 Tab 特殊：显示 VIX 情绪参考 */}
+              {tab.id === "vix" && (
+                <div className="mt-4">
+                  <VixSentiment currentVix={vixData?.price || undefined} />
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </section>
 
       {/* 指数表格（静态骨架，始终显示） */}
       {GROUP_CONFIG.map((group) => {
@@ -246,50 +292,6 @@ export default function MarketPage() {
           </section>
         );
       })}
-
-      {/* 图表区域：按市场分 Tab */}
-      <section>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-2">📈 指数图表</h2>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full justify-start">
-            {TAB_CONFIG.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id}>
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {TAB_CONFIG.map((tab) => (
-            <TabsContent key={tab.id} value={tab.id} className="mt-4">
-              {/* 指数切换按钮（多于 1 个指数时显示） */}
-              {tab.indices.length > 1 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {tab.indices.map((idx) => (
-                    <Button
-                      key={idx.symbol}
-                      variant={tabSymbols[tab.id] === idx.symbol ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setTabSymbols((prev) => ({ ...prev, [tab.id]: idx.symbol }))}
-                    >
-                      {idx.name}
-                    </Button>
-                  ))}
-                </div>
-              )}
-
-              {/* TradingView 图表 */}
-              <TradingViewChart symbol={tabSymbols[tab.id]} height={480} />
-
-              {/* 波动率 Tab 特殊：显示 VIX 情绪参考 */}
-              {tab.id === "vix" && (
-                <div className="mt-4">
-                  <VixSentiment currentVix={vixData?.price || undefined} />
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
-      </section>
     </div>
   );
 }
