@@ -13,6 +13,8 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchingPrices, setFetchingPrices] = useState(false);
+  const [priceMsg, setPriceMsg] = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -33,6 +35,25 @@ export default function Dashboard() {
     await fetch("/api/netvalue", { method: "POST" });
   };
 
+  const handleFetchPrices = async () => {
+    setFetchingPrices(true);
+    setPriceMsg("");
+    try {
+      const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
+      const data = await res.json();
+      const parts: string[] = [];
+      if (data.updated?.length) parts.push(`更新 ${data.updated.length} 个`);
+      if (data.failed?.length) parts.push(`失败 ${data.failed.length} 个`);
+      if (data.skipped?.length) parts.push(`跳过 ${data.skipped.length} 个`);
+      setPriceMsg(parts.length > 0 ? parts.join("，") : "没有可自动更新的持仓");
+      await fetchAll();
+    } catch {
+      setPriceMsg("更新股价失败");
+    }
+    setFetchingPrices(false);
+    setTimeout(() => setPriceMsg(""), 5000);
+  };
+
   if (loading || !allocation) {
     return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
   }
@@ -44,9 +65,15 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
-        <Button variant="outline" size="sm" onClick={handleRefreshNetvalue}>
-          📸 记录净值
-        </Button>
+        <div className="flex items-center gap-2">
+          {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
+          <Button variant="outline" size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
+            {fetchingPrices ? "更新中..." : "📡 更新股价"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleRefreshNetvalue}>
+            📸 记录净值
+          </Button>
+        </div>
       </div>
 
       {/* Total Asset Card */}

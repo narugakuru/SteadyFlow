@@ -158,7 +158,8 @@ function HoldingForm({ accountId, currency, open, onOpenChange, onSaved }: Holdi
             </div>
             <div>
               <Label>代码（选填）</Label>
-              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
+              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="aapl.us / 600519.SS" />
+              <p className="text-xs text-muted-foreground mt-1">美股 .us · 日股 .jp · A股 .SS/.SZ · 港股 .HK</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -208,6 +209,28 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
+  const [fetchingPrices, setFetchingPrices] = useState(false);
+  const [priceMsg, setPriceMsg] = useState("");
+
+  const handleFetchPrices = async () => {
+    setFetchingPrices(true);
+    setPriceMsg("");
+    try {
+      const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
+      const data = await res.json();
+      const parts: string[] = [];
+      if (data.updated?.length) parts.push(`更新 ${data.updated.length} 个`);
+      if (data.failed?.length) parts.push(`失败 ${data.failed.length} 个`);
+      if (data.skipped?.length) parts.push(`跳过 ${data.skipped.length} 个`);
+      setPriceMsg(parts.length > 0 ? parts.join("，") : "没有可自动更新的持仓");
+      await fetchHoldings();
+      onRefresh();
+    } catch {
+      setPriceMsg("更新股价失败");
+    }
+    setFetchingPrices(false);
+    setTimeout(() => setPriceMsg(""), 5000);
+  };
 
   const fetchHoldings = async () => {
     const res = await fetch("/api/holdings");
@@ -295,7 +318,13 @@ export function AccountList({ accounts, totalAssetCny, rates, colorMode, default
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">账户列表</h2>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>+ 添加账户</Button>
+        <div className="flex items-center gap-2">
+          {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
+          <Button variant="outline" size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
+            {fetchingPrices ? "更新中..." : "📡 更新股价"}
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>+ 添加账户</Button>
+        </div>
       </div>
 
       {accounts.length === 0 ? (

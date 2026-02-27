@@ -24,6 +24,8 @@ export default function BatchUpdatePage() {
   const [edits, setEdits] = useState<EditState>({ holdings: {} });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fetchingPrices, setFetchingPrices] = useState(false);
+  const [priceMsg, setPriceMsg] = useState("");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -46,6 +48,25 @@ export default function BatchUpdatePage() {
   }, [fetchData]);
 
   const hasChanges = Object.keys(edits.holdings).length > 0;
+
+  const handleFetchPrices = async () => {
+    setFetchingPrices(true);
+    setPriceMsg("");
+    try {
+      const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
+      const data = await res.json();
+      const parts: string[] = [];
+      if (data.updated?.length) parts.push(`更新 ${data.updated.length} 个`);
+      if (data.failed?.length) parts.push(`失败 ${data.failed.length} 个`);
+      if (data.skipped?.length) parts.push(`跳过 ${data.skipped.length} 个`);
+      setPriceMsg(parts.length > 0 ? parts.join("，") : "没有可自动更新的持仓");
+      await fetchData();
+    } catch {
+      setPriceMsg("更新股价失败");
+    }
+    setFetchingPrices(false);
+    setTimeout(() => setPriceMsg(""), 5000);
+  };
 
   const handleMarketValueChange = (h: Holding, value: string) => {
     const num = parseFloat(value);
@@ -104,7 +125,11 @@ export default function BatchUpdatePage() {
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
+          <Button variant="outline" size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
+            {fetchingPrices ? "更新中..." : "📡 更新股价"}
+          </Button>
           <Link href="/">
             <Button variant="outline" size="sm">← 返回 Dashboard</Button>
           </Link>
