@@ -10,7 +10,7 @@ async function getValidAssetClasses(userId: string): Promise<string[]> {
     .select({ name: assetClasses.name })
     .from(assetClasses)
     .where(eq(assetClasses.userId, userId));
-  return rows.map((r: any) => r.name).filter((n: string) => n !== "现金");
+  return rows.map((r: (typeof rows)[number]) => r.name).filter((n: string) => n !== "现金");
 }
 
 export async function GET() {
@@ -23,7 +23,7 @@ export async function GET() {
     .select({ id: accounts.id })
     .from(accounts)
     .where(eq(accounts.userId, userId));
-  const accountIds = accountRows.map((row: any) => row.id);
+  const accountIds = accountRows.map((row: (typeof accountRows)[number]) => row.id);
 
   const rows = accountIds.length
     ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
@@ -38,7 +38,18 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { accountId, name, ticker, valuationMode = "amount", cost, marketValue, shares: inputShares, price: inputPrice, assetClass } = body;
+  const {
+    accountId,
+    name,
+    ticker,
+    valuationMode = "amount",
+    cost,
+    marketValue,
+    shares: inputShares,
+    price: inputPrice,
+    assetClass,
+    memo,
+  } = body;
 
   if (!accountId || !name || !assetClass) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -47,6 +58,11 @@ export async function POST(request: Request) {
   const accountIdNum = Number(accountId);
   if (!Number.isFinite(accountIdNum)) {
     return NextResponse.json({ error: "Invalid accountId" }, { status: 400 });
+  }
+
+  const memoText = typeof memo === "string" ? memo.trim() : "";
+  if (memoText.length > 2000) {
+    return NextResponse.json({ error: "memo 不能超过 2000 字符" }, { status: 400 });
   }
 
   const validClasses = await getValidAssetClasses(userId);
@@ -66,9 +82,10 @@ export async function POST(request: Request) {
   const finalCost = roundForStorage(parseFloat(cost) || 0, "amount");
   const finalShares = roundForStorage(parseFloat(inputShares) || 0, "shares");
   const finalPrice = roundForStorage(parseFloat(inputPrice) || 0, "price");
-  const finalMarketValue = valuationMode === "shares"
-    ? roundForStorage(finalShares * finalPrice, "amount")
-    : roundForStorage((marketValue != null ? parseFloat(marketValue) : finalCost), "amount");
+  const finalMarketValue =
+    valuationMode === "shares"
+      ? roundForStorage(finalShares * finalPrice, "amount")
+      : roundForStorage(marketValue != null ? parseFloat(marketValue) : finalCost, "amount");
 
   const [result] = await db
     .insert(holdings)
@@ -82,6 +99,7 @@ export async function POST(request: Request) {
       shares: finalShares,
       price: finalPrice,
       assetClass,
+      memo: memoText || null,
     })
     .returning();
 

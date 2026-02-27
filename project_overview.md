@@ -12,6 +12,7 @@
 - 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)
 - 数据库：SQLite (better-sqlite3) / PostgreSQL (Neon serverless) + Drizzle ORM（通过 DB_TYPE 环境变量切换）
 - 图标：lucide-react
+- Markdown 渲染：react-markdown（禁用原始 HTML 直出）
 - 认证：Auth.js v5 (next-auth@beta) + bcrypt
 - 数据存储：SQLite 模式 `data/invest.db`，PostgreSQL 模式通过 DATABASE_URL 连接
 
@@ -42,6 +43,7 @@ src/
 │       ├── asset-classes/          # 资产类别
 │       ├── exchange-rates/         # 汇率
 │       ├── market/                 # 市场指数行情（Yahoo Finance）
+│       ├── discipline-notes/       # 纪律笔记 CRUD
 │       └── netvalue/                # 净值
 ├── middleware.ts                  # 路由守卫（JWT + 管理员权限）
 ├── components/
@@ -59,6 +61,7 @@ src/
 │   ├── deviation-chart.tsx          # 偏离度柱状图
 │   ├── netvalue-charts.tsx          # 净值走势图表（折线图+面积图）
 │   ├── discipline-table.tsx        # 投资纪律表（含进度条+盈亏列）
+│   ├── discipline-notes-fab.tsx    # 全局悬浮纪律笔记入口 + 笔记弹窗
 │   ├── rebalance-panel.tsx         # 再平衡建议面板
 │   ├── asset-class-view.tsx        # 资产类别视图
 │   └── asset-class-settings.tsx    # 配置设置
@@ -92,11 +95,12 @@ src/
 | sessions           | 会话           | sessionToken, userId(FK), expires                                                                                                                                     |
 | verificationTokens | 验证令牌       | identifier, token, expires                                                                                                                                            |
 | accounts           | 投资账户       | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额)                                                                                              |
-| holdings           | 持仓明细       | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass                                                               |
+| holdings           | 持仓明细       | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass, memo(持仓备注)                                               |
 | transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
 | assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                     |
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                    |
 | netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
+| disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                               |
 | settings           | 系统设置       | userId(FK, not null), key, value                                                                                                                                      |
 
 ## 已知待改进项
@@ -155,6 +159,7 @@ src/
 - [2026-02-27] 新增 OpenSpec 变更 `mobile-ui-and-asset-class-consistency` 并完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖移动端弹窗与批量更新 UI 修复、移除冗余返回总览按钮、资产类别“股票基金→股票”统一与默认排序规范
 - [2026-02-27] 修复 PostgreSQL 清库后自动迁移失效：启动时新增自愈逻辑，若检测到 `public` 业务表为空但 `drizzle.__drizzle_migrations` 仍有记录，则自动重置迁移记录并重新执行 migrate，确保 `npm run dev` 无需手动干预即可重建表并继续 seed
 - [2026-02-27] 新增 OpenSpec 变更 `discipline-notes-and-holding-memo` 并 fast-forward 完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖全局悬浮纪律笔记入口、中心弹窗 Markdown 多笔记、持仓 memo 编辑与悬浮提示需求
+- [2026-02-27] 完成 OpenSpec 变更 `discipline-notes-and-holding-memo` 的实现：新增 discipline_notes 表与 holdings.memo（SQLite/PG 双迁移）；新增 `/api/discipline-notes` 与 `/api/discipline-notes/[id]`；新增全局悬浮圆形笔记入口与中心大弹窗（投资笔记/经典句子/交易计划/Markdown 内容区，多便签 CRUD）；持仓编辑支持 memo，持仓行支持桌面 hover 备注与移动端点击查看
 - [2026-02-27] 修复 push 前类型检查拦截：为 accounts/transactions API 的 `rows.map` 回调参数补充显式类型（`typeof rows[number]`），消除隐式 any 并恢复 `npx tsc --noEmit` 通过
 - [2026-02-27] 完成 OpenSpec 变更 `decimal-precision-config`：新增 `src/lib/format.ts`（PRECISION、formatAmount/formatPercent/formatPrice/formatShares/formatRate、roundForStorage），统一替换前后端分散的 `.toFixed()`/`toLocaleString()` 数值处理；API 写入与计算结果统一按类别截断精度，页面与图表统一显示格式；`npm run typecheck` 通过
 - [2026-02-27] 修复 PG 清库后旧登录态导致首页/账户页崩溃：`/` 与 `/accounts` 的资产配置请求增加 `res.ok` 与返回结构校验，401 自动跳转登录页，异常数据进入可重试错误态，避免 `allocation.rates.rates` 空对象解构报错

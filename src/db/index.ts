@@ -18,6 +18,7 @@ async function shouldResetPgMigrationState(
         'accounts',
         'asset_classes',
         'auth_accounts',
+        'discipline_notes',
         'exchange_rates',
         'holdings',
         'sessions',

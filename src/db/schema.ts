@@ -13,6 +13,7 @@ export const settings = schema.settings as any;
 export const exchangeRates = schema.exchangeRates as any;
 export const netvalue = schema.netvalue as any;
 export const transactions = schema.transactions as any;
+export const disciplineNotes = schema.disciplineNotes as any;
 export const users = schema.users as any;
 export const authAccounts = schema.authAccounts as any;
 export const sessions = schema.sessions as any;

@@ -7,13 +7,16 @@ import {
   doublePrecision,
   varchar,
   timestamp,
+  index,
   primaryKey,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
-  id: text("id").primaryKey().$defaultFn(() => randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   name: text("name"),
   email: text("email").notNull().unique(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
@@ -21,7 +24,9 @@ export const users = pgTable("users", {
   password: text("password"),
   role: text("role").notNull().default("user"),
   plan: text("plan").notNull().default("free"),
-  createdAt: text("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
 });
 
 export const authAccounts = pgTable(
@@ -68,12 +73,18 @@ export const verificationTokens = pgTable(
 
 export const accounts = pgTable("accounts", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   currency: varchar("currency", { length: 3 }).notNull(),
   cashBalance: doublePrecision("cash_balance").notNull().default(0),
-  createdAt: text("created_at").notNull().default(sql`now()`),
-  updatedAt: text("updated_at").notNull().default(sql`now()`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`now()`),
 });
 
 export const holdings = pgTable("holdings", {
@@ -89,15 +100,48 @@ export const holdings = pgTable("holdings", {
   shares: doublePrecision("shares").notNull().default(0),
   price: doublePrecision("price").notNull().default(0),
   assetClass: text("asset_class").notNull(),
-  createdAt: text("created_at").notNull().default(sql`now()`),
-  updatedAt: text("updated_at").notNull().default(sql`now()`),
+  memo: text("memo"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`now()`),
 });
+
+export const disciplineNotes = pgTable(
+  "discipline_notes",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    quote: text("quote").notNull(),
+    plan: text("plan").notNull(),
+    content: text("content").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => ({
+    userUpdatedAtIdx: index("discipline_notes_user_updated_at_idx").on(
+      table.userId,
+      table.updatedAt
+    ),
+  })
+);
 
 export const assetClasses = pgTable(
   "asset_classes",
   {
     id: serial("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     targetPct: doublePrecision("target_pct").notNull().default(0),
   },
@@ -110,7 +154,9 @@ export const settings = pgTable(
   "settings",
   {
     id: serial("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     value: text("value").notNull(),
   },
@@ -123,18 +169,24 @@ export const exchangeRates = pgTable("exchange_rates", {
   id: serial("id").primaryKey(),
   currencyPair: text("currency_pair").notNull().unique(),
   rate: doublePrecision("rate").notNull(),
-  updatedAt: text("updated_at").notNull().default(sql`now()`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`now()`),
 });
 
 export const netvalue = pgTable(
   "netvalue",
   {
     id: serial("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     totalAssetCny: doublePrecision("total_asset_cny").notNull(),
     dataJson: text("data_json").notNull(),
-    createdAt: text("created_at").notNull().default(sql`now()`),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`now()`),
   },
   (table) => ({
     userDateUnique: uniqueIndex("netvalue_user_date_idx").on(table.userId, table.date),
@@ -146,8 +198,7 @@ export const transactions = pgTable("transactions", {
   accountId: integer("account_id")
     .notNull()
     .references(() => accounts.id, { onDelete: "cascade" }),
-  holdingId: integer("holding_id")
-    .references(() => holdings.id, { onDelete: "set null" }),
+  holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
   type: varchar("type", { length: 20 }).notNull(),
   date: text("date").notNull(),
   amount: doublePrecision("amount").notNull(),
@@ -157,5 +208,7 @@ export const transactions = pgTable("transactions", {
   affectCash: integer("affect_cash").notNull().default(1),
   affectHolding: integer("affect_holding").notNull().default(1),
   note: text("note"),
-  createdAt: text("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`now()`),
 });

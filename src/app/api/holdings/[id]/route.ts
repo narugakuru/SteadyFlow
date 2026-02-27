@@ -10,13 +10,10 @@ async function getValidAssetClasses(userId: string): Promise<string[]> {
     .select({ name: assetClasses.name })
     .from(assetClasses)
     .where(eq(assetClasses.userId, userId));
-  return rows.map((r: any) => r.name).filter((n: string) => n !== "现金");
+  return rows.map((r: (typeof rows)[number]) => r.name).filter((n: string) => n !== "现金");
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId, response } = await requireUser();
   if (!userId) {
     return response;
@@ -42,10 +39,7 @@ export async function GET(
   return NextResponse.json(holding);
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId, response } = await requireUser();
   if (!userId) {
     return response;
@@ -53,7 +47,7 @@ export async function PUT(
 
   const { id } = await params;
   const body = await request.json();
-  const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass } = body;
+  const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass, memo } = body;
 
   if (assetClass !== undefined) {
     const validClasses = await getValidAssetClasses(userId);
@@ -62,12 +56,17 @@ export async function PUT(
     }
   }
 
+  if (memo !== undefined && (typeof memo !== "string" || memo.trim().length > 2000)) {
+    return NextResponse.json({ error: "memo 必须是字符串且不超过 2000 字符" }, { status: 400 });
+  }
+
   // Build update set
-  const updateSet: Record<string, any> = {
+  const updateSet: Record<string, unknown> = {
     updatedAt: new Date().toISOString(),
   };
   if (name !== undefined) updateSet.name = name;
   if (ticker !== undefined) updateSet.ticker = ticker || null;
+  if (memo !== undefined) updateSet.memo = memo.trim() || null;
   if (valuationMode !== undefined) updateSet.valuationMode = valuationMode;
   if (cost !== undefined) updateSet.cost = roundForStorage(parseFloat(cost) || 0, "amount");
   if (assetClass !== undefined) updateSet.assetClass = assetClass;
@@ -77,7 +76,10 @@ export async function PUT(
   if (price !== undefined) updateSet.price = roundForStorage(parseFloat(price) || 0, "price");
 
   // Get current holding to determine mode for auto-calc
-  const [current] = await db.select().from(holdings).where(eq(holdings.id, Number(id)));
+  const [current] = await db
+    .select()
+    .from(holdings)
+    .where(eq(holdings.id, Number(id)));
   if (!current) {
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
   }
@@ -111,10 +113,7 @@ export async function PUT(
   return NextResponse.json(result);
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId, response } = await requireUser();
   if (!userId) {
     return response;
@@ -137,10 +136,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
   }
 
-  const [result] = await db
-    .delete(holdings)
-    .where(eq(holdings.id, numId))
-    .returning();
+  const [result] = await db.delete(holdings).where(eq(holdings.id, numId)).returning();
 
   if (!result) {
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });

@@ -19,6 +19,7 @@ interface HoldingEditDialogProps {
   holdingId: number;
   name: string;
   ticker?: string | null;
+  memo?: string | null;
   cost: number;
   marketValue: number;
   valuationMode: "amount" | "shares";
@@ -35,6 +36,7 @@ export function HoldingEditDialog({
   holdingId,
   name: initName,
   ticker: initTicker,
+  memo: initMemo,
   cost: initCost,
   marketValue: initMarketValue,
   valuationMode,
@@ -48,6 +50,7 @@ export function HoldingEditDialog({
 }: HoldingEditDialogProps) {
   const [name, setName] = useState(initName);
   const [ticker, setTicker] = useState(initTicker || "");
+  const [memo, setMemo] = useState(initMemo || "");
   const [cost, setCost] = useState(initCost.toString());
   const [marketValue, setMarketValue] = useState(initMarketValue.toString());
   const [assetClass, setAssetClass] = useState(initAssetClass);
@@ -81,6 +84,7 @@ export function HoldingEditDialog({
     const payload: Record<string, any> = {
       name,
       ticker: ticker || null,
+      memo: memo || null,
       assetClass,
     };
 
@@ -201,6 +205,16 @@ export function HoldingEditDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div>
+            <Label>持仓备注（选填）</Label>
+            <textarea
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              className="mt-1 min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="例如：120 元分批止盈，95 元以下加仓"
+            />
           </div>
 
           <Button onClick={handleSave} disabled={saving || !name} className="w-full">

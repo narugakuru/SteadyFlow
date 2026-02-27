@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { NotebookPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,6 +55,7 @@ export function HoldingRow({
   const [editOpen, setEditOpen] = useState(false);
   const [txOpen, setTxOpen] = useState(false);
   const [txType, setTxType] = useState<string>("buy");
+  const [showMobileMemo, setShowMobileMemo] = useState(false);
 
   const sym = CURRENCY_SYMBOLS[currency] || "¥";
 
@@ -131,6 +133,8 @@ export function HoldingRow({
     </>
   );
 
+  const hasMemo = Boolean(h.memo?.trim());
+
   return (
     <>
       <div className="py-2 px-2 rounded hover:bg-accent/30">
@@ -141,6 +145,16 @@ export function HoldingRow({
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-medium truncate">{h.name}</span>
               {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
+              {hasMemo && (
+                <div className="relative hidden md:flex items-center group">
+                  <span className="inline-flex size-5 items-center justify-center text-muted-foreground">
+                    <NotebookPen className="size-3.5" />
+                  </span>
+                  <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
+                    {h.memo}
+                  </div>
+                </div>
+              )}
               {showAccountName && accountName && (
                 <Badge variant="outline" className="text-xs shrink-0">
                   {accountName}
@@ -195,6 +209,16 @@ export function HoldingRow({
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{h.name}</span>
             {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
+            {hasMemo && (
+              <button
+                type="button"
+                className="inline-flex size-6 items-center justify-center rounded border text-muted-foreground"
+                onClick={() => setShowMobileMemo((prev) => !prev)}
+                aria-label="查看持仓备注"
+              >
+                <NotebookPen className="size-3.5" />
+              </button>
+            )}
             {showAccountName && accountName && (
               <Badge variant="outline" className="text-xs shrink-0">
                 {accountName}
@@ -240,6 +264,11 @@ export function HoldingRow({
           </div>
           {/* Row 4: actions */}
           <div className="flex items-center gap-1 flex-wrap">{actionButtons}</div>
+          {hasMemo && showMobileMemo && (
+            <div className="rounded border bg-popover px-2 py-1 text-xs text-popover-foreground">
+              {h.memo}
+            </div>
+          )}
         </div>
       </div>
 
@@ -249,6 +278,7 @@ export function HoldingRow({
           holdingId={h.id}
           name={h.name}
           ticker={h.ticker}
+          memo={h.memo}
           cost={h.cost}
           marketValue={h.marketValue}
           valuationMode={h.valuationMode}

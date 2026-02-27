@@ -5,12 +5,15 @@ import {
   integer,
   real,
   primaryKey,
+  index,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
-  id: text("id").primaryKey().$defaultFn(() => randomUUID()),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   name: text("name"),
   email: text("email").notNull().unique(),
   emailVerified: integer("email_verified", { mode: "timestamp_ms" }),
@@ -18,7 +21,9 @@ export const users = sqliteTable("users", {
   password: text("password"),
   role: text("role").notNull().default("user"),
   plan: text("plan").notNull().default("free"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });
 
 export const authAccounts = sqliteTable(
@@ -65,12 +70,18 @@ export const verificationTokens = sqliteTable(
 
 export const accounts = sqliteTable("accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
   cashBalance: real("cash_balance").notNull().default(0),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });
 
 export const holdings = sqliteTable("holdings", {
@@ -80,21 +91,56 @@ export const holdings = sqliteTable("holdings", {
     .references(() => accounts.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   ticker: text("ticker"),
-  valuationMode: text("valuation_mode", { enum: ["amount", "shares"] }).notNull().default("amount"),
+  valuationMode: text("valuation_mode", { enum: ["amount", "shares"] })
+    .notNull()
+    .default("amount"),
   cost: real("cost").notNull().default(0),
   marketValue: real("market_value").notNull().default(0),
   shares: real("shares").notNull().default(0),
   price: real("price").notNull().default(0),
   assetClass: text("asset_class").notNull(),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  memo: text("memo"),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });
+
+export const disciplineNotes = sqliteTable(
+  "discipline_notes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    quote: text("quote").notNull(),
+    plan: text("plan").notNull(),
+    content: text("content").notNull(),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+    updatedAt: text("updated_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    userUpdatedAtIdx: index("discipline_notes_user_updated_at_idx").on(
+      table.userId,
+      table.updatedAt
+    ),
+  })
+);
 
 export const assetClasses = sqliteTable(
   "asset_classes",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     targetPct: real("target_pct").notNull().default(0),
   },
@@ -107,7 +153,9 @@ export const settings = sqliteTable(
   "settings",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     value: text("value").notNull(),
   },
@@ -120,18 +168,24 @@ export const exchangeRates = sqliteTable("exchange_rates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   currencyPair: text("currency_pair").notNull().unique(),
   rate: real("rate").notNull(),
-  updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });
 
 export const netvalue = sqliteTable(
   "netvalue",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
     totalAssetCny: real("total_asset_cny").notNull(),
     dataJson: text("data_json").notNull(),
-    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
   },
   (table) => ({
     userDateUnique: uniqueIndex("netvalue_user_date_idx").on(table.userId, table.date),
@@ -143,8 +197,7 @@ export const transactions = sqliteTable("transactions", {
   accountId: integer("account_id")
     .notNull()
     .references(() => accounts.id, { onDelete: "cascade" }),
-  holdingId: integer("holding_id")
-    .references(() => holdings.id, { onDelete: "set null" }),
+  holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
   type: text("type", { enum: ["buy", "sell", "dividend", "deposit", "withdraw"] }).notNull(),
   date: text("date").notNull(),
   amount: real("amount").notNull(),
@@ -154,5 +207,7 @@ export const transactions = sqliteTable("transactions", {
   affectCash: integer("affect_cash").notNull().default(1),
   affectHolding: integer("affect_holding").notNull().default(1),
   note: text("note"),
-  createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
 });

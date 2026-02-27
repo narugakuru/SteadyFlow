@@ -31,6 +31,18 @@ export interface Holding {
    */
   price: number;
   assetClass: string;
+  memo: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DisciplineNote {
+  id: number;
+  userId: string;
+  title: string;
+  quote: string;
+  plan: string;
+  content: string;
   createdAt: string;
   updatedAt: string;
 }
