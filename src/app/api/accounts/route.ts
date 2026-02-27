@@ -27,7 +27,7 @@ export async function GET() {
     .where(eq(accounts.userId, userId))
     .groupBy(accounts.id);
 
-  const result = rows.map((row) => ({
+  const result = rows.map((row: (typeof rows)[number]) => ({
     ...row,
     accountValue: row.cashBalance + row.holdingsValue,
   }));

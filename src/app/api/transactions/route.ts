@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     .where(and(...conditions))
     .orderBy(desc(transactions.date), desc(transactions.id));
 
-  const result = rows.map((r) => ({
+  const result = rows.map((r: (typeof rows)[number]) => ({
     ...r,
     affectCash: fromDbBool(r.affectCash),
     affectHolding: fromDbBool(r.affectHolding),
