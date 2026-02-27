@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFetch } from "@/lib/hooks";
-import { INDEX_CONFIG, type MarketIndex } from "@/lib/market-data";
+import { INDEX_CONFIG, type MarketIndex } from "@/lib/market-config";
 import { VixSentiment } from "@/components/vix-sentiment";
 import { TradingViewChart } from "@/components/tradingview-chart";
 import { Button } from "@/components/ui/button";

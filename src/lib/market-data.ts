@@ -1,48 +1,14 @@
-// 市场指数数据获取（yahoo-finance2 v3）
+// 市场指数数据获取（yahoo-finance2 v3，仅服务端使用）
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require("yahoo-finance2").default;
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
-export interface MarketIndex {
-  symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  updatedAt: string;
-  tradingViewSymbol: string;
-  tradingViewUrl: string;
-  group: string;
-}
+import { INDEX_CONFIG, type MarketIndex, type IndexConfigItem } from "./market-config";
 
-// Yahoo Finance symbol → 显示信息映射
-export const INDEX_CONFIG = [
-  // 美股
-  { yahoo: "^GSPC", name: "S&P 500", tradingView: "FOREXCOM:SPXUSD", group: "🇺🇸 美股" },
-  { yahoo: "^NDX", name: "纳斯达克100", tradingView: "NASDAQ:NDX", group: "🇺🇸 美股" },
-  { yahoo: "^DJI", name: "道琼斯", tradingView: "DJ:DJI", group: "🇺🇸 美股" },
-  // A股
-  { yahoo: "000300.SS", name: "沪深300", tradingView: "SSE:000300", group: "🇨🇳 A股" },
-  { yahoo: "000001.SS", name: "上证指数", tradingView: "SSE:000001", group: "🇨🇳 A股" },
-  { yahoo: "399006.SZ", name: "创业板指", tradingView: "SZSE:399006", group: "🇨🇳 A股" },
-  { yahoo: "000905.SS", name: "中证500", tradingView: "SSE:000905", group: "🇨🇳 A股" },
-  // 港股
-  { yahoo: "^HSI", name: "恒生指数", tradingView: "HSI:HSI", group: "🇭🇰 港股" },
-  { yahoo: "^HSTECH", name: "恒生科技", tradingView: "TVC:HSTECH", group: "🇭🇰 港股" },
-  // 日股
-  { yahoo: "^N225", name: "日经225", tradingView: "TVC:NI225", group: "🇯🇵 日股" },
-  { yahoo: "^TOPX", name: "东证指数", tradingView: "TSE:TOPIX", group: "🇯🇵 日股" },
-  // 波动
-  { yahoo: "^VIX", name: "VIX 恐慌指数", tradingView: "CBOE:VIX", group: "📉 波动" },
-] as const;
-
-export type IndexConfigItem = (typeof INDEX_CONFIG)[number];
-
-export function getIndexConfig() {
-  return INDEX_CONFIG;
-}
+// 重新导出供 API route 使用
+export { type MarketIndex, INDEX_CONFIG } from "./market-config";
 
 /** yahoo-finance2 quote 返回的单条数据 */
 interface YFQuote {
