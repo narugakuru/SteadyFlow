@@ -2,47 +2,128 @@
 
 import { useState } from "react";
 import { useFetch } from "@/lib/hooks";
+import { INDEX_CONFIG, type MarketIndex } from "@/lib/market-data";
 import { VixSentiment } from "@/components/vix-sentiment";
+import { TradingViewChart } from "@/components/tradingview-chart";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, ExternalLink } from "lucide-react";
-import type { MarketIndex } from "@/lib/market-data";
 
-interface IndexGroup {
+// --- 静态分组配置 ---
+
+interface GroupConfig {
   label: string;
-  items: MarketIndex[];
+  symbols: string[];
 }
 
-function groupIndices(data: MarketIndex[]): IndexGroup[] {
-  const groupConfig = [
-    { label: "🇺🇸 美股", symbols: ["^GSPC", "^NDX", "^DJI"] },
-    { label: "🇨🇳 A股", symbols: ["000300.SS", "000001.SS", "399006.SZ", "000905.SS"] },
-    { label: "🇭🇰 港股", symbols: ["^HSI", "^HSTECH"] },
-    { label: "🇯🇵 日股", symbols: ["^N225", "^TOPX"] },
-    { label: "📉 波动", symbols: ["^VIX"] },
-  ];
+const GROUP_CONFIG: GroupConfig[] = [
+  { label: "🇺🇸 美股", symbols: ["^GSPC", "^NDX", "^DJI"] },
+  { label: "🇨🇳 A股", symbols: ["000300.SS", "000001.SS", "399006.SZ", "000905.SS"] },
+  { label: "🇭🇰 港股", symbols: ["^HSI", "^HSTECH"] },
+  { label: "🇯🇵 日股", symbols: ["^N225", "^TOPX"] },
+  { label: "📉 波动", symbols: ["^VIX"] },
+];
 
-  const dataMap = new Map(data.map((d) => [d.symbol, d]));
-
-  return groupConfig.map((g) => ({
-    label: g.label,
-    items: g.symbols.map((s) => dataMap.get(s)).filter(Boolean) as MarketIndex[],
-  }));
+// Tab 图表配置：每个 tab 的默认 symbol 和可切换列表
+interface TabConfig {
+  id: string;
+  label: string;
+  defaultSymbol: string;
+  indices: { symbol: string; name: string }[];
 }
+
+const TAB_CONFIG: TabConfig[] = [
+  {
+    id: "cn",
+    label: "A股",
+    defaultSymbol: "SSE:000001",
+    indices: [
+      { symbol: "SSE:000001", name: "上证指数" },
+      { symbol: "SSE:000300", name: "沪深300" },
+      { symbol: "SZSE:399006", name: "创业板指" },
+      { symbol: "SSE:000905", name: "中证500" },
+    ],
+  },
+  {
+    id: "us",
+    label: "美股",
+    defaultSymbol: "FOREXCOM:SPXUSD",
+    indices: [
+      { symbol: "FOREXCOM:SPXUSD", name: "S&P 500" },
+      { symbol: "NASDAQ:NDX", name: "纳斯达克100" },
+      { symbol: "DJ:DJI", name: "道琼斯" },
+    ],
+  },
+  {
+    id: "hk",
+    label: "港股",
+    defaultSymbol: "HSI:HSI",
+    indices: [
+      { symbol: "HSI:HSI", name: "恒生指数" },
+      { symbol: "TVC:HSTECH", name: "恒生科技" },
+    ],
+  },
+  {
+    id: "jp",
+    label: "日股",
+    defaultSymbol: "TVC:NI225",
+    indices: [
+      { symbol: "TVC:NI225", name: "日经225" },
+      { symbol: "TSE:TOPIX", name: "东证指数" },
+    ],
+  },
+  {
+    id: "vix",
+    label: "波动率",
+    defaultSymbol: "CBOE:VIX",
+    indices: [{ symbol: "CBOE:VIX", name: "VIX" }],
+  },
+];
+
+// --- 静态骨架行数据（从 INDEX_CONFIG 生成，不依赖 API） ---
+
+interface StaticRow {
+  symbol: string;
+  name: string;
+  tradingViewUrl: string;
+  group: string;
+}
+
+const STATIC_ROWS: StaticRow[] = INDEX_CONFIG.map((c) => ({
+  symbol: c.yahoo,
+  name: c.name,
+  tradingViewUrl: `https://www.tradingview.com/chart/?symbol=${c.tradingView}`,
+  group: c.group,
+}));
+
+// --- 工具函数 ---
 
 function formatPrice(price: number): string {
-  if (price >= 1000) return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (price >= 1000)
+    return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return price.toFixed(2);
 }
 
 function formatTime(isoStr: string): string {
   if (!isoStr) return "-";
   const d = new Date(isoStr);
-  return d.toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
+
+// --- 组件 ---
 
 export default function MarketPage() {
   const { data, loading, refetch } = useFetch<MarketIndex[]>("/api/market");
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("cn");
+  const [tabSymbols, setTabSymbols] = useState<Record<string, string>>(
+    Object.fromEntries(TAB_CONFIG.map((t) => [t.id, t.defaultSymbol]))
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -50,11 +131,19 @@ export default function MarketPage() {
     setRefreshing(false);
   };
 
-  const groups = data ? groupIndices(data) : [];
-  const vix = data?.find((d) => d.symbol === "^VIX");
+  // 用 API 数据填充价格，按 symbol 匹配
+  const priceMap = new Map<string, MarketIndex>();
+  if (data) {
+    for (const item of data) {
+      priceMap.set(item.symbol, item);
+    }
+  }
+
+  const vixData = priceMap.get("^VIX");
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
+      {/* 标题 + 刷新 */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">📊 市场概览</h1>
         <Button
@@ -68,130 +157,139 @@ export default function MarketPage() {
         </Button>
       </div>
 
-      {loading && !data ? (
-        <div className="text-center py-12 text-muted-foreground">加载中...</div>
-      ) : data && data.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          无法获取市场数据，请检查网络连接后重试
-        </div>
-      ) : (
-        <>
-          {groups
-            .filter((g) => g.label !== "📉 波动")
-            .map((group) => (
-              <section key={group.label}>
-                <h2 className="text-sm font-semibold text-muted-foreground mb-2">
-                  {group.label}
-                </h2>
-                <div className="rounded-lg border overflow-x-auto">
-                  <table className="w-full text-sm min-w-[480px]">
-                    <thead>
-                      <tr className="border-b bg-muted/50">
-                        <th className="text-left px-4 py-2 font-medium">指数</th>
-                        <th className="text-right px-4 py-2 font-medium">最新价</th>
-                        <th className="text-right px-4 py-2 font-medium">涨跌</th>
-                        <th className="text-right px-4 py-2 font-medium">涨跌幅</th>
-                        <th className="text-right px-4 py-2 font-medium">更新时间</th>
-                        <th className="text-right px-4 py-2 font-medium w-10"></th>
+      {/* 指数表格（静态骨架，始终显示） */}
+      {GROUP_CONFIG.map((group) => {
+        const rows = STATIC_ROWS.filter((r) => r.group === group.label);
+        return (
+          <section key={group.label}>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-2">{group.label}</h2>
+            <div className="rounded-lg border overflow-x-auto">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left px-4 py-2 font-medium">指数</th>
+                    <th className="text-right px-4 py-2 font-medium">最新价</th>
+                    <th className="text-right px-4 py-2 font-medium">涨跌</th>
+                    <th className="text-right px-4 py-2 font-medium">涨跌幅</th>
+                    <th className="text-right px-4 py-2 font-medium">更新时间</th>
+                    <th className="text-right px-4 py-2 font-medium w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const live = priceMap.get(row.symbol);
+                    const hasData = live && live.price > 0;
+                    const isUp = hasData && live.change > 0;
+                    const isDown = hasData && live.change < 0;
+                    const colorClass = isUp
+                      ? "text-red-400"
+                      : isDown
+                        ? "text-green-400"
+                        : "text-muted-foreground";
+
+                    return (
+                      <tr key={row.symbol} className="border-b last:border-0 hover:bg-muted/30">
+                        <td className="px-4 py-2.5 font-medium">{row.name}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">
+                          {loading && !data ? (
+                            <span className="inline-block w-16 h-4 bg-muted animate-pulse rounded" />
+                          ) : hasData ? (
+                            formatPrice(live.price)
+                          ) : (
+                            <span className="text-muted-foreground">--</span>
+                          )}
+                        </td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums ${colorClass}`}>
+                          {loading && !data ? (
+                            <span className="inline-block w-12 h-4 bg-muted animate-pulse rounded" />
+                          ) : hasData ? (
+                            `${isUp ? "+" : ""}${live.change.toFixed(2)}`
+                          ) : (
+                            <span className="text-muted-foreground">--</span>
+                          )}
+                        </td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums ${colorClass}`}>
+                          {loading && !data ? (
+                            <span className="inline-block w-12 h-4 bg-muted animate-pulse rounded" />
+                          ) : hasData ? (
+                            `${isUp ? "+" : ""}${live.changePercent.toFixed(2)}%`
+                          ) : (
+                            <span className="text-muted-foreground">--</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-muted-foreground">
+                          {loading && !data ? (
+                            <span className="inline-block w-20 h-4 bg-muted animate-pulse rounded" />
+                          ) : hasData ? (
+                            formatTime(live.updatedAt)
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <a
+                            href={row.tradingViewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground"
+                            title="在 TradingView 查看"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {group.items.map((item) => {
-                        const isUp = item.change > 0;
-                        const isDown = item.change < 0;
-                        const colorClass = isUp
-                          ? "text-red-400"
-                          : isDown
-                            ? "text-green-400"
-                            : "text-muted-foreground";
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        );
+      })}
 
-                        return (
-                          <tr key={item.symbol} className="border-b last:border-0 hover:bg-muted/30">
-                            <td className="px-4 py-2.5 font-medium">{item.name}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">
-                              {item.price ? formatPrice(item.price) : "-"}
-                            </td>
-                            <td className={`px-4 py-2.5 text-right tabular-nums ${colorClass}`}>
-                              {item.price ? `${isUp ? "+" : ""}${item.change.toFixed(2)}` : "-"}
-                            </td>
-                            <td className={`px-4 py-2.5 text-right tabular-nums ${colorClass}`}>
-                              {item.price ? `${isUp ? "+" : ""}${item.changePercent.toFixed(2)}%` : "-"}
-                            </td>
-                            <td className="px-4 py-2.5 text-right text-muted-foreground">
-                              {formatTime(item.updatedAt)}
-                            </td>
-                            <td className="px-4 py-2.5 text-right">
-                              <a
-                                href={item.tradingViewUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground"
-                                title="在 TradingView 查看"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+      {/* 图表区域：按市场分 Tab */}
+      <section>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">📈 指数图表</h2>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full justify-start">
+            {TAB_CONFIG.map((tab) => (
+              <TabsTrigger key={tab.id} value={tab.id}>
+                {tab.label}
+              </TabsTrigger>
             ))}
+          </TabsList>
 
-          {/* VIX 区域 */}
-          {vix && (
-            <section>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold text-muted-foreground">
-                  📉 恐慌与波动 (VIX)
-                </h2>
-                <a
-                  href={vix.tradingViewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                >
-                  TradingView <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-
-              {/* VIX 当前值 */}
-              <div className="rounded-lg border p-4 mb-4">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <span className="text-3xl font-bold tabular-nums">
-                      {vix.price ? vix.price.toFixed(2) : "-"}
-                    </span>
-                  </div>
-                  <div>
-                    <span
-                      className={`text-lg tabular-nums ${
-                        vix.change > 0
-                          ? "text-red-400"
-                          : vix.change < 0
-                            ? "text-green-400"
-                            : "text-muted-foreground"
-                      }`}
+          {TAB_CONFIG.map((tab) => (
+            <TabsContent key={tab.id} value={tab.id} className="mt-4">
+              {/* 指数切换按钮（多于 1 个指数时显示） */}
+              {tab.indices.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {tab.indices.map((idx) => (
+                    <Button
+                      key={idx.symbol}
+                      variant={tabSymbols[tab.id] === idx.symbol ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTabSymbols((prev) => ({ ...prev, [tab.id]: idx.symbol }))}
                     >
-                      {vix.price
-                        ? `${vix.change > 0 ? "+" : ""}${vix.change.toFixed(2)} (${vix.change > 0 ? "+" : ""}${vix.changePercent.toFixed(2)}%)`
-                        : ""}
-                    </span>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {formatTime(vix.updatedAt)}
-                    </div>
-                  </div>
+                      {idx.name}
+                    </Button>
+                  ))}
                 </div>
-              </div>
+              )}
 
-              {/* 情绪阈值参考 */}
-              <VixSentiment currentVix={vix.price || undefined} />
-            </section>
-          )}
-        </>
-      )}
+              {/* TradingView 图表 */}
+              <TradingViewChart symbol={tabSymbols[tab.id]} height={480} />
+
+              {/* 波动率 Tab 特殊：显示 VIX 情绪参考 */}
+              {tab.id === "vix" && (
+                <div className="mt-4">
+                  <VixSentiment currentVix={vixData?.price || undefined} />
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
+      </section>
     </div>
   );
 }
