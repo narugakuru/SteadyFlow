@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses, settings } from "@/db/schema";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { roundForStorage } from "@/lib/format";
 
@@ -16,7 +16,11 @@ export async function GET() {
   const [ratesResult, allAccounts, allClasses]: any[] = await Promise.all([
     getExchangeRates(),
     db.select().from(accounts).where(eq(accounts.userId, userId)),
-    db.select().from(assetClasses).where(eq(assetClasses.userId, userId)),
+    db
+      .select()
+      .from(assetClasses)
+      .where(eq(assetClasses.userId, userId))
+      .orderBy(asc(assetClasses.sortOrder), asc(assetClasses.id)),
   ]);
 
   const accountIds = allAccounts.map((account: any) => account.id);
@@ -97,9 +101,7 @@ export async function GET() {
     const isCash = cls.name === "现金";
     const actualValue = isCash ? totalCashCny : classValues[cls.name] || 0;
     const actualPct =
-      totalAssetCny > 0
-        ? roundForStorage((actualValue / totalAssetCny) * 100, "percent")
-        : 0;
+      totalAssetCny > 0 ? roundForStorage((actualValue / totalAssetCny) * 100, "percent") : 0;
     const deviation = roundForStorage(actualPct - cls.targetPct, "percent");
     const absDeviation = Math.abs(deviation);
 
@@ -125,9 +127,7 @@ export async function GET() {
           pnlAmount: 0,
           pnlAmountCny: 0,
           pctOfTotal:
-            totalAssetCny > 0
-              ? roundForStorage((ac.cashCny / totalAssetCny) * 100, "percent")
-              : 0,
+            totalAssetCny > 0 ? roundForStorage((ac.cashCny / totalAssetCny) * 100, "percent") : 0,
         }))
       : (classHoldings[cls.name] || []).map((h: any) => {
           const account = accountMap.get(h.accountId)!;
@@ -160,9 +160,7 @@ export async function GET() {
             pnlAmount: roundForStorage(pnlAmount, "amount"),
             pnlAmountCny: roundForStorage(pnlAmountCny, "amount"),
             pctOfTotal:
-              totalAssetCny > 0
-                ? roundForStorage((valueCny / totalAssetCny) * 100, "percent")
-                : 0,
+              totalAssetCny > 0 ? roundForStorage((valueCny / totalAssetCny) * 100, "percent") : 0,
           };
         });
 

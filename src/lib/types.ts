@@ -71,6 +71,7 @@ export interface AssetClass {
   id: number;
   name: string;
   targetPct: number;
+  sortOrder: number;
 }
 
 export interface Settings {

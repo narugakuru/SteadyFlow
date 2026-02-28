@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses, netvalue } from "@/db/schema";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { requireUser } from "@/lib/auth-utils";
 import { roundForStorage } from "@/lib/format";
@@ -38,7 +38,11 @@ export async function POST() {
   const [ratesResult, allAccounts, allClasses]: any[] = await Promise.all([
     getExchangeRates(),
     db.select().from(accounts).where(eq(accounts.userId, userId)),
-    db.select().from(assetClasses).where(eq(assetClasses.userId, userId)),
+    db
+      .select()
+      .from(assetClasses)
+      .where(eq(assetClasses.userId, userId))
+      .orderBy(asc(assetClasses.sortOrder), asc(assetClasses.id)),
   ]);
 
   const accountIds = allAccounts.map((account: any) => account.id);
@@ -56,13 +60,10 @@ export async function POST() {
   }
 
   // Total asset = Σ(cashBalance + holdingsValue) per account in CNY
-  const totalAssetCny = allAccounts.reduce(
-    (sum: number, a: any) => {
-      const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
-      return sum + convertToCNY(accountValue, a.currency, rates);
-    },
-    0
-  );
+  const totalAssetCny = allAccounts.reduce((sum: number, a: any) => {
+    const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
+    return sum + convertToCNY(accountValue, a.currency, rates);
+  }, 0);
 
   // Holdings value per class
   const classValues: Record<string, number> = {};
@@ -80,11 +81,9 @@ export async function POST() {
 
   const data = {
     allocation: allClasses.map((cls: any) => {
-      const actualValue = cls.name === "现金" ? totalCashCny : (classValues[cls.name] || 0);
+      const actualValue = cls.name === "现金" ? totalCashCny : classValues[cls.name] || 0;
       const actualPct =
-        totalAssetCny > 0
-          ? roundForStorage((actualValue / totalAssetCny) * 100, "percent")
-          : 0;
+        totalAssetCny > 0 ? roundForStorage((actualValue / totalAssetCny) * 100, "percent") : 0;
       return { name: cls.name, actualValue: roundForStorage(actualValue, "amount"), actualPct };
     }),
     accounts: allAccounts.map((a: any) => {
@@ -107,20 +106,20 @@ export async function POST() {
     .where(and(eq(netvalue.userId, userId), eq(netvalue.date, today)));
 
   if (existing) {
-    await db.update(netvalue)
+    await db
+      .update(netvalue)
       .set({
         totalAssetCny: roundForStorage(totalAssetCny, "amount"),
         dataJson: JSON.stringify(data),
       })
       .where(and(eq(netvalue.userId, userId), eq(netvalue.date, today)));
   } else {
-    await db.insert(netvalue)
-      .values({
-        userId,
-        date: today,
-        totalAssetCny: roundForStorage(totalAssetCny, "amount"),
-        dataJson: JSON.stringify(data),
-      });
+    await db.insert(netvalue).values({
+      userId,
+      date: today,
+      totalAssetCny: roundForStorage(totalAssetCny, "amount"),
+      dataJson: JSON.stringify(data),
+    });
   }
 
   return NextResponse.json({

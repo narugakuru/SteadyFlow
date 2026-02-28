@@ -143,6 +143,7 @@ export const assetClasses = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     targetPct: real("target_pct").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(999),
   },
   (table) => ({
     userNameUnique: uniqueIndex("asset_classes_user_name_idx").on(table.userId, table.name),
