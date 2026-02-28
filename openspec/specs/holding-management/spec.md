@@ -1,3 +1,7 @@
+## Purpose
+
+定义 holding-management 能力的业务约束与验收标准。
+
 ## Requirements
 
 ### Requirement: 添加持仓
@@ -83,27 +87,39 @@
 
 ### Requirement: 持仓列表展示
 
-系统 SHALL 使用统一的两行布局展示持仓信息，纪律表和账户页共用同一展示格式。第一行显示核心信息：持仓名称 + 小字股票代码、市值（原始币种，非 CNY 时附带 CNY 换算）、收益金额和收益率。第二行显示详细信息：份额、成本价、现价、总仓位占比。amount 模式持仓第二行只显示占比。纪律表模式 SHALL 额外在名称后显示所属账户名标签。
+持仓行中的数值 SHALL 使用统一格式化函数显示：
 
-#### Scenario: shares 模式持仓展示
+- 市值：使用 `formatAmount()` 格式化
+- 盈亏金额：使用 `formatAmount()` 格式化
+- 收益率：使用 `formatPercent()` 格式化
+- 均价/股价：使用 `formatPrice()` 格式化（最多3位小数）
+- 份额：使用 `formatShares()` 格式化（整数不显示小数点，有小数最多4位）
+- 占比：使用 `formatPercent()` 格式化
 
-- **WHEN** 某 shares 模式持仓 ticker="aapl.us"，份额 100，cost=150（平均每股成本），price=175，marketValue=17500
-- **THEN** 第一行显示：Apple aapl.us、$17,500、+$2,500 (+16.67%)；第二行显示：份额 100 · 成本价 $150.00 · 现价 $175.00 · 占比 5.2%
+**shares 模式示例**：
 
-#### Scenario: amount 模式持仓展示
+- 第一行：`¥38,500`、`+¥3,500 (+10%)`
+- 第二行：`份额 10,000 · 均价 ¥3.5 · 股价 ¥3.85 · 占比 5.2%`
 
-- **WHEN** 某 amount 模式持仓 cost=¥50,000，marketValue=¥52,000
-- **THEN** 第一行显示：余额宝、¥52,000、+¥2,000 (+4.00%)；第二行显示：占比 3.5%
+**amount 模式示例**：
 
-#### Scenario: 纪律表模式显示账户名
+- 第一行：`¥52,000`、`+¥2,000 (+4%)`
+- 第二行：`占比 3.5%`
 
-- **WHEN** 持仓在纪律表视角下展示
-- **THEN** 名称后额外显示所属账户名标签（如 [A股券商]）
+#### Scenario: shares 模式整数份额
 
-#### Scenario: cost 为零的持仓
+- **WHEN** 持仓份额为 10000，股价为 3.85
+- **THEN** 份额显示为 `10,000`（不显示小数点），股价显示为 `3.85`
 
-- **WHEN** 某持仓 cost 为 0
-- **THEN** 收益金额和收益率显示为"--"
+#### Scenario: shares 模式小数份额
+
+- **WHEN** 持仓份额为 1234.5678，均价为 3.5
+- **THEN** 份额显示为 `1,234.5678`，均价显示为 `3.5`
+
+#### Scenario: 收益率整数
+
+- **WHEN** 收益率计算结果为 10.00%
+- **THEN** 显示为 `10%`（去除尾部零）
 
 ### Requirement: 持仓操作按钮
 
@@ -131,27 +147,22 @@
 
 ### Requirement: 收益率计算
 
-系统 SHALL 自动计算每个持仓的收益率。shares 模式下：总成本 = cost × shares，盈亏 = marketValue - 总成本，收益率 = 盈亏 / 总成本 × 100%。amount 模式下：盈亏 = marketValue - cost，收益率 = 盈亏 / cost × 100%。cost 为 0 时收益率显示为 N/A。
+收益率 SHALL 使用 `formatPercent()` 格式化显示，整数不显示小数点，有小数最多2位并去除尾部零。
 
-#### Scenario: shares 模式正收益
+#### Scenario: 正收益带小数
 
-- **WHEN** shares 模式持仓 cost=10（平均每股成本），shares=1000，price=12，marketValue=12000
-- **THEN** 总成本=10000，盈亏=+2000，收益率显示 +20.00%
+- **WHEN** 收益率为 12.5%
+- **THEN** 显示为 `+12.5%`（绿色）
 
-#### Scenario: shares 模式负收益
+#### Scenario: 负收益整数
 
-- **WHEN** shares 模式持仓 cost=10，shares=1000，price=8，marketValue=8000
-- **THEN** 总成本=10000，盈亏=-2000，收益率显示 -20.00%
+- **WHEN** 收益率为 -10%
+- **THEN** 显示为 `-10%`（红色）
 
-#### Scenario: amount 模式收益（不变）
+#### Scenario: 零收益
 
-- **WHEN** amount 模式持仓 cost=80000，marketValue=90000
-- **THEN** 盈亏=+10000，收益率显示 +12.50%
-
-#### Scenario: cost 为零
-
-- **WHEN** 持仓 cost=0
-- **THEN** 收益金额和收益率显示为"--"
+- **WHEN** 收益率为 0%
+- **THEN** 显示为 `0%`
 
 ### Requirement: 持仓内联编辑
 

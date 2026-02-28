@@ -62,3 +62,4 @@ openspec/       # 需求规格与变更流程
 - [2026-02-27] 完成移动端适配、市场页重构、纪律笔记与持仓 memo、数值精度统一
 - [2026-02-28] 新增 Drizzle 运维手册与 README（项目介绍 + 部署指南）
 - [2026-02-28] 归档历史完整版 `project_overview.md` 到 `docs/project_overview.archive.md`，当前文件改为简版协作文档
+- [2026-02-28] 归档 OpenSpec 变更 `decimal-precision-config`：已同步 10 个 capability 的 delta specs 到主 `openspec/specs`，并新增 `number-formatting` 主 spec

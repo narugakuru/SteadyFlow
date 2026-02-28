@@ -1,3 +1,7 @@
+## Purpose
+
+定义 daily-netvalue 能力的业务约束与验收标准。
+
 ## Requirements
 
 ### Requirement: 自动创建每日净值
@@ -21,17 +25,20 @@
 
 ### Requirement: 净值数据内容
 
-每日净值 SHALL 记录当前用户的以下数据：日期、总资产(CNY)、各资产类别的实际金额(CNY)和实际占比、各账户的总价值(CNY换算，cashBalance + holdingsValue)和现金余额(CNY换算，cashBalance)、当日使用的汇率。总资产 SHALL 使用当前用户 Σ(cashBalance + holdingsValue) 的 CNY 折算计算。
+净值页中的数值 SHALL 使用统一格式化函数：
 
-#### Scenario: 净值包含完整数据
+- 总资产金额：使用 `formatAmount()` 格式化
+- 各类别金额：使用 `formatAmount()` 格式化
 
-- **WHEN** 系统创建净值记录
-- **THEN** 记录包含当前用户的总资产（基于 cashBalance + holdingsValue 计算），各资产类别明细，以及各账户的总价值和现金余额
+#### Scenario: 净值总资产显示
 
-#### Scenario: 净值总资产反映持仓市值
+- **WHEN** 净值记录总资产为 500000
+- **THEN** 显示为 `¥500,000`
 
-- **WHEN** 当前用户账户 cashBalance=50000，持仓市值=200000
-- **THEN** 净值记录中该账户的 totalCny 为 (50000+200000) 的 CNY 折算值，cashCny 为 50000 的 CNY 折算值
+#### Scenario: 净值总资产有小数
+
+- **WHEN** 净值记录总资产为 500000.5
+- **THEN** 显示为 `¥500,000.5`
 
 ### Requirement: 手动触发净值更新
 

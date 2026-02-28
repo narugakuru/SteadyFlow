@@ -1,13 +1,26 @@
+## Purpose
+
+定义 dashboard 能力的业务约束与验收标准。
+
 ## Requirements
 
 ### Requirement: 总资产概览
 
-系统 SHALL 在 Dashboard 顶部显示当前用户的总资产金额（CNY），总资产 = Σ 当前用户各账户总额按汇率换算为 CNY。
+总览页中的数值 SHALL 使用统一格式化函数：
 
-#### Scenario: 多币种总资产汇总
+- 总资产金额：使用 `formatAmount()` 格式化
+- 各类别金额：使用 `formatAmount()` 格式化
+- 百分比：使用 `formatPercent()` 格式化
 
-- **WHEN** 当前用户有 CNY 账户总额 200000、USD 账户总额 10000（汇率 7.2）
-- **THEN** Dashboard 显示总资产 ¥272,000
+#### Scenario: 总资产整数
+
+- **WHEN** 总资产为 272000
+- **THEN** 显示为 `¥272,000`
+
+#### Scenario: 总资产有小数
+
+- **WHEN** 总资产为 272000.5
+- **THEN** 显示为 `¥272,000.5`
 
 ### Requirement: 资产配置纪律表
 
