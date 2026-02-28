@@ -20,6 +20,8 @@
 - 数据库：SQLite (`better-sqlite3`) / PostgreSQL (Neon serverless)
 - 认证：Auth.js v5 (`next-auth@beta`) + Credentials + GitHub OAuth
 
+## 详细的目录结构，数据模型在openspec\project.md文件里
+
 ## 目录结构（摘要）
 
 ```text

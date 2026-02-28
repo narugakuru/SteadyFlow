@@ -2,7 +2,7 @@
 import { eq } from "drizzle-orm";
 
 const DEFAULT_RATES: Array<{ pair: string; rate: number }> = [
-  { pair: "USD/CNY", rate: 7.2 },
+  { pair: "USD/CNY", rate: 7.0 },
   { pair: "HKD/CNY", rate: 0.92 },
 ];
 
