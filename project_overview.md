@@ -66,8 +66,7 @@ openspec/       # 需求规格与变更流程
 - [2026-02-28] 新增 Drizzle 运维手册与 README（项目介绍 + 部署指南）
 - [2026-02-28] 归档历史完整版 `project_overview.md` 到 `docs/project_overview.archive.md`，当前文件改为简版协作文档
 - [2026-02-28] 落地资产类别 `sortOrder` 排序方案：`asset_classes` 新增 `sort_order` 字段（SQLite/PG），API 查询改为显式排序并为新增类别自动分配末尾顺序，迁移脚本补齐历史数据回填（默认类与“股票基金”兼容）
-- [2026-02-28] 归档 OpenSpec 变更 `decimal-precision-config`：已同步 10 个 capability 的 delta specs 到主 `openspec/specs`，并新增 `number-formatting` 主 spec
 - [2026-02-28] 修复持仓编辑接口 `PUT /api/holdings/[id]`：允许 `memo: null` 清空备注，避免编辑现价/成本价时误触发 400；资产类别改为仅在实际变更时校验，防止旧类别值阻塞其它字段保存
 - [2026-02-28] 调整持仓交互：金额模式编辑支持同时修改成本与市值；新建持仓默认估值模式改为“份额模式”（账户页与交易页内联新建保持一致）
 - [2026-02-28] 完成 OpenSpec 变更 `mobile-ui-and-asset-class-consistency` 实现：统一 Dialog 移动端高度/滚动与 44x44 关闭热区、重构 `batch-update` 移动端单列布局、移除页面内“返回 Dashboard”按钮，并在 API/前端展示层将“股票基金”归一为“股票”且应用默认顺序（股票/黄金/债券/现金）
-- [2026-02-28] 调整弹窗关闭按钮样式：通用 Dialog 关闭按钮增大为 48x48，并改为高对比红色 `X`（红底红框），提升移动端可点按与可见性
+- [2026-02-28] 微调弹窗关闭按钮样式：改为 36x36，移除红底红框，仅保留深红 `X` 图标并提高图标占比，兼顾显眼与不遮挡内容
