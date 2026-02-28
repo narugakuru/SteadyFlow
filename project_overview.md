@@ -73,3 +73,4 @@ openspec/       # 需求规格与变更流程
 - [2026-02-28] 提升 holding 行 memo 可见性：改用更明显的笔记图标（NotebookText）并增强对比样式（橙色底+边框+阴影），桌面与移动端统一
 - [2026-02-28] 新增 OpenSpec 变更 `visual-sort-for-asset-classes-and-holdings` 并完成 apply 前全部 artifacts（proposal/design/specs/tasks）：覆盖资产类别与标的可视化排序、持久化排序字段、API 稳定排序输出与历史数据兼容策略
 - [2026-02-28] 扩展变更 `visual-sort-for-asset-classes-and-holdings`：新增交易页面规格改造（横向表格列顺序固定为账户/标的/操作类型/股数/股价/金额/手续费/日期，删除按钮统一为小垃圾桶样式）
+- [2026-02-28] 进一步细化变更 `visual-sort-for-asset-classes-and-holdings`：持仓排序改为“排序按钮打开弹窗 + 拖拽句柄调整 + 点击保存后一次性写库”，弹窗列表仅展示名称/股票编号/账户归属三项核心信息
