@@ -272,7 +272,7 @@ export function HoldingRow({
             <span>占比 {formatPercent(pctOfTotal)}%</span>
           </div>
           {/* Row 4: actions */}
-          <div className="flex items-center gap-4 flex-wrap">{actionButtons}</div>
+          <div className="flex items-center justify-end gap-4 flex-wrap">{actionButtons}</div>
           {hasMemo && showMobileMemo && (
             <div className="rounded border bg-popover px-2 py-1 text-xs text-popover-foreground">
               {h.memo}
