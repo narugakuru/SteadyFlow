@@ -165,3 +165,4 @@ src/
 - [2026-02-27] 修复 PG 清库后旧登录态导致首页/账户页崩溃：`/` 与 `/accounts` 的资产配置请求增加 `res.ok` 与返回结构校验，401 自动跳转登录页，异常数据进入可重试错误态，避免 `allocation.rates.rates` 空对象解构报错
 - [2026-02-28] 补齐 PostgreSQL Drizzle 元数据快照链：新增 `drizzle-pg/meta/0001_snapshot.json`（`prevId` 指向 `0000_snapshot`），修复 `_journal` 与 snapshot 不一致；执行 `npx drizzle-kit check --config=drizzle.config.pg.ts` 校验通过
 - [2026-02-28] 新增 Drizzle 操作手册 `docs/drizzle-operations-guide.md`：覆盖 SQLite/PG 在本地开发、测试联调、Vercel 部署下的迁移流程、meta/snapshot 机制说明、常见报错排查与快照链修复步骤
+- [2026-02-28] 新增项目根文档 `README.md`：补充项目定位、核心功能与技术栈说明；新增本地 SQLite 开发、Vercel+Neon 部署、Windows 离线打包与自托管 Node.js 部署指南，并链接 OAuth/Drizzle 运维文档
