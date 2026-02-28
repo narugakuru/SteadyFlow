@@ -51,7 +51,10 @@ openspec/       # 需求规格与变更流程
 
 详见 `docs/improvement-proposals.md`：
 
-- P2：收益率追踪、净值历史增强、币种动态化
+- P2：给“资产配置设置”加一个可视化排序（上移/下移或拖拽）
+- P2：[修改memo交互逻辑](openspec/changes/discipline-notes-and-holding-memo)
+- P2：[修改移动端UI](openspec/changes/mobile-ui-and-asset-class-consistency)
+- P3：收益率追踪、净值历史增强、币种动态化
 - P3：汇率来源冗余、数据导入导出（移动端适配已完成）
 
 ## 进展日志（精简）
@@ -65,3 +68,4 @@ openspec/       # 需求规格与变更流程
 - [2026-02-28] 落地资产类别 `sortOrder` 排序方案：`asset_classes` 新增 `sort_order` 字段（SQLite/PG），API 查询改为显式排序并为新增类别自动分配末尾顺序，迁移脚本补齐历史数据回填（默认类与“股票基金”兼容）
 - [2026-02-28] 归档 OpenSpec 变更 `decimal-precision-config`：已同步 10 个 capability 的 delta specs 到主 `openspec/specs`，并新增 `number-formatting` 主 spec
 - [2026-02-28] 修复持仓编辑接口 `PUT /api/holdings/[id]`：允许 `memo: null` 清空备注，避免编辑现价/成本价时误触发 400；资产类别改为仅在实际变更时校验，防止旧类别值阻塞其它字段保存
+- [2026-02-28] 调整持仓交互：金额模式编辑支持同时修改成本与市值；新建持仓默认估值模式改为“份额模式”（账户页与交易页内联新建保持一致）

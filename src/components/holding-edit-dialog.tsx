@@ -94,6 +94,7 @@ export function HoldingEditDialog({
       payload.marketValue = parseFloat(tri.marketValue) || 0;
       payload.cost = parseFloat(cost) || 0;
     } else {
+      payload.cost = parseFloat(cost) || 0;
       payload.marketValue = parseFloat(marketValue) || 0;
     }
 
@@ -181,13 +182,19 @@ export function HoldingEditDialog({
               </p>
             </>
           ) : (
-            <div>
-              <Label>市值 ({sym})</Label>
-              <Input
-                type="number"
-                value={marketValue}
-                onChange={(e) => setMarketValue(e.target.value)}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>成本 ({sym})</Label>
+                <Input type="number" value={cost} onChange={(e) => setCost(e.target.value)} />
+              </div>
+              <div>
+                <Label>市值 ({sym})</Label>
+                <Input
+                  type="number"
+                  value={marketValue}
+                  onChange={(e) => setMarketValue(e.target.value)}
+                />
+              </div>
             </div>
           )}
 

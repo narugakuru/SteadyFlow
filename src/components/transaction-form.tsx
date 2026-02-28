@@ -58,7 +58,7 @@ export function TransactionForm({
   const [inlineCreateOpen, setInlineCreateOpen] = useState(false);
   const [newHoldingName, setNewHoldingName] = useState("");
   const [newHoldingTicker, setNewHoldingTicker] = useState("");
-  const [newHoldingMode, setNewHoldingMode] = useState<"amount" | "shares">("amount");
+  const [newHoldingMode, setNewHoldingMode] = useState<"amount" | "shares">("shares");
   const [newHoldingAssetClass, setNewHoldingAssetClass] = useState("");
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [creatingSaving, setCreatingSaving] = useState(false);
@@ -239,6 +239,7 @@ export function TransactionForm({
                 onValueChange={(v) => {
                   if (v === "__new__") {
                     setInlineCreateOpen(true);
+                    setNewHoldingMode("shares");
                     // Fetch asset classes for the mini form
                     fetch("/api/asset-classes")
                       .then((r) => r.json())
@@ -373,7 +374,7 @@ export function TransactionForm({
                     // Reset mini form
                     setNewHoldingName("");
                     setNewHoldingTicker("");
-                    setNewHoldingMode("amount");
+                    setNewHoldingMode("shares");
                     setInlineCreateOpen(false);
                     setCreatingSaving(false);
                   }}
