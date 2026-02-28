@@ -49,27 +49,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const body = await request.json();
   const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass, memo } = body;
 
-  if (assetClass !== undefined) {
-    const validClasses = await getValidAssetClasses(userId);
-    if (!validClasses.includes(assetClass)) {
-      return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
-    }
-  }
-
-  if (memo !== undefined && (typeof memo !== "string" || memo.trim().length > 2000)) {
-    return NextResponse.json({ error: "memo 必须是字符串且不超过 2000 字符" }, { status: 400 });
-  }
-
   // Build update set
   const updateSet: Record<string, unknown> = {
     updatedAt: new Date().toISOString(),
   };
   if (name !== undefined) updateSet.name = name;
   if (ticker !== undefined) updateSet.ticker = ticker || null;
-  if (memo !== undefined) updateSet.memo = memo.trim() || null;
   if (valuationMode !== undefined) updateSet.valuationMode = valuationMode;
   if (cost !== undefined) updateSet.cost = roundForStorage(parseFloat(cost) || 0, "amount");
-  if (assetClass !== undefined) updateSet.assetClass = assetClass;
 
   // For shares mode: if shares or price updated, recalculate marketValue
   if (shares !== undefined) updateSet.shares = roundForStorage(parseFloat(shares) || 0, "shares");
@@ -91,6 +78,26 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     .limit(1);
   if (!account) {
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+  }
+
+  // Allow null memo to clear notes; only validate non-null string values.
+  if (memo !== undefined && memo !== null) {
+    if (typeof memo !== "string" || memo.trim().length > 2000) {
+      return NextResponse.json({ error: "memo 必须是字符串且不超过 2000 字符" }, { status: 400 });
+    }
+  }
+  if (memo !== undefined) {
+    const memoText = typeof memo === "string" ? memo.trim() : "";
+    updateSet.memo = memoText || null;
+  }
+
+  // Validate asset class only when caller actually changes it.
+  if (assetClass !== undefined && assetClass !== current.assetClass) {
+    const validClasses = await getValidAssetClasses(userId);
+    if (!validClasses.includes(assetClass)) {
+      return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
+    }
+    updateSet.assetClass = assetClass;
   }
 
   const effectiveMode = valuationMode ?? current.valuationMode;

@@ -64,3 +64,4 @@ openspec/       # 需求规格与变更流程
 - [2026-02-28] 归档历史完整版 `project_overview.md` 到 `docs/project_overview.archive.md`，当前文件改为简版协作文档
 - [2026-02-28] 落地资产类别 `sortOrder` 排序方案：`asset_classes` 新增 `sort_order` 字段（SQLite/PG），API 查询改为显式排序并为新增类别自动分配末尾顺序，迁移脚本补齐历史数据回填（默认类与“股票基金”兼容）
 - [2026-02-28] 归档 OpenSpec 变更 `decimal-precision-config`：已同步 10 个 capability 的 delta specs 到主 `openspec/specs`，并新增 `number-formatting` 主 spec
+- [2026-02-28] 修复持仓编辑接口 `PUT /api/holdings/[id]`：允许 `memo: null` 清空备注，避免编辑现价/成本价时误触发 400；资产类别改为仅在实际变更时校验，防止旧类别值阻塞其它字段保存
