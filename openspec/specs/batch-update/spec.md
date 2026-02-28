@@ -15,7 +15,7 @@
 
 ### Requirement: 批量更新页面
 
-系统 SHALL 提供独立的批量更新页面（`/batch-update`），在一个页面内展示当前用户的所有账户及其持仓，支持 inline 编辑持仓市值/股价。页面顶部 SHALL 提供「自动获取报价」按钮，点击后调用 `POST /api/holdings/fetch-prices` 自动更新有 Stooq 格式 ticker 的 shares 模式持仓价格。
+系统 SHALL 提供独立的批量更新页面（`/batch-update`），在一个页面内展示当前用户的所有账户及其持仓，支持 inline 编辑持仓市值/股价。页面顶部 SHALL 提供「自动获取报价」按钮，点击后调用 `POST /api/holdings/fetch-prices` 自动更新有 Stooq 格式 ticker 的 shares 模式持仓价格。页面在移动端（<768px）SHALL 使用稳定的单列优先布局，避免输入区、操作区与列表发生重叠、截断或超出屏幕的问题。
 
 #### Scenario: 查看批量更新页面
 
@@ -41,6 +41,11 @@
 
 - **WHEN** 用户修改了某账户下持仓的市值并保存
 - **THEN** 该账户的总价值（cashBalance + holdingsValue）自动重新计算并刷新显示
+
+#### Scenario: 移动端布局稳定可操作
+
+- **WHEN** 用户在移动端访问批量更新页面并执行编辑/保存
+- **THEN** 列表、输入框与操作按钮以单列或分段形式完整展示，无横向溢出、无内容重叠，主要操作在不缩放情况下可点击
 
 ### Requirement: 批量更新市值显示
 

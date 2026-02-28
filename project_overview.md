@@ -52,8 +52,6 @@ openspec/       # 需求规格与变更流程
 详见 `docs/improvement-proposals.md`：
 
 - P2：给“资产配置设置”加一个可视化排序（上移/下移或拖拽）
-- P2：[修改memo交互逻辑，memo编辑弹窗优化](openspec/changes/discipline-notes-and-holding-memo)
-- P2：[修改移动端UI](openspec/changes/mobile-ui-and-asset-class-consistency)
 - P3：收益率追踪、净值历史增强、币种动态化
 - P3：汇率来源冗余、数据导入导出（移动端适配已完成）
 
