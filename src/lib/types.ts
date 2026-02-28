@@ -31,7 +31,8 @@ export interface Holding {
    */
   price: number;
   assetClass: string;
-  sortOrder: number;
+  accountSortOrder: number;
+  disciplineSortOrder: number;
   memo: string | null;
   createdAt: string;
   updatedAt: string;

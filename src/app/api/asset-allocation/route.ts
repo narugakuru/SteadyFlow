@@ -50,7 +50,7 @@ export async function GET() {
         .select()
         .from(holdings)
         .where(inArray(holdings.accountId, accountIds))
-        .orderBy(asc(holdings.accountId), asc(holdings.sortOrder), asc(holdings.id))
+        .orderBy(asc(holdings.disciplineSortOrder), asc(holdings.id))
     : [];
   const allHoldings = rawHoldings.map((h: any) => ({
     ...h,

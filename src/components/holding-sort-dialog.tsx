@@ -26,7 +26,9 @@ interface HoldingSortDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
+  scope?: "account" | "discipline";
   accountId?: number;
+  assetClass?: string;
   accountNameById: Map<number, string>;
   holdings: Holding[];
   onSaved: () => void;
@@ -82,7 +84,9 @@ export function HoldingSortDialog({
   open,
   onOpenChange,
   title = "持仓排序",
+  scope = "account",
   accountId,
+  assetClass,
   accountNameById,
   holdings,
   onSaved,
@@ -99,7 +103,11 @@ export function HoldingSortDialog({
 
   useEffect(() => {
     if (!open) return;
-    const sorted = [...holdings].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+    const sorted = [...holdings].sort((a, b) => {
+      const left = scope === "discipline" ? a.disciplineSortOrder : a.accountSortOrder;
+      const right = scope === "discipline" ? b.disciplineSortOrder : b.accountSortOrder;
+      return left - right || a.id - b.id;
+    });
     setItems(
       sorted.map((h) => ({
         id: h.id,
@@ -110,7 +118,7 @@ export function HoldingSortDialog({
     );
     setDirty(false);
     setError("");
-  }, [open, holdings, accountNameById]);
+  }, [open, holdings, accountNameById, scope]);
 
   const itemIds = useMemo(() => items.map((item) => item.id), [items]);
 
@@ -135,7 +143,9 @@ export function HoldingSortDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(accountId ? { accountId } : {}),
+          scope,
+          ...(scope === "account" && accountId ? { accountId } : {}),
+          ...(scope === "discipline" && assetClass ? { assetClass } : {}),
           holdingIds: items.map((item) => item.id),
         }),
       });

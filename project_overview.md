@@ -76,3 +76,4 @@ openspec/       # 需求规格与变更流程
 - [2026-02-28] 进一步细化变更 `visual-sort-for-asset-classes-and-holdings`：持仓排序改为“排序按钮打开弹窗 + 拖拽句柄调整 + 点击保存后一次性写库”，弹窗列表仅展示名称/股票编号/账户归属三项核心信息
 - [2026-02-28] 完成变更 `visual-sort-for-asset-classes-and-holdings` apply：账户页与纪律表共用持仓拖拽排序弹窗（按账户保存）、资产配置设置改为“排序按钮 + 弹窗拖拽”交互，并补齐 `holdings.sort_order` 迁移、API 稳定排序及交易页横向表格改造落地
 - [2026-02-28] 新增 OpenSpec 变更 `discipline-overview-independent-sort-order` 并完成 apply 前 artifacts：规划纪律总览按“资产类别内”独立排序字段；账户内排序字段由 `sort_order` 重命名为 `account_sort_order`；纪律表排序入口改为状态列后右对齐的小图标
+- [2026-02-28] 完成变更 `discipline-overview-independent-sort-order` apply：`holdings.sort_order` 迁移为 `account_sort_order` 并新增 `discipline_sort_order`（SQLite/PG）；`/api/holdings/reorder` 新增 discipline 作用域（按资产类别重排 + 用户/类别完整性校验）；纪律表排序入口改为状态列后右对齐小图标，账户排序与纪律排序彻底解耦

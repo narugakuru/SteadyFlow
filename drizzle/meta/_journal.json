@@ -1,34 +1,41 @@
 {
-    "version":  "7",
-    "dialect":  "sqlite",
-    "entries":  [
-                    {
-                        "idx":  0,
-                        "version":  "6",
-                        "when":  1772115262463,
-                        "tag":  "0000_motionless_groot",
-                        "breakpoints":  true
-                    },
-                    {
-                        "idx":  1,
-                        "version":  "6",
-                        "when":  1772214323755,
-                        "tag":  "0001_add_discipline_notes_and_holding_memo",
-                        "breakpoints":  true
-                    },
-                    {
-                        "idx":  2,
-                        "version":  "6",
-                        "when":  1772244236575,
-                        "tag":  "0002_add_asset_class_sort_order",
-                        "breakpoints":  true
-                    },
-                    {
-                        "idx":  3,
-                        "version":  "6",
-                        "when":  1772283634040,
-                        "tag":  "0003_add_holding_sort_order",
-                        "breakpoints":  true
-                    }
-                ]
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1772115262463,
+      "tag": "0000_motionless_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1772214323755,
+      "tag": "0001_add_discipline_notes_and_holding_memo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772244236575,
+      "tag": "0002_add_asset_class_sort_order",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772283634040,
+      "tag": "0003_add_holding_sort_order",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772286598264,
+      "tag": "0004_rename_holding_account_sort_and_add_discipline_sort",
+      "breakpoints": true
+    }
+  ]
 }

@@ -323,7 +323,7 @@ export function AccountList({
     const sym = CURRENCY_SYMBOLS[a.currency];
     const accountHoldings = allHoldings
       .filter((h) => h.accountId === a.id)
-      .sort((x, y) => x.sortOrder - y.sortOrder || x.id - y.id);
+      .sort((x, y) => x.accountSortOrder - y.accountSortOrder || x.id - y.id);
     const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
 
     return (
@@ -668,6 +668,7 @@ export function AccountList({
         <HoldingSortDialog
           open={!!sortHoldingFor}
           onOpenChange={(open) => !open && setSortHoldingFor(null)}
+          scope="account"
           accountId={sortHoldingFor.id}
           accountNameById={accountNameById}
           holdings={allHoldings.filter((h) => h.accountId === sortHoldingFor.id)}

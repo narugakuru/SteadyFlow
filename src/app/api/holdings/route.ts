@@ -37,7 +37,7 @@ export async function GET() {
         .select()
         .from(holdings)
         .where(inArray(holdings.accountId, accountIds))
-        .orderBy(asc(holdings.accountId), asc(holdings.sortOrder), asc(holdings.id))
+        .orderBy(asc(holdings.accountId), asc(holdings.accountSortOrder), asc(holdings.id))
     : [];
   return NextResponse.json(
     rows.map((row: (typeof rows)[number]) => ({
@@ -95,13 +95,35 @@ export async function POST(request: Request) {
   if (!account) {
     return NextResponse.json({ error: "账户不存在" }, { status: 404 });
   }
-  const [lastHolding] = await db
-    .select({ sortOrder: holdings.sortOrder })
+  const [lastAccountHolding] = await db
+    .select({ accountSortOrder: holdings.accountSortOrder })
     .from(holdings)
     .where(eq(holdings.accountId, accountIdNum))
-    .orderBy(desc(holdings.sortOrder), desc(holdings.id))
+    .orderBy(desc(holdings.accountSortOrder), desc(holdings.id))
     .limit(1);
-  const nextSortOrder = (lastHolding?.sortOrder ?? 0) + 1;
+  const nextAccountSortOrder = (lastAccountHolding?.accountSortOrder ?? 0) + 1;
+
+  const userAccountRows = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(eq(accounts.userId, userId));
+  const userAccountIds = userAccountRows.map((row: (typeof userAccountRows)[number]) => row.id);
+  const compatibleAssetClasses =
+    normalizedAssetClass === "股票" ? ["股票", "股票基金"] : [normalizedAssetClass];
+  const [lastDisciplineHolding] = userAccountIds.length
+    ? await db
+        .select({ disciplineSortOrder: holdings.disciplineSortOrder })
+        .from(holdings)
+        .where(
+          and(
+            inArray(holdings.accountId, userAccountIds),
+            inArray(holdings.assetClass, compatibleAssetClasses)
+          )
+        )
+        .orderBy(desc(holdings.disciplineSortOrder), desc(holdings.id))
+        .limit(1)
+    : [];
+  const nextDisciplineSortOrder = (lastDisciplineHolding?.disciplineSortOrder ?? 0) + 1;
 
   const finalCost = roundForStorage(parseFloat(cost) || 0, "amount");
   const finalShares = roundForStorage(parseFloat(inputShares) || 0, "shares");
@@ -123,7 +145,8 @@ export async function POST(request: Request) {
       shares: finalShares,
       price: finalPrice,
       assetClass: normalizedAssetClass,
-      sortOrder: nextSortOrder,
+      accountSortOrder: nextAccountSortOrder,
+      disciplineSortOrder: nextDisciplineSortOrder,
       memo: memoText || null,
     })
     .returning();

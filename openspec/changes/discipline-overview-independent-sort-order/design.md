@@ -70,3 +70,15 @@
 
 - 纪律总览排序是否需要支持“每个资产类别单独重排”与“全局跨类别重排”双模式（当前默认仅类别内重排）？
 - 排序图标放在状态列后右对齐时，移动端是否需要额外浮层入口以避免误触？
+
+## Implementation Notes
+
+- 数据模型已落地：`holdings.sort_order` 迁移为 `holdings.account_sort_order`，并新增 `holdings.discipline_sort_order`（SQLite/PG 双迁移 + 快照）。
+- 新建持仓时默认值策略已落地：
+  - `account_sort_order` 按账户内末尾递增；
+  - `discipline_sort_order` 按“用户 + 资产类别”末尾递增（含“股票基金”归一到“股票”的兼容）。
+- 排序接口已扩展：`POST /api/holdings/reorder` 支持 `scope=account|discipline`，纪律模式要求携带 `assetClass` 且必须提交该类别全部持仓。
+- 查询语义已分离：
+  - 账户视图读取按 `account_sort_order, id`；
+  - 纪律总览读取按 `discipline_sort_order, id`。
+- 纪律表交互已调整：排序入口改为“状态列后右对齐”的小图标按钮，保留 `aria-label` 与 tooltip。

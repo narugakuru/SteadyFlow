@@ -104,7 +104,7 @@ export async function POST() {
         .select()
         .from(holdings)
         .where(inArray(holdings.accountId, accountIds))
-        .orderBy(asc(holdings.accountId), asc(holdings.sortOrder), asc(holdings.id))
+        .orderBy(asc(holdings.accountId), asc(holdings.accountSortOrder), asc(holdings.id))
     : [];
   const allHoldings = rawHoldings.map((h: any) => ({
     ...h,

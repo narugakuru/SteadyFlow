@@ -66,6 +66,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     shares,
     price,
     assetClass,
+    accountSortOrder,
+    disciplineSortOrder,
     sortOrder,
     memo,
   } = body;
@@ -111,12 +113,26 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const memoText = typeof memo === "string" ? memo.trim() : "";
     updateSet.memo = memoText || null;
   }
-  if (sortOrder !== undefined) {
-    const parsedSort = Number(sortOrder);
+  const incomingAccountSort = accountSortOrder ?? sortOrder;
+  if (incomingAccountSort !== undefined) {
+    const parsedSort = Number(incomingAccountSort);
     if (!Number.isFinite(parsedSort) || parsedSort < 1) {
-      return NextResponse.json({ error: "sortOrder 必须是大于等于 1 的数字" }, { status: 400 });
+      return NextResponse.json(
+        { error: "accountSortOrder 必须是大于等于 1 的数字" },
+        { status: 400 }
+      );
     }
-    updateSet.sortOrder = Math.floor(parsedSort);
+    updateSet.accountSortOrder = Math.floor(parsedSort);
+  }
+  if (disciplineSortOrder !== undefined) {
+    const parsedSort = Number(disciplineSortOrder);
+    if (!Number.isFinite(parsedSort) || parsedSort < 1) {
+      return NextResponse.json(
+        { error: "disciplineSortOrder 必须是大于等于 1 的数字" },
+        { status: 400 }
+      );
+    }
+    updateSet.disciplineSortOrder = Math.floor(parsedSort);
   }
 
   // Validate asset class only when caller actually changes it.

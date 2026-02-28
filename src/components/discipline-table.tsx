@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
+import { ArrowUpDown } from "lucide-react";
 import {
   AllocationItem,
   AllocationHolding,
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { formatAmount, formatPercent } from "@/lib/format";
 
 interface DisciplineTableProps {
@@ -34,8 +36,8 @@ export function DisciplineTable({
   const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [sortHoldingFor, setSortHoldingFor] = useState<{
-    accountId: number;
-    accountName: string;
+    assetClass: string;
+    title: string;
   } | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
@@ -94,34 +96,8 @@ export function DisciplineTable({
       return <p className="text-muted-foreground text-sm py-2">暂无持仓</p>;
     }
 
-    const accountIdsInClass = Array.from(
-      new Set(item.holdings.filter((holding) => holding.id > 0).map((holding) => holding.accountId))
-    );
-
     return (
       <div className="space-y-2">
-        {item.name !== "现金" && accountIdsInClass.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pb-1">
-            {accountIdsInClass.map((accountId) => {
-              const accountName = accountNameById.get(accountId) || `账户#${accountId}`;
-              const accountHoldings = allHoldings.filter(
-                (holding) => holding.accountId === accountId
-              );
-              return (
-                <Button
-                  key={accountId}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSortHoldingFor({ accountId, accountName })}
-                  disabled={accountHoldings.length <= 1}
-                >
-                  ↕ 排序 {accountName}
-                </Button>
-              );
-            })}
-          </div>
-        )}
         <div className="space-y-0.5">
           {item.holdings.map((ah) => {
             const isCash = ah.id < 0;
@@ -240,9 +216,31 @@ export function DisciplineTable({
                       )}
                     </td>
                     <td className="p-3 text-center">
-                      <Badge variant="secondary" className={getStatusStyle(item.status)}>
-                        {getStatusIcon(item.status)} {getDeviationLabel(item.deviation)}
-                      </Badge>
+                      <div className="flex items-center justify-end gap-2">
+                        <Badge variant="secondary" className={getStatusStyle(item.status)}>
+                          {getStatusIcon(item.status)} {getDeviationLabel(item.deviation)}
+                        </Badge>
+                        {item.name !== "现金" && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground"
+                            aria-label={`排序${item.name}持仓`}
+                            title={`排序${item.name}持仓`}
+                            disabled={item.holdings.filter((holding) => holding.id > 0).length <= 1}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSortHoldingFor({
+                                assetClass: item.name,
+                                title: `排序持仓 - ${item.name}`,
+                              });
+                            }}
+                          >
+                            <ArrowUpDown className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {isExpanded && (
@@ -314,6 +312,26 @@ export function DisciplineTable({
                     <Badge variant="secondary" className={`text-xs ${getStatusStyle(item.status)}`}>
                       {getStatusIcon(item.status)} {getDeviationLabel(item.deviation)}
                     </Badge>
+                    {item.name !== "现金" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground"
+                        aria-label={`排序${item.name}持仓`}
+                        title={`排序${item.name}持仓`}
+                        disabled={item.holdings.filter((holding) => holding.id > 0).length <= 1}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSortHoldingFor({
+                            assetClass: item.name,
+                            title: `排序持仓 - ${item.name}`,
+                          });
+                        }}
+                      >
+                        <ArrowUpDown className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -329,10 +347,13 @@ export function DisciplineTable({
         <HoldingSortDialog
           open={!!sortHoldingFor}
           onOpenChange={(open) => !open && setSortHoldingFor(null)}
-          title={`排序持仓 - ${sortHoldingFor.accountName}`}
-          accountId={sortHoldingFor.accountId}
+          title={sortHoldingFor.title}
+          scope="discipline"
+          assetClass={sortHoldingFor.assetClass}
           accountNameById={accountNameById}
-          holdings={allHoldings.filter((holding) => holding.accountId === sortHoldingFor.accountId)}
+          holdings={allHoldings.filter(
+            (holding) => normalizeAssetClassName(holding.assetClass) === sortHoldingFor.assetClass
+          )}
           onSaved={() => {
             setSortHoldingFor(null);
             handleDataChange();
