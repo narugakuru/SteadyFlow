@@ -91,8 +91,20 @@ export function HoldingRow({
       <span className="text-sm text-muted-foreground">--</span>
     );
 
+  const hasMemo = Boolean(h.memo?.trim());
+
   const actionButtons = (
     <>
+      {hasMemo && (
+        <div className="relative hidden md:flex items-center group">
+          <span className="inline-flex size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm">
+            <NotebookText className="size-4" />
+          </span>
+          <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
+            {h.memo}
+          </div>
+        </div>
+      )}
       <Button
         size="sm"
         className="h-6 px-3 text-sm font-semibold shadow-sm"
@@ -142,8 +154,6 @@ export function HoldingRow({
     </>
   );
 
-  const hasMemo = Boolean(h.memo?.trim());
-
   return (
     <>
       <div className="py-2 px-2 rounded hover:bg-accent/30">
@@ -152,18 +162,8 @@ export function HoldingRow({
           {/* Row 1: core info */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="font-medium truncate">{h.name}</span>
+              <span className="font-semibold truncate">{h.name}</span>
               {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
-              {hasMemo && (
-                <div className="relative hidden md:flex items-center group">
-                  <span className="inline-flex size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm">
-                    <NotebookText className="size-4" />
-                  </span>
-                  <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
-                    {h.memo}
-                  </div>
-                </div>
-              )}
               {showAccountName && accountName && (
                 <Badge variant="outline" className="text-xs shrink-0">
                   {accountName}
