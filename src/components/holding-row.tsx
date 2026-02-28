@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { NotebookPen, Pencil, Trash2 } from "lucide-react";
+import { NotebookText, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -156,8 +156,8 @@ export function HoldingRow({
               {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
               {hasMemo && (
                 <div className="relative hidden md:flex items-center group">
-                  <span className="inline-flex size-5 items-center justify-center text-muted-foreground">
-                    <NotebookPen className="size-3.5" />
+                  <span className="inline-flex size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm">
+                    <NotebookText className="size-4" />
                   </span>
                   <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
                     {h.memo}
@@ -221,11 +221,11 @@ export function HoldingRow({
             {hasMemo && (
               <button
                 type="button"
-                className="inline-flex size-6 items-center justify-center rounded border text-muted-foreground"
+                className="inline-flex size-7 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm"
                 onClick={() => setShowMobileMemo((prev) => !prev)}
                 aria-label="查看持仓备注"
               >
-                <NotebookPen className="size-3.5" />
+                <NotebookText className="size-4" />
               </button>
             )}
             {showAccountName && accountName && (
