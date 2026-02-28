@@ -233,7 +233,7 @@ export function DisciplineTable({
                         <Badge
                           variant="secondary"
                           className={cn(
-                            "w-36 justify-start py-1 px-3 font-normal overflow-hidden",
+                            "w-32 justify-start py-1 px-3 font-normal overflow-hidden",
                             getStatusStyle(item.status)
                           )}
                         >

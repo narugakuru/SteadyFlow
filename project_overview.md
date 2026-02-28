@@ -79,3 +79,4 @@ openspec/       # 需求规格与变更流程
 - [2026-02-28] 完成变更 `discipline-overview-independent-sort-order` apply：`holdings.sort_order` 迁移为 `account_sort_order` 并新增 `discipline_sort_order`（SQLite/PG）；`/api/holdings/reorder` 新增 discipline 作用域（按资产类别重排 + 用户/类别完整性校验）；纪律表排序入口改为状态列后右对齐小图标，账户排序与纪律排序彻底解耦
 - [2026-02-28] 修复股价更新页排版与精度问题：`/batch-update` 持仓行改为紧凑输入布局（缩短市值/股价输入宽度、消除“股数”字段大空白、补充移动端 decimal 输入提示）；联动计算与 `fetch-prices` 写库统一走 `roundForStorage`（amount/price），避免新增 `1197.6000000000001` 类浮点尾差
 - [2026-02-28] 修复纪律表提交拦截问题：重构 `DisciplineTable` 数据加载流程（取数与 state 写入解耦、初次加载增加卸载保护），消除 `react-hooks/set-state-in-effect` 报错并恢复预提交校验通过
+- [2026-02-28] 调整股价更新页 shares 三字段布局：移动端改为“市值/股数/股价”垂直三行；桌面端改为靠右单行并排展示，减少扫描跳跃并保持输入区域紧凑

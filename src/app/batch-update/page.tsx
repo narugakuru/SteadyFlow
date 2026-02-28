@@ -208,8 +208,8 @@ export default function BatchUpdatePage() {
                           </div>
 
                           {isShares ? (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
+                            <div className="flex flex-col gap-2 md:ml-auto md:flex-row md:items-center md:justify-end md:gap-4">
+                              <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
                                 <span className="w-10 shrink-0 text-xs text-muted-foreground">
                                   市值
                                 </span>
@@ -217,7 +217,7 @@ export default function BatchUpdatePage() {
                                   type="number"
                                   inputMode="decimal"
                                   step="0.01"
-                                  className={`w-full max-w-44 text-right ${isModified ? modifiedStyle : ""}`}
+                                  className={`w-40 text-right md:w-36 ${isModified ? modifiedStyle : ""}`}
                                   value={
                                     edit
                                       ? edit.marketValue
@@ -226,33 +226,31 @@ export default function BatchUpdatePage() {
                                   onChange={(e) => handleMarketValueChange(h, e.target.value)}
                                 />
                               </div>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                                    股数
-                                  </span>
-                                  <span className="inline-flex w-20 justify-end text-right">
-                                    {formatShares(h.shares)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                                    股价
-                                  </span>
-                                  <Input
-                                    type="number"
-                                    inputMode="decimal"
-                                    step="0.0001"
-                                    className={`w-full max-w-36 text-right ${isModified ? modifiedStyle : ""}`}
-                                    value={
-                                      edit?.price !== undefined
-                                        ? edit.price
-                                        : roundForStorage(h.price, "price")
-                                    }
-                                    onChange={(e) => handlePriceChange(h, e.target.value)}
-                                    disabled={h.shares === 0}
-                                  />
-                                </div>
+                              <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
+                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                                  股数
+                                </span>
+                                <span className="inline-flex min-w-20 justify-end text-right tabular-nums">
+                                  {formatShares(h.shares)}
+                                </span>
+                              </div>
+                              <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
+                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                                  股价
+                                </span>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="0.0001"
+                                  className={`w-36 text-right md:w-32 ${isModified ? modifiedStyle : ""}`}
+                                  value={
+                                    edit?.price !== undefined
+                                      ? edit.price
+                                      : roundForStorage(h.price, "price")
+                                  }
+                                  onChange={(e) => handlePriceChange(h, e.target.value)}
+                                  disabled={h.shares === 0}
+                                />
                               </div>
                             </div>
                           ) : (
