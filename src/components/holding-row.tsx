@@ -96,13 +96,24 @@ export function HoldingRow({
   const actionButtons = (
     <>
       {hasMemo && (
-        <div className="relative hidden md:flex items-center group">
-          <span className="inline-flex size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm">
+        <div className="relative flex items-center">
+          {/* 桌面端：hover 提示 */}
+          <span className="hidden md:inline-flex size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm group">
             <NotebookText className="size-4" />
+            <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
+              {h.memo}
+            </div>
           </span>
-          <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
-            {h.memo}
-          </div>
+
+          {/* 移动端：点击展开 */}
+          <button
+            type="button"
+            className="md:hidden inline-flex size-7 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm"
+            onClick={() => setShowMobileMemo((prev) => !prev)}
+            aria-label="查看持仓备注"
+          >
+            <NotebookText className="size-4" />
+          </button>
         </div>
       )}
       <Button
@@ -218,16 +229,6 @@ export function HoldingRow({
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{h.name}</span>
             {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
-            {hasMemo && (
-              <button
-                type="button"
-                className="inline-flex size-7 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm"
-                onClick={() => setShowMobileMemo((prev) => !prev)}
-                aria-label="查看持仓备注"
-              >
-                <NotebookText className="size-4" />
-              </button>
-            )}
             {showAccountName && accountName && (
               <Badge variant="outline" className="text-xs shrink-0">
                 {accountName}

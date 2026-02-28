@@ -27,6 +27,7 @@ import {
 import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { Pencil, Trash2 } from "lucide-react";
 import { HoldingRow } from "@/components/holding-row";
+import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { formatAmount, formatPercent } from "@/lib/format";
 
 // ─── Account Form (create/edit) ───
@@ -256,8 +257,10 @@ export function AccountList({
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
+  const [sortHoldingFor, setSortHoldingFor] = useState<Account | null>(null);
   const [fetchingPrices, setFetchingPrices] = useState(false);
   const [priceMsg, setPriceMsg] = useState("");
+  const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
 
   const handleFetchPrices = async () => {
     setFetchingPrices(true);
@@ -318,7 +321,9 @@ export function AccountList({
   // Shared expanded detail content
   const renderExpandedDetail = (a: Account) => {
     const sym = CURRENCY_SYMBOLS[a.currency];
-    const accountHoldings = allHoldings.filter((h) => h.accountId === a.id);
+    const accountHoldings = allHoldings
+      .filter((h) => h.accountId === a.id)
+      .sort((x, y) => x.sortOrder - y.sortOrder || x.id - y.id);
     const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
 
     return (
@@ -353,6 +358,14 @@ export function AccountList({
             </Button>
             <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>
               + 新建持仓
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortHoldingFor(a)}
+              disabled={accountHoldings.length <= 1}
+            >
+              ↕ 排序持仓
             </Button>
           </div>
         </div>
@@ -647,6 +660,19 @@ export function AccountList({
           onOpenChange={(open) => !open && setAddHoldingFor(null)}
           onSaved={() => {
             setAddHoldingFor(null);
+            handleDataChange();
+          }}
+        />
+      )}
+      {sortHoldingFor && (
+        <HoldingSortDialog
+          open={!!sortHoldingFor}
+          onOpenChange={(open) => !open && setSortHoldingFor(null)}
+          accountId={sortHoldingFor.id}
+          accountNameById={accountNameById}
+          holdings={allHoldings.filter((h) => h.accountId === sortHoldingFor.id)}
+          onSaved={() => {
+            setSortHoldingFor(null);
             handleDataChange();
           }}
         />

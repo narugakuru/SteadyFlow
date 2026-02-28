@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect, Fragment } from "react";
-import { AllocationItem, AllocationHolding, Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
+import {
+  AllocationItem,
+  AllocationHolding,
+  Holding,
+  Account,
+  CURRENCY_SYMBOLS,
+  pnlColorClass,
+} from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { HoldingRow } from "@/components/holding-row";
+import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { formatAmount, formatPercent } from "@/lib/format";
 
 interface DisciplineTableProps {
@@ -14,17 +23,25 @@ interface DisciplineTableProps {
   onDataChange: () => void;
 }
 
-export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, onDataChange }: DisciplineTableProps) {
+export function DisciplineTable({
+  allocation,
+  totalAssetCny,
+  rates,
+  colorMode,
+  onDataChange,
+}: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [sortHoldingFor, setSortHoldingFor] = useState<{
+    accountId: number;
+    accountName: string;
+  } | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
 
   const fetchData = async () => {
-    const [hRes, aRes] = await Promise.all([
-      fetch("/api/holdings"),
-      fetch("/api/accounts"),
-    ]);
+    const [hRes, aRes] = await Promise.all([fetch("/api/holdings"), fetch("/api/accounts")]);
     const [hData, aData] = await Promise.all([hRes.json(), aRes.json()]);
     setAllHoldings(hData);
     setAccounts(aData);
@@ -32,6 +49,7 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -57,8 +75,8 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
     status === "danger"
       ? "bg-red-100 text-red-800"
       : status === "warning"
-      ? "bg-yellow-100 text-yellow-800"
-      : "bg-green-100 text-green-800";
+        ? "bg-yellow-100 text-yellow-800"
+        : "bg-green-100 text-green-800";
 
   const getStatusIcon = (status: string) =>
     status === "danger" ? "🔴" : status === "warning" ? "⚠️" : "✅";
@@ -67,59 +85,93 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
     deviation > 0
       ? `超配 +${formatPercent(deviation)}%`
       : deviation < 0
-      ? `低配 ${formatPercent(deviation)}%`
-      : "正常";
+        ? `低配 ${formatPercent(deviation)}%`
+        : "正常";
 
   // Shared expanded holdings content
   const renderHoldings = (item: AllocationItem) => {
     if (item.holdings.length === 0) {
       return <p className="text-muted-foreground text-sm py-2">暂无持仓</p>;
     }
+
+    const accountIdsInClass = Array.from(
+      new Set(item.holdings.filter((holding) => holding.id > 0).map((holding) => holding.accountId))
+    );
+
     return (
-      <div className="space-y-0.5">
-        {item.holdings.map((ah) => {
-          const isCash = ah.id < 0;
-          if (isCash) {
-            const sym = CURRENCY_SYMBOLS[ah.currency] || "¥";
-            return (
-              <div key={ah.id} className="flex items-center justify-between text-sm py-2 px-2 text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span>{ah.name}</span>
-                  <Badge variant="outline" className="text-xs">{ah.accountName}</Badge>
+      <div className="space-y-2">
+        {item.name !== "现金" && accountIdsInClass.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pb-1">
+            {accountIdsInClass.map((accountId) => {
+              const accountName = accountNameById.get(accountId) || `账户#${accountId}`;
+              const accountHoldings = allHoldings.filter(
+                (holding) => holding.accountId === accountId
+              );
+              return (
+                <Button
+                  key={accountId}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSortHoldingFor({ accountId, accountName })}
+                  disabled={accountHoldings.length <= 1}
+                >
+                  ↕ 排序 {accountName}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+        <div className="space-y-0.5">
+          {item.holdings.map((ah) => {
+            const isCash = ah.id < 0;
+            if (isCash) {
+              const sym = CURRENCY_SYMBOLS[ah.currency] || "¥";
+              return (
+                <div
+                  key={ah.id}
+                  className="flex items-center justify-between text-sm py-2 px-2 text-muted-foreground"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{ah.name}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {ah.accountName}
+                    </Badge>
+                  </div>
+                  <span>
+                    {ah.currency !== "CNY" ? `${sym}${formatAmount(ah.marketValue)} ≈ ` : ""}¥
+                    {formatAmount(ah.marketValueCny)}
+                  </span>
                 </div>
-                <span>
-                  {ah.currency !== "CNY" ? `${sym}${formatAmount(ah.marketValue)} ≈ ` : ""}
-                  ¥{formatAmount(ah.marketValueCny)}
-                </span>
-              </div>
-            );
-          }
-          const full = getFullHolding(ah);
-          if (!full || !dataLoaded) {
+              );
+            }
+            const full = getFullHolding(ah);
+            if (!full || !dataLoaded) {
+              return (
+                <div key={ah.id} className="text-sm py-2 px-2 text-muted-foreground">
+                  {ah.name} — 加载中...
+                </div>
+              );
+            }
             return (
-              <div key={ah.id} className="text-sm py-2 px-2 text-muted-foreground">
-                {ah.name} — 加载中...
-              </div>
+              <HoldingRow
+                key={ah.id}
+                holding={full}
+                currency={ah.currency}
+                totalAssetCny={totalAssetCny}
+                rates={rates}
+                colorMode={colorMode}
+                showAccountName
+                accountName={ah.accountName}
+                actions="compact"
+                accountId={full.accountId}
+                accounts={accounts}
+                allHoldings={allHoldings}
+                onDataChange={handleDataChange}
+              />
             );
-          }
-          return (
-            <HoldingRow
-              key={ah.id}
-              holding={full}
-              currency={ah.currency}
-              totalAssetCny={totalAssetCny}
-              rates={rates}
-              colorMode={colorMode}
-              showAccountName
-              accountName={ah.accountName}
-              actions="compact"
-              accountId={full.accountId}
-              accounts={accounts}
-              allHoldings={allHoldings}
-              onDataChange={handleDataChange}
-            />
-          );
-        })}
+          })}
+        </div>
       </div>
     );
   };
@@ -148,9 +200,7 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                     className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
                     onClick={() => toggleExpand(item.id)}
                   >
-                    <td className="p-3 text-muted-foreground">
-                      {isExpanded ? "▼" : "▶"}
-                    </td>
+                    <td className="p-3 text-muted-foreground">{isExpanded ? "▼" : "▶"}</td>
                     <td className="p-3 font-medium">{item.name}</td>
                     <td className="p-3">
                       <div className="flex items-center gap-2 justify-end">
@@ -159,7 +209,12 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                             className="absolute inset-y-0 left-0 rounded"
                             style={{
                               width: `${Math.min(item.actualPct, 100)}%`,
-                              backgroundColor: item.status === "danger" ? "#ef4444" : item.status === "warning" ? "#eab308" : "#22c55e",
+                              backgroundColor:
+                                item.status === "danger"
+                                  ? "#ef4444"
+                                  : item.status === "warning"
+                                    ? "#eab308"
+                                    : "#22c55e",
                               opacity: 0.6,
                             }}
                           />
@@ -226,7 +281,12 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                       className="absolute inset-y-0 left-0 rounded"
                       style={{
                         width: `${Math.min(item.actualPct, 100)}%`,
-                        backgroundColor: item.status === "danger" ? "#ef4444" : item.status === "warning" ? "#eab308" : "#22c55e",
+                        backgroundColor:
+                          item.status === "danger"
+                            ? "#ef4444"
+                            : item.status === "warning"
+                              ? "#eab308"
+                              : "#22c55e",
                         opacity: 0.6,
                       }}
                     />
@@ -258,14 +318,27 @@ export function DisciplineTable({ allocation, totalAssetCny, rates, colorMode, o
                 </div>
               </div>
               {isExpanded && (
-                <div className="border-t bg-muted/20 px-3 py-2">
-                  {renderHoldings(item)}
-                </div>
+                <div className="border-t bg-muted/20 px-3 py-2">{renderHoldings(item)}</div>
               )}
             </div>
           );
         })}
       </div>
+
+      {sortHoldingFor && (
+        <HoldingSortDialog
+          open={!!sortHoldingFor}
+          onOpenChange={(open) => !open && setSortHoldingFor(null)}
+          title={`排序持仓 - ${sortHoldingFor.accountName}`}
+          accountId={sortHoldingFor.accountId}
+          accountNameById={accountNameById}
+          holdings={allHoldings.filter((holding) => holding.accountId === sortHoldingFor.accountId)}
+          onSaved={() => {
+            setSortHoldingFor(null);
+            handleDataChange();
+          }}
+        />
+      )}
     </>
   );
 }

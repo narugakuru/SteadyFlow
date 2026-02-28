@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AssetClass, Settings } from "@/lib/types";
 import { formatNumber } from "@/lib/format";
+import { AssetClassSortDialog } from "@/components/asset-class-sort-dialog";
 
 interface AssetClassSettingsProps {
   open: boolean;
@@ -25,13 +26,18 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
   const [error, setError] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [sortDialogOpen, setSortDialogOpen] = useState(false);
 
   const fetchClasses = () => {
     Promise.all([
       fetch("/api/asset-classes").then((r) => r.json()),
       fetch("/api/settings").then((r) => r.json()),
     ]).then(([classData, settingsData]) => {
-      setClasses(classData);
+      setClasses(
+        [...classData].sort(
+          (a: AssetClass, b: AssetClass) => a.sortOrder - b.sortOrder || a.id - b.id
+        )
+      );
       setSettings(settingsData);
     });
   };
@@ -78,7 +84,11 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          classes: classes.map((c) => ({ id: c.id, targetPct: c.targetPct })),
+          classes: classes.map((c, index) => ({
+            id: c.id,
+            targetPct: c.targetPct,
+            sortOrder: index + 1,
+          })),
         }),
       }),
       fetch("/api/settings", {
@@ -100,6 +110,18 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
     setSaving(false);
   };
 
+  const applyClassSort = (orderedIds: number[]) => {
+    const indexById = new Map(orderedIds.map((id, index) => [id, index]));
+    setClasses((prev) =>
+      [...prev].sort(
+        (a, b) =>
+          (indexById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+            (indexById.get(b.id) ?? Number.MAX_SAFE_INTEGER) || a.id - b.id
+      )
+    );
+    setError("");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="md:max-w-lg">
@@ -107,10 +129,23 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
           <DialogTitle>资产配置设置</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSortDialogOpen(true)}
+              disabled={classes.length <= 1}
+            >
+              ↕ 排序资产类别
+            </Button>
+          </div>
           {/* Per-class target percentages */}
           {classes.map((cls) => (
             <div key={cls.id} className="flex items-center justify-between gap-3">
-              <span className="font-medium w-20">{cls.name}</span>
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="font-medium w-20 truncate">{cls.name}</span>
+              </div>
               <div className="flex items-center gap-1">
                 <Label className="text-xs text-muted-foreground">目标</Label>
                 <Input
@@ -219,6 +254,12 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
           </Button>
         </div>
       </DialogContent>
+      <AssetClassSortDialog
+        open={sortDialogOpen}
+        onOpenChange={setSortDialogOpen}
+        classes={classes}
+        onSave={applyClassSort}
+      />
     </Dialog>
   );
 }

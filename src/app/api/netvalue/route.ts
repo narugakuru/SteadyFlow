@@ -100,7 +100,11 @@ export async function POST() {
 
   const accountIds = allAccounts.map((account: any) => account.id);
   const rawHoldings = accountIds.length
-    ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
+    ? await db
+        .select()
+        .from(holdings)
+        .where(inArray(holdings.accountId, accountIds))
+        .orderBy(asc(holdings.accountId), asc(holdings.sortOrder), asc(holdings.id))
     : [];
   const allHoldings = rawHoldings.map((h: any) => ({
     ...h,

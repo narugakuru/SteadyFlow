@@ -22,6 +22,13 @@
                         "when":  1772244236575,
                         "tag":  "0002_add_asset_class_sort_order",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  3,
+                        "version":  "6",
+                        "when":  1772283634040,
+                        "tag":  "0003_add_holding_sort_order",
+                        "breakpoints":  true
                     }
                 ]
 }

@@ -57,7 +57,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await request.json();
-  const { name, ticker, valuationMode, cost, marketValue, shares, price, assetClass, memo } = body;
+  const {
+    name,
+    ticker,
+    valuationMode,
+    cost,
+    marketValue,
+    shares,
+    price,
+    assetClass,
+    sortOrder,
+    memo,
+  } = body;
 
   // Build update set
   const updateSet: Record<string, unknown> = {
@@ -99,6 +110,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (memo !== undefined) {
     const memoText = typeof memo === "string" ? memo.trim() : "";
     updateSet.memo = memoText || null;
+  }
+  if (sortOrder !== undefined) {
+    const parsedSort = Number(sortOrder);
+    if (!Number.isFinite(parsedSort) || parsedSort < 1) {
+      return NextResponse.json({ error: "sortOrder 必须是大于等于 1 的数字" }, { status: 400 });
+    }
+    updateSet.sortOrder = Math.floor(parsedSort);
   }
 
   // Validate asset class only when caller actually changes it.

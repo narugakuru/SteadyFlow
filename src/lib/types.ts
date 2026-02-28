@@ -31,6 +31,7 @@ export interface Holding {
    */
   price: number;
   assetClass: string;
+  sortOrder: number;
   memo: string | null;
   createdAt: string;
   updatedAt: string;

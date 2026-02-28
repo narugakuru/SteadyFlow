@@ -99,6 +99,7 @@ export const holdings = sqliteTable("holdings", {
   shares: real("shares").notNull().default(0),
   price: real("price").notNull().default(0),
   assetClass: text("asset_class").notNull(),
+  sortOrder: integer("sort_order").notNull().default(999),
   memo: text("memo"),
   createdAt: text("created_at")
     .notNull()

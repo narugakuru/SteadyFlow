@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
@@ -33,7 +33,11 @@ export async function GET() {
   const accountIds = accountRows.map((row: (typeof accountRows)[number]) => row.id);
 
   const rows = accountIds.length
-    ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
+    ? await db
+        .select()
+        .from(holdings)
+        .where(inArray(holdings.accountId, accountIds))
+        .orderBy(asc(holdings.accountId), asc(holdings.sortOrder), asc(holdings.id))
     : [];
   return NextResponse.json(
     rows.map((row: (typeof rows)[number]) => ({
@@ -91,6 +95,13 @@ export async function POST(request: Request) {
   if (!account) {
     return NextResponse.json({ error: "账户不存在" }, { status: 404 });
   }
+  const [lastHolding] = await db
+    .select({ sortOrder: holdings.sortOrder })
+    .from(holdings)
+    .where(eq(holdings.accountId, accountIdNum))
+    .orderBy(desc(holdings.sortOrder), desc(holdings.id))
+    .limit(1);
+  const nextSortOrder = (lastHolding?.sortOrder ?? 0) + 1;
 
   const finalCost = roundForStorage(parseFloat(cost) || 0, "amount");
   const finalShares = roundForStorage(parseFloat(inputShares) || 0, "shares");
@@ -112,6 +123,7 @@ export async function POST(request: Request) {
       shares: finalShares,
       price: finalPrice,
       assetClass: normalizedAssetClass,
+      sortOrder: nextSortOrder,
       memo: memoText || null,
     })
     .returning();
