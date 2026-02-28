@@ -30,6 +30,14 @@ InvestManage 目标是提供一个轻量、可自托管、可多用户的投资�
 - SQLite (`better-sqlite3`) / PostgreSQL (Neon serverless)
 - Auth.js v5 (`next-auth@beta`) + bcryptjs
 
+## 部分界面展示
+
+![alt text](img/dashboard.png)
+![alt text](img/discipline-2.png)
+![alt text](img/discipline-note.png)
+![alt text](img/market.png)
+![alt text](img/account.png)
+
 ## 快速开始（本地开发，SQLite）
 
 ### 1. 环境准备
@@ -86,7 +94,8 @@ npm run dev
 DB_TYPE=postgres
 DATABASE_URL=postgresql://...
 AUTH_SECRET=your-production-secret
-AUTH_URL=https://your-app.vercel.app
+AUTH_URL=https://your-app.vercel.app or https://localhost:3000
+# Github OAuth登录（可选项）
 GITHUB_ID=your-github-client-id
 GITHUB_SECRET=your-github-client-secret
 ```
