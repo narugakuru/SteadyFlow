@@ -163,3 +163,4 @@ src/
 - [2026-02-27] 修复 push 前类型检查拦截：为 accounts/transactions API 的 `rows.map` 回调参数补充显式类型（`typeof rows[number]`），消除隐式 any 并恢复 `npx tsc --noEmit` 通过
 - [2026-02-27] 完成 OpenSpec 变更 `decimal-precision-config`：新增 `src/lib/format.ts`（PRECISION、formatAmount/formatPercent/formatPrice/formatShares/formatRate、roundForStorage），统一替换前后端分散的 `.toFixed()`/`toLocaleString()` 数值处理；API 写入与计算结果统一按类别截断精度，页面与图表统一显示格式；`npm run typecheck` 通过
 - [2026-02-27] 修复 PG 清库后旧登录态导致首页/账户页崩溃：`/` 与 `/accounts` 的资产配置请求增加 `res.ok` 与返回结构校验，401 自动跳转登录页，异常数据进入可重试错误态，避免 `allocation.rates.rates` 空对象解构报错
+- [2026-02-28] 补齐 PostgreSQL Drizzle 元数据快照链：新增 `drizzle-pg/meta/0001_snapshot.json`（`prevId` 指向 `0000_snapshot`），修复 `_journal` 与 snapshot 不一致；执行 `npx drizzle-kit check --config=drizzle.config.pg.ts` 校验通过
