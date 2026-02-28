@@ -8,7 +8,7 @@ import { Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { formatAmount, formatShares } from "@/lib/format";
+import { formatAmount, formatShares, roundForStorage } from "@/lib/format";
 
 interface HoldingEdit {
   marketValue: number;
@@ -70,12 +70,20 @@ export default function BatchUpdatePage() {
     setEdits((prev) => {
       const next = { ...prev, holdings: { ...prev.holdings } };
       const isShares = h.valuationMode === "shares" && h.shares > 0;
-      const newPrice = isShares ? num / h.shares : undefined;
+      const normalizedMarketValue = roundForStorage(num, "amount");
+      const newPrice = isShares
+        ? roundForStorage(normalizedMarketValue / h.shares, "price")
+        : undefined;
+      const originalMarketValue = roundForStorage(h.marketValue, "amount");
+      const originalPrice = roundForStorage(h.price, "price");
       // Check if value is back to original
-      if (num === h.marketValue) {
+      if (
+        normalizedMarketValue === originalMarketValue &&
+        (!isShares || newPrice === originalPrice)
+      ) {
         delete next.holdings[h.id];
       } else {
-        next.holdings[h.id] = { marketValue: num, price: newPrice };
+        next.holdings[h.id] = { marketValue: normalizedMarketValue, price: newPrice };
       }
       return next;
     });
@@ -86,11 +94,14 @@ export default function BatchUpdatePage() {
     if (isNaN(num)) return;
     setEdits((prev) => {
       const next = { ...prev, holdings: { ...prev.holdings } };
-      const newMarketValue = h.shares * num;
-      if (num === h.price && newMarketValue === h.marketValue) {
+      const normalizedPrice = roundForStorage(num, "price");
+      const newMarketValue = roundForStorage(h.shares * normalizedPrice, "amount");
+      const originalPrice = roundForStorage(h.price, "price");
+      const originalMarketValue = roundForStorage(h.marketValue, "amount");
+      if (normalizedPrice === originalPrice && newMarketValue === originalMarketValue) {
         delete next.holdings[h.id];
       } else {
-        next.holdings[h.id] = { marketValue: newMarketValue, price: num };
+        next.holdings[h.id] = { marketValue: newMarketValue, price: normalizedPrice };
       }
       return next;
     });
@@ -197,31 +208,51 @@ export default function BatchUpdatePage() {
                           </div>
 
                           {isShares ? (
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <div className="space-y-2">
                               <div className="flex items-center gap-2">
-                                <span className="w-12 text-xs text-muted-foreground">市值</span>
+                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                                  市值
+                                </span>
                                 <Input
                                   type="number"
-                                  className={`w-full text-right ${isModified ? modifiedStyle : ""}`}
-                                  value={edit ? edit.marketValue : h.marketValue}
+                                  inputMode="decimal"
+                                  step="0.01"
+                                  className={`w-full max-w-44 text-right ${isModified ? modifiedStyle : ""}`}
+                                  value={
+                                    edit
+                                      ? edit.marketValue
+                                      : roundForStorage(h.marketValue, "amount")
+                                  }
                                   onChange={(e) => handleMarketValueChange(h, e.target.value)}
                                 />
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="w-12 text-xs text-muted-foreground">股数</span>
-                                <span className="inline-block w-full text-right">
-                                  {formatShares(h.shares)}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="w-12 text-xs text-muted-foreground">股价</span>
-                                <Input
-                                  type="number"
-                                  className={`w-full text-right ${isModified ? modifiedStyle : ""}`}
-                                  value={edit?.price !== undefined ? edit.price : h.price}
-                                  onChange={(e) => handlePriceChange(h, e.target.value)}
-                                  disabled={h.shares === 0}
-                                />
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                                    股数
+                                  </span>
+                                  <span className="inline-flex w-20 justify-end text-right">
+                                    {formatShares(h.shares)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="w-10 shrink-0 text-xs text-muted-foreground">
+                                    股价
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    inputMode="decimal"
+                                    step="0.0001"
+                                    className={`w-full max-w-36 text-right ${isModified ? modifiedStyle : ""}`}
+                                    value={
+                                      edit?.price !== undefined
+                                        ? edit.price
+                                        : roundForStorage(h.price, "price")
+                                    }
+                                    onChange={(e) => handlePriceChange(h, e.target.value)}
+                                    disabled={h.shares === 0}
+                                  />
+                                </div>
                               </div>
                             </div>
                           ) : (
@@ -229,8 +260,12 @@ export default function BatchUpdatePage() {
                               <span className="text-xs text-muted-foreground">市值 ({sym})</span>
                               <Input
                                 type="number"
-                                className={`w-full text-right md:w-40 ${isModified ? modifiedStyle : ""}`}
-                                value={edit ? edit.marketValue : h.marketValue}
+                                inputMode="decimal"
+                                step="0.01"
+                                className={`w-full max-w-44 text-right ${isModified ? modifiedStyle : ""}`}
+                                value={
+                                  edit ? edit.marketValue : roundForStorage(h.marketValue, "amount")
+                                }
                                 onChange={(e) => handleMarketValueChange(h, e.target.value)}
                               />
                             </div>

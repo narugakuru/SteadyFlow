@@ -5,6 +5,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { fetchStooqQuote } from "@/lib/stooq";
 import { fetchYahooQuotes } from "@/lib/yahoo";
+import { roundForStorage } from "@/lib/format";
 
 /**
  * 按 ticker 后缀判断数据源：
@@ -92,8 +93,8 @@ export async function POST() {
       const quote = await fetchStooqQuote(h.ticker!);
       if (quote && quote.close > 0) {
         const oldPrice = h.price;
-        const newPrice = quote.close;
-        const newMarketValue = h.shares * newPrice;
+        const newPrice = roundForStorage(quote.close, "price");
+        const newMarketValue = roundForStorage(h.shares * newPrice, "amount");
         await db
           .update(holdings)
           .set({
@@ -121,8 +122,8 @@ export async function POST() {
       const quote = quoteMap.get(h.ticker!);
       if (quote && quote.price > 0) {
         const oldPrice = h.price;
-        const newPrice = quote.price;
-        const newMarketValue = h.shares * newPrice;
+        const newPrice = roundForStorage(quote.price, "price");
+        const newMarketValue = roundForStorage(h.shares * newPrice, "amount");
         await db
           .update(holdings)
           .set({
