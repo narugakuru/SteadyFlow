@@ -16,6 +16,7 @@ import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { formatAmount, formatPercent } from "@/lib/format";
+import { cn } from "@/lib/utils"; // 确保你有这个工具函数，没有的话可以手动写类名
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
@@ -45,14 +46,26 @@ export function DisciplineTable({
   const fetchData = async () => {
     const [hRes, aRes] = await Promise.all([fetch("/api/holdings"), fetch("/api/accounts")]);
     const [hData, aData] = await Promise.all([hRes.json(), aRes.json()]);
+    return { hData, aData };
+  };
+
+  const applyFetchedData = ({ hData, aData }: { hData: Holding[]; aData: Account[] }) => {
     setAllHoldings(hData);
     setAccounts(aData);
     setDataLoaded(true);
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
+    let cancelled = false;
+
+    void fetchData().then((data) => {
+      if (cancelled) return;
+      applyFetchedData(data);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const toggleExpand = (id: number) => {
@@ -65,7 +78,7 @@ export function DisciplineTable({
   };
 
   const handleDataChange = () => {
-    fetchData();
+    void fetchData().then(applyFetchedData);
     onDataChange();
   };
 
@@ -75,10 +88,10 @@ export function DisciplineTable({
 
   const getStatusStyle = (status: string) =>
     status === "danger"
-      ? "bg-red-100 text-red-800"
+      ? "bg-red-100 text-red-800 border-red-200"
       : status === "warning"
-        ? "bg-yellow-100 text-yellow-800"
-        : "bg-green-100 text-green-800";
+        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+        : "bg-green-100 text-green-800 border-green-200";
 
   const getStatusIcon = (status: string) =>
     status === "danger" ? "🔴" : status === "warning" ? "⚠️" : "✅";
@@ -90,7 +103,6 @@ export function DisciplineTable({
         ? `低配 ${formatPercent(deviation)}%`
         : "正常";
 
-  // Shared expanded holdings content
   const renderHoldings = (item: AllocationItem) => {
     if (item.holdings.length === 0) {
       return <p className="text-muted-foreground text-sm py-2">暂无持仓</p>;
@@ -179,8 +191,8 @@ export function DisciplineTable({
                     <td className="p-3 text-muted-foreground">{isExpanded ? "▼" : "▶"}</td>
                     <td className="p-3 font-medium">{item.name}</td>
                     <td className="p-3">
-                      <div className="flex items-center gap-2 justify-end">
-                        <div className="relative w-20 h-4 bg-muted rounded overflow-hidden flex-shrink-0">
+                      <div className="flex items-center justify-end">
+                        <div className="relative w-24 h-4 bg-muted rounded overflow-hidden flex-shrink-0 mr-3 border border-black/5">
                           <div
                             className="absolute inset-y-0 left-0 rounded"
                             style={{
@@ -199,7 +211,7 @@ export function DisciplineTable({
                             style={{ left: `${Math.min(item.targetPct, 100)}%` }}
                           />
                         </div>
-                        <span className="text-sm tabular-nums whitespace-nowrap">
+                        <span className="text-sm tabular-nums whitespace-nowrap min-w-[90px] text-right">
                           {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
                         </span>
                       </div>
@@ -215,20 +227,34 @@ export function DisciplineTable({
                         </span>
                       )}
                     </td>
-                    <td className="p-3 text-center">
-                      <div className="flex items-center justify-end gap-2">
-                        <Badge variant="secondary" className={getStatusStyle(item.status)}>
-                          {getStatusIcon(item.status)} {getDeviationLabel(item.deviation)}
+                    <td className="p-3">
+                      {/* 状态列容器：右对齐，确保与表头对齐 */}
+                      <div className="flex items-center justify-end gap-2 pr-1">
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "w-36 justify-start py-1 px-3 font-normal overflow-hidden",
+                            getStatusStyle(item.status)
+                          )}
+                        >
+                          {/* 1. 图标层：固定宽度，确保后面的文字起点一致 */}
+                          <span className="w-5 flex-shrink-0 flex items-center justify-center">
+                            {getStatusIcon(item.status)}
+                          </span>
+
+                          {/* 2. 标签层：固定起点 */}
+                          <span className="flex-1 ml-1 text-left whitespace-nowrap tabular-nums">
+                            {getDeviationLabel(item.deviation)}
+                          </span>
                         </Badge>
-                        {item.name !== "现金" && (
+
+                        {/* 3. 排序按钮/占位符：确保宽度一致 */}
+                        {item.name !== "现金" ? (
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-muted-foreground"
-                            aria-label={`排序${item.name}持仓`}
-                            title={`排序${item.name}持仓`}
-                            disabled={item.holdings.filter((holding) => holding.id > 0).length <= 1}
+                            className="h-6 w-6 text-muted-foreground flex-shrink-0"
                             onClick={(event) => {
                               event.stopPropagation();
                               setSortHoldingFor({
@@ -239,6 +265,8 @@ export function DisciplineTable({
                           >
                             <ArrowUpDown className="h-3.5 w-3.5" />
                           </Button>
+                        ) : (
+                          <div className="h-6 w-6 flex-shrink-0" />
                         )}
                       </div>
                     </td>
@@ -267,14 +295,12 @@ export function DisciplineTable({
                 className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => toggleExpand(item.id)}
               >
-                {/* Card header: name + expand icon */}
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">{item.name}</span>
                   <span className="text-muted-foreground text-sm">{isExpanded ? "▼" : "▶"}</span>
                 </div>
-                {/* Progress bar */}
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="relative flex-1 h-3 bg-muted rounded overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="relative flex-1 h-3 bg-muted rounded overflow-hidden mr-3">
                     <div
                       className="absolute inset-y-0 left-0 rounded"
                       style={{
@@ -293,11 +319,10 @@ export function DisciplineTable({
                       style={{ left: `${Math.min(item.targetPct, 100)}%` }}
                     />
                   </div>
-                  <span className="text-xs tabular-nums whitespace-nowrap">
+                  <span className="text-xs tabular-nums whitespace-nowrap min-w-[80px] text-right">
                     {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
                   </span>
                 </div>
-                {/* Value + PnL + Status */}
                 <div className="flex items-center justify-between text-sm">
                   <span>¥{formatAmount(item.actualValue)}</span>
                   <div className="flex items-center gap-2">
@@ -309,18 +334,22 @@ export function DisciplineTable({
                         {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
                       </span>
                     )}
-                    <Badge variant="secondary" className={`text-xs ${getStatusStyle(item.status)}`}>
-                      {getStatusIcon(item.status)} {getDeviationLabel(item.deviation)}
+                    {/* 移动端也同步固定宽度，但稍微窄一点点 */}
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "w-28 justify-center text-[10px] py-0.5 font-normal",
+                        getStatusStyle(item.status)
+                      )}
+                    >
+                      {getDeviationLabel(item.deviation)}
                     </Badge>
-                    {item.name !== "现金" && (
+                    {item.name !== "现金" ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-muted-foreground"
-                        aria-label={`排序${item.name}持仓`}
-                        title={`排序${item.name}持仓`}
-                        disabled={item.holdings.filter((holding) => holding.id > 0).length <= 1}
                         onClick={(event) => {
                           event.stopPropagation();
                           setSortHoldingFor({
@@ -331,6 +360,8 @@ export function DisciplineTable({
                       >
                         <ArrowUpDown className="h-3.5 w-3.5" />
                       </Button>
+                    ) : (
+                      <div className="h-6 w-6" />
                     )}
                   </div>
                 </div>
