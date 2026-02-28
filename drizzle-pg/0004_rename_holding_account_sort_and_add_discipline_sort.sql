@@ -1,5 +1,7 @@
 ALTER TABLE "holdings" RENAME COLUMN "sort_order" TO "account_sort_order";
+--> statement-breakpoint
 ALTER TABLE "holdings" ADD COLUMN "discipline_sort_order" integer DEFAULT 999 NOT NULL;
+--> statement-breakpoint
 
 WITH ordered AS (
   SELECT
