@@ -2,7 +2,7 @@
 
 ### Requirement: 账户排序与纪律排序解耦
 
-系统 SHALL 同时维护两套持仓顺序：账户视图继续使用账户内排序字段（如 `sort_order`）；纪律总览视图使用独立排序字段（如 `discipline_sort_order`）。两者修改 MUST 互不覆盖。
+系统 SHALL 同时维护两套持仓顺序：账户视图使用账户内排序字段 `account_sort_order`（由原 `sort_order` 迁移命名）；纪律总览视图使用独立排序字段（如 `discipline_sort_order`）。两者修改 MUST 互不覆盖。
 
 #### Scenario: 修改纪律排序不影响账户页
 

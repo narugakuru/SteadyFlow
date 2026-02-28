@@ -9,7 +9,7 @@
 
 **Goals:**
 
-- 为纪律总览建立独立排序能力，排序粒度为“用户 + 资产类别内持仓顺序”。
+- 为纪律总览建立独立排序能力，排序粒度为“账户 + 资产类别内持仓顺序”。
 - 保持账户页现有排序语义不变，避免已有账户管理流程回归。
 - 将纪律表排序入口改为低干扰小图标，并固定在“状态”列后右对齐。
 - 提供历史数据回填与稳定排序兜底，确保上线后顺序可预测。
@@ -24,13 +24,13 @@
 
 ### 1) 增加纪律总览专用排序字段
 
-- 决策：在 `holdings` 增加独立字段（建议 `discipline_sort_order`），用于纪律总览排序；账户页继续使用既有 `sort_order`。
+- 决策：将账户页排序字段重命名为 `account_sort_order`（由 `sort_order` 迁移而来），并在 `holdings` 增加独立字段 `discipline_sort_order` 用于纪律总览排序。
 - 原因：避免排序语义混用，查询简单且易于与现有数据模型兼容。
 - 备选：单独建映射表（`discipline_holding_orders`）可扩展但复杂度更高，当前不采用。
 
 ### 2) 纪律总览读取使用独立排序键
 
-- 决策：纪律表持仓查询统一按 `discipline_sort_order ASC, id ASC` 返回；账户页保持 `sort_order ASC, id ASC`。
+- 决策：纪律表持仓查询统一按 `discipline_sort_order ASC, id ASC` 返回；账户页保持 `account_sort_order ASC, id ASC`。
 - 原因：实现双视图排序解耦，降低行为歧义。
 - 备选：前端按本地规则重排；会导致多端不一致且刷新后不可复现。
 
@@ -48,19 +48,19 @@
 
 ### 5) 历史数据回填策略
 
-- 决策：迁移时为每条持仓生成 `discipline_sort_order`，按当前稳定顺序（如 `assetClass, sort_order, id`）编号，确保升级前后展示尽量连续。
+- 决策：迁移时为每条持仓生成 `discipline_sort_order`，按当前稳定顺序（如 `assetClass, account_sort_order, id`）编号，确保升级前后展示尽量连续。
 - 原因：避免上线后出现随机顺序。
 - 备选：全部置零并依赖首次人工排序；初次体验差。
 
 ## Risks / Trade-offs
 
-- [Risk] 双排序字段并存增加维护成本 → Mitigation: 在类型层显式区分 `sortOrder` 与 `disciplineSortOrder`，并在 API 命名中体现用途。
+- [Risk] 双排序字段并存增加维护成本 → Mitigation: 在类型层显式区分 `accountSortOrder` 与 `disciplineSortOrder`，并在 API 命名中体现用途。
 - [Risk] 纪律表排序更新请求可能误传跨资产类别 id → Mitigation: 服务端强校验 payload 中持仓的 `assetClass` 与当前排序域一致，不一致直接拒绝。
 - [Risk] 小图标入口可发现性下降 → Mitigation: 保留 tooltip/aria-label，首次发布可在更新说明中提示。
 
 ## Migration Plan
 
-1. 在 SQLite/PostgreSQL schema 与迁移中新增 `discipline_sort_order` 字段。
+1. 在 SQLite/PostgreSQL schema 与迁移中将 `sort_order` 重命名为 `account_sort_order`，并新增 `discipline_sort_order` 字段。
 2. 编写回填逻辑，为历史持仓按稳定规则赋值。
 3. 调整纪律表查询与重排写入 API，接入新字段。
 4. 前端替换排序入口样式与位置，绑定新排序写入语义。
