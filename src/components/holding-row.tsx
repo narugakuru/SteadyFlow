@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { NotebookPen } from "lucide-react";
+import { NotebookPen, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -94,24 +93,34 @@ export function HoldingRow({
 
   const actionButtons = (
     <>
-      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openTx("buy")}>
+      <Button
+        size="sm"
+        className="h-6 px-3 text-sm font-semibold shadow-sm"
+        onClick={() => openTx("buy")}
+      >
         交易
       </Button>
-      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditOpen(true)}>
-        编辑
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6"
+        onClick={() => setEditOpen(true)}
+        aria-label="编辑持仓"
+      >
+        <Pencil className="h-3.5 w-3.5" />
       </Button>
       {actions === "full" && (
         <>
-          <Link href={`/transactions?accountId=${accountId}`}>
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
-              交易记录 →
-            </Button>
-          </Link>
           {onDelete && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive">
-                  删除
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive"
+                  aria-label="删除持仓"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -199,7 +208,7 @@ export function HoldingRow({
               )}
               <span>占比 {formatPercent(pctOfTotal)}%</span>
             </div>
-            <div className="flex items-center gap-1 shrink-0">{actionButtons}</div>
+            <div className="flex items-center gap-3 shrink-0">{actionButtons}</div>
           </div>
         </div>
 
@@ -263,7 +272,7 @@ export function HoldingRow({
             <span>占比 {formatPercent(pctOfTotal)}%</span>
           </div>
           {/* Row 4: actions */}
-          <div className="flex items-center gap-1 flex-wrap">{actionButtons}</div>
+          <div className="flex items-center gap-4 flex-wrap">{actionButtons}</div>
           {hasMemo && showMobileMemo && (
             <div className="rounded border bg-popover px-2 py-1 text-xs text-popover-foreground">
               {h.memo}
