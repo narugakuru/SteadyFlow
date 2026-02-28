@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
@@ -10,7 +11,13 @@ async function getValidAssetClasses(userId: string): Promise<string[]> {
     .select({ name: assetClasses.name })
     .from(assetClasses)
     .where(eq(assetClasses.userId, userId));
-  return rows.map((r: (typeof rows)[number]) => r.name).filter((n: string) => n !== "现金");
+  return Array.from(
+    new Set(
+      rows
+        .map((r: (typeof rows)[number]) => normalizeAssetClassName(r.name))
+        .filter((n: string) => n !== "现金")
+    )
+  );
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -36,7 +43,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
   }
 
-  return NextResponse.json(holding);
+  return NextResponse.json({
+    ...holding,
+    assetClass: normalizeAssetClassName(holding.assetClass),
+  });
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -92,12 +102,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   // Validate asset class only when caller actually changes it.
-  if (assetClass !== undefined && assetClass !== current.assetClass) {
+  const normalizedIncomingClass =
+    assetClass !== undefined ? normalizeAssetClassName(String(assetClass)) : undefined;
+  const normalizedCurrentClass = normalizeAssetClassName(current.assetClass);
+
+  if (normalizedIncomingClass !== undefined && normalizedIncomingClass !== normalizedCurrentClass) {
     const validClasses = await getValidAssetClasses(userId);
-    if (!validClasses.includes(assetClass)) {
+    if (!validClasses.includes(normalizedIncomingClass)) {
       return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
     }
-    updateSet.assetClass = assetClass;
+    updateSet.assetClass = normalizedIncomingClass;
   }
 
   const effectiveMode = valuationMode ?? current.valuationMode;

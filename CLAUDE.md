@@ -9,8 +9,8 @@
 - **openspec\specs**：存放着项目的每个子模块的细节
 - 每次调用 /opsx:archive 指令归档时都要把change信息同步到主spec
 - **project_overview.md**：存放项目核心信息和进展
-
-项目通过 `project_overview.md` 维护核心状态，确保多终端间信息同步：
+- **openspec\project.md**: 存放详细技术栈，目录结构，数据模型
+  项目通过 `project_overview.md` 维护核心状态，确保多终端间信息同步：
 
 - 开始任务前，先读 `project_overview.md` 获取项目最新状态
 - 完成任务后，先更新 `project_overview.md`，再执行 commit
@@ -24,7 +24,7 @@
 
 ## Git Commit
 
-只提交你本次任务修改的文件改动，和本次任务无关的不能操作，也不能删除，让用户自己决定。
+只提交你本次任务修改的文件改动，和本次任务无关的直接忽略，不提交不删除
 每一阶段任务完成后都要自动进行git commit方便管理进度，下面是必需commit情况：
 
 - 编写完成了一个change的所有文件

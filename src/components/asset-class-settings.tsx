@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AssetClass, Settings } from "@/lib/types";
 import { formatNumber } from "@/lib/format";
 
@@ -21,7 +16,11 @@ interface AssetClassSettingsProps {
 
 export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSettingsProps) {
   const [classes, setClasses] = useState<AssetClass[]>([]);
-  const [settings, setSettings] = useState<Settings>({ warningThreshold: 3, dangerThreshold: 5, colorMode: "cn" });
+  const [settings, setSettings] = useState<Settings>({
+    warningThreshold: 3,
+    dangerThreshold: 5,
+    colorMode: "cn",
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [newClassName, setNewClassName] = useState("");
@@ -44,9 +43,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
   const total = classes.reduce((s, c) => s + c.targetPct, 0);
 
   const updateTargetPct = (id: number, value: number) => {
-    setClasses((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, targetPct: value } : c))
-    );
+    setClasses((prev) => prev.map((c) => (c.id === id ? { ...c, targetPct: value } : c)));
     setError("");
   };
 
@@ -105,7 +102,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="md:max-w-lg">
         <DialogHeader>
           <DialogTitle>资产配置设置</DialogTitle>
         </DialogHeader>
@@ -133,16 +130,30 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
               className="flex-1"
               placeholder="新增资产类别名称"
               value={newClassName}
-              onChange={(e) => { setNewClassName(e.target.value); setError(""); }}
+              onChange={(e) => {
+                setNewClassName(e.target.value);
+                setError("");
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleAddClass()}
             />
-            <Button variant="outline" size="sm" onClick={handleAddClass} disabled={adding || !newClassName.trim()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddClass}
+              disabled={adding || !newClassName.trim()}
+            >
               {adding ? "添加中..." : "+ 添加"}
             </Button>
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className={Math.abs(total - 100) > 0.01 ? "text-destructive font-medium" : "text-muted-foreground"}>
+            <span
+              className={
+                Math.abs(total - 100) > 0.01
+                  ? "text-destructive font-medium"
+                  : "text-muted-foreground"
+              }
+            >
               目标占比总和: {formatNumber(total, 1)}%
             </span>
           </div>
@@ -156,7 +167,12 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 <Input
                   type="number"
                   value={settings.warningThreshold}
-                  onChange={(e) => setSettings((s) => ({ ...s, warningThreshold: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      warningThreshold: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
               <div>
@@ -164,7 +180,9 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 <Input
                   type="number"
                   value={settings.dangerThreshold}
-                  onChange={(e) => setSettings((s) => ({ ...s, dangerThreshold: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setSettings((s) => ({ ...s, dangerThreshold: parseFloat(e.target.value) || 0 }))
+                  }
                 />
               </div>
             </div>

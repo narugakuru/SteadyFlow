@@ -3,7 +3,31 @@ import { db } from "@/db";
 import { assetClasses } from "@/db/schema";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
+
+type AssetClassRow = typeof assetClasses.$inferSelect;
+
+function normalizeAndSortAssetClasses(rows: AssetClassRow[]) {
+  const normalized = rows.map((row) => ({
+    ...row,
+    name: normalizeAssetClassName(row.name),
+  }));
+
+  normalized.sort((a, b) => {
+    const aOrder = getDefaultAssetClassOrderIndex(a.name);
+    const bOrder = getDefaultAssetClassOrderIndex(b.name);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+
+    if (aOrder === Number.MAX_SAFE_INTEGER) {
+      return a.sortOrder - b.sortOrder || a.id - b.id;
+    }
+
+    return a.sortOrder - b.sortOrder || a.id - b.id;
+  });
+
+  return normalized;
+}
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -16,7 +40,7 @@ export async function GET() {
     .from(assetClasses)
     .where(eq(assetClasses.userId, userId))
     .orderBy(asc(assetClasses.sortOrder), asc(assetClasses.id));
-  return NextResponse.json(rows);
+  return NextResponse.json(normalizeAndSortAssetClasses(rows));
 }
 
 export async function POST(request: Request) {
@@ -32,12 +56,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "名称不能为空" }, { status: 400 });
   }
 
-  const [existing] = await db
-    .select()
-    .from(assetClasses)
-    .where(and(eq(assetClasses.userId, userId), eq(assetClasses.name, name.trim())));
+  const normalizedName = normalizeAssetClassName(name);
+  const existingRows = await db.select().from(assetClasses).where(eq(assetClasses.userId, userId));
 
-  if (existing) {
+  if (
+    existingRows.some(
+      (row: (typeof existingRows)[number]) => normalizeAssetClassName(row.name) === normalizedName
+    )
+  ) {
     return NextResponse.json({ error: "该类别已存在" }, { status: 400 });
   }
 
@@ -51,10 +77,16 @@ export async function POST(request: Request) {
 
   const [result] = await db
     .insert(assetClasses)
-    .values({ userId, name: name.trim(), targetPct: 0, sortOrder: nextSortOrder })
+    .values({ userId, name: normalizedName, targetPct: 0, sortOrder: nextSortOrder })
     .returning();
 
-  return NextResponse.json(result, { status: 201 });
+  return NextResponse.json(
+    {
+      ...result,
+      name: normalizeAssetClassName(result.name),
+    },
+    { status: 201 }
+  );
 }
 
 export async function PUT(request: Request) {
@@ -97,7 +129,7 @@ export async function PUT(request: Request) {
     .from(assetClasses)
     .where(eq(assetClasses.userId, userId))
     .orderBy(asc(assetClasses.sortOrder), asc(assetClasses.id));
-  return NextResponse.json(updated);
+  return NextResponse.json(normalizeAndSortAssetClasses(updated));
 }
 
 export async function DELETE(request: Request) {

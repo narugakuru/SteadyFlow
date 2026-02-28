@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
 import { useTriFieldLinked } from "@/lib/hooks";
 
@@ -53,7 +54,7 @@ export function HoldingEditDialog({
   const [memo, setMemo] = useState(initMemo || "");
   const [cost, setCost] = useState(initCost.toString());
   const [marketValue, setMarketValue] = useState(initMarketValue.toString());
-  const [assetClass, setAssetClass] = useState(initAssetClass);
+  const [assetClass, setAssetClass] = useState(normalizeAssetClassName(initAssetClass));
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
 

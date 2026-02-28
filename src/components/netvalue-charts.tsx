@@ -13,6 +13,7 @@ import {
   Legend,
 } from "recharts";
 import { NetvalueRecord } from "@/lib/types";
+import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
 import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/chart-colors";
 import { formatAmount, formatNumber, formatPercent } from "@/lib/format";
 
@@ -36,15 +37,20 @@ export function NetvalueCharts({ records }: NetvalueChartsProps) {
   const allClassNames = new Set<string>();
   for (const s of sorted) {
     for (const a of s.dataJson.allocation) {
-      allClassNames.add(a.name);
+      allClassNames.add(normalizeAssetClassName(a.name));
     }
   }
-  const classNames = Array.from(allClassNames);
+  const classNames = Array.from(allClassNames).sort((a, b) => {
+    const aOrder = getDefaultAssetClassOrderIndex(a);
+    const bOrder = getDefaultAssetClassOrderIndex(b);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.localeCompare(b, "zh-CN");
+  });
 
   const areaData = sorted.map((s) => {
     const row: Record<string, string | number> = { date: s.date };
     for (const name of classNames) {
-      const item = s.dataJson.allocation.find((a) => a.name === name);
+      const item = s.dataJson.allocation.find((a) => normalizeAssetClassName(a.name) === name);
       row[name] = item ? item.actualPct : 0;
     }
     return row;
@@ -87,11 +93,7 @@ export function NetvalueCharts({ records }: NetvalueChartsProps) {
           <AreaChart data={areaData} margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
             <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-            <YAxis
-              tick={{ fontSize: 12 }}
-              tickFormatter={(v) => `${v}%`}
-              domain={[0, 100]}
-            />
+            <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
             <Tooltip
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any, name: any) => [`${formatPercent(Number(value))}%`, name]}

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
@@ -10,7 +11,13 @@ async function getValidAssetClasses(userId: string): Promise<string[]> {
     .select({ name: assetClasses.name })
     .from(assetClasses)
     .where(eq(assetClasses.userId, userId));
-  return rows.map((r: (typeof rows)[number]) => r.name).filter((n: string) => n !== "现金");
+  return Array.from(
+    new Set(
+      rows
+        .map((r: (typeof rows)[number]) => normalizeAssetClassName(r.name))
+        .filter((n: string) => n !== "现金")
+    )
+  );
 }
 
 export async function GET() {
@@ -28,7 +35,12 @@ export async function GET() {
   const rows = accountIds.length
     ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
     : [];
-  return NextResponse.json(rows);
+  return NextResponse.json(
+    rows.map((row: (typeof rows)[number]) => ({
+      ...row,
+      assetClass: normalizeAssetClassName(row.assetClass),
+    }))
+  );
 }
 
 export async function POST(request: Request) {
@@ -54,6 +66,7 @@ export async function POST(request: Request) {
   if (!accountId || !name || !assetClass) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
+  const normalizedAssetClass = normalizeAssetClassName(String(assetClass));
 
   const accountIdNum = Number(accountId);
   if (!Number.isFinite(accountIdNum)) {
@@ -66,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   const validClasses = await getValidAssetClasses(userId);
-  if (!validClasses.includes(assetClass)) {
+  if (!validClasses.includes(normalizedAssetClass)) {
     return NextResponse.json({ error: "无效的资产类别" }, { status: 400 });
   }
 
@@ -98,7 +111,7 @@ export async function POST(request: Request) {
       marketValue: finalMarketValue,
       shares: finalShares,
       price: finalPrice,
-      assetClass,
+      assetClass: normalizedAssetClass,
       memo: memoText || null,
     })
     .returning();

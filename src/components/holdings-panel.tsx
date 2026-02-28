@@ -6,12 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -33,6 +28,7 @@ import {
 import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { useFetch, useTriFieldLinked } from "@/lib/hooks";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { TransactionForm } from "@/components/transaction-form";
 import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/format";
 
@@ -45,12 +41,23 @@ interface HoldingFormProps {
   onSaved: () => void;
 }
 
-function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved }: HoldingFormProps) {
+function HoldingForm({
+  holding,
+  accountId,
+  currency,
+  open,
+  onOpenChange,
+  onSaved,
+}: HoldingFormProps) {
   const [name, setName] = useState(holding?.name ?? "");
   const [ticker, setTicker] = useState(holding?.ticker ?? "");
-  const [valuationMode, setValuationMode] = useState<"amount" | "shares">(holding?.valuationMode ?? "amount");
+  const [valuationMode, setValuationMode] = useState<"amount" | "shares">(
+    holding?.valuationMode ?? "amount"
+  );
   const [marketValue, setMarketValue] = useState(holding?.marketValue?.toString() ?? "");
-  const [assetClass, setAssetClass] = useState<string>(holding?.assetClass ?? "");
+  const [assetClass, setAssetClass] = useState<string>(
+    normalizeAssetClassName(holding?.assetClass ?? "")
+  );
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
   const isEdit = !!holding;
@@ -70,9 +77,7 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
         .then((data: AssetClass[]) => {
           const filtered = data.filter((c) => c.name !== "现金");
           setAssetClasses(filtered);
-          if (!assetClass && filtered.length > 0) {
-            setAssetClass(filtered[0].name);
-          }
+          setAssetClass((prev) => prev || filtered[0]?.name || prev);
         });
     }
   }, [open]);
@@ -82,7 +87,15 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
 
     if (isEdit) {
       // Edit mode: send full payload with values
-      const payload: Record<string, any> = {
+      const payload: {
+        name: string;
+        ticker: string | null;
+        valuationMode: "amount" | "shares";
+        assetClass: string;
+        shares?: number;
+        price?: number;
+        marketValue?: number;
+      } = {
         name,
         ticker: ticker || null,
         valuationMode,
@@ -109,7 +122,11 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          accountId, name, ticker: ticker || null, valuationMode, assetClass,
+          accountId,
+          name,
+          ticker: ticker || null,
+          valuationMode,
+          assetClass,
         }),
       });
     }
@@ -131,18 +148,31 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>名称</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="如：沪深300ETF" />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="如：沪深300ETF"
+              />
             </div>
             <div>
               <Label>代码（选填）</Label>
-              <Input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="如：510300" />
+              <Input
+                value={ticker}
+                onChange={(e) => setTicker(e.target.value)}
+                placeholder="如：510300"
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>估值模式</Label>
-              <Select value={valuationMode} onValueChange={(v) => setValuationMode(v as "amount" | "shares")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={valuationMode}
+                onValueChange={(v) => setValuationMode(v as "amount" | "shares")}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="amount">金额模式</SelectItem>
                   <SelectItem value="shares">份额模式</SelectItem>
@@ -152,10 +182,14 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
             <div>
               <Label>资产类别</Label>
               <Select value={assetClass} onValueChange={setAssetClass}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {assetClasses.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -195,12 +229,14 @@ function HoldingForm({ holding, accountId, currency, open, onOpenChange, onSaved
                     type="number"
                     value={tri.marketValue}
                     onChange={(e) => tri.onMarketValueChange(e.target.value)}
-                    className={tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""}
+                    className={
+                      tri.computedField === "marketValue" ? "italic text-muted-foreground" : ""
+                    }
                   />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                编辑任意两个字段，第三个自动计算（标记为"·自动"）
+                编辑任意两个字段，第三个自动计算（标记为&ldquo;·自动&rdquo;）
               </p>
             </>
           )}
@@ -233,7 +269,14 @@ interface HoldingsPanelProps {
   onDataChange: () => void;
 }
 
-export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack, onDataChange }: HoldingsPanelProps) {
+export function HoldingsPanel({
+  account,
+  totalAssetCny,
+  rates,
+  colorMode,
+  onBack,
+  onDataChange,
+}: HoldingsPanelProps) {
   const { data: allHoldings, refetch } = useFetch<Holding[]>("/api/holdings");
   const [createOpen, setCreateOpen] = useState(false);
   const [editHolding, setEditHolding] = useState<Holding | null>(null);
@@ -288,27 +331,40 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
           <h2 className="text-lg font-semibold">{account.name}</h2>
           <Badge variant="outline">{account.currency}</Badge>
         </div>
-        <Button variant="ghost" size="sm" onClick={onBack}>返回 →</Button>
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          返回 →
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div className="border rounded p-3">
           <p className="text-muted-foreground">总额</p>
-          <p className="font-semibold">{sym}{formatAmount(account.accountValue)}</p>
+          <p className="font-semibold">
+            {sym}
+            {formatAmount(account.accountValue)}
+          </p>
         </div>
         <div className="border rounded p-3">
           <p className="text-muted-foreground">持仓</p>
-          <p className="font-semibold">{sym}{formatAmount(holdingsTotal)}</p>
+          <p className="font-semibold">
+            {sym}
+            {formatAmount(holdingsTotal)}
+          </p>
         </div>
         <div className="border rounded p-3">
           <p className="text-muted-foreground">现金</p>
-          <p className="font-semibold">{sym}{formatAmount(cash)}</p>
+          <p className="font-semibold">
+            {sym}
+            {formatAmount(cash)}
+          </p>
         </div>
       </div>
 
       <div className="flex items-center justify-between">
         <h3 className="font-medium">持仓列表</h3>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>+ 新建持仓</Button>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          + 新建持仓
+        </Button>
       </div>
 
       {holdings.length === 0 ? (
@@ -325,22 +381,28 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{h.name}</span>
                     {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
-                    <Badge variant="secondary" className={getAssetClassColor(h.assetClass)}>
-                      {h.assetClass}
+                    <Badge
+                      variant="secondary"
+                      className={getAssetClassColor(normalizeAssetClassName(h.assetClass))}
+                    >
+                      {normalizeAssetClassName(h.assetClass)}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
                       {h.valuationMode === "shares" ? "份额" : "金额"}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    本金 {sym}{formatAmount(h.cost)}
-                    {" · "}市值 {sym}{formatAmount(h.marketValue)}
+                    本金 {sym}
+                    {formatAmount(h.cost)}
+                    {" · "}市值 {sym}
+                    {formatAmount(h.marketValue)}
                     {account.currency !== "CNY" && ` ≈ ¥${formatAmount(valueCny)}`}
                     {" · "}占总资产 {formatPercent(pctOfTotal)}%
                   </p>
                   {h.valuationMode === "shares" && (
                     <p className="text-sm text-muted-foreground">
-                      份额 {formatShares(h.shares)} · 股价 {sym}{formatPrice(h.price)}
+                      份额 {formatShares(h.shares)} · 股价 {sym}
+                      {formatPrice(h.price)}
                       {h.shares > 0 && ` · 均价 ${sym}${formatPrice(h.cost / h.shares)}`}
                     </p>
                   )}
@@ -352,24 +414,48 @@ export function HoldingsPanel({ account, totalAssetCny, rates, colorMode, onBack
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="text-blue-600" onClick={() => openQuickTx("buy", h.id)}>买入</Button>
-                  <Button variant="outline" size="sm" className="text-orange-600" onClick={() => openQuickTx("sell", h.id)}>卖出</Button>
-                  <Button variant="outline" size="sm" onClick={() => setEditHolding(h)}>编辑</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-blue-600"
+                    onClick={() => openQuickTx("buy", h.id)}
+                  >
+                    买入
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-orange-600"
+                    onClick={() => openQuickTx("sell", h.id)}
+                  >
+                    卖出
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setEditHolding(h)}>
+                    编辑
+                  </Button>
                   <Link href={`/transactions?accountId=${account.id}`}>
-                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">交易记录 →</Button>
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
+                      交易记录 →
+                    </Button>
                   </Link>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-destructive">删除</Button>
+                      <Button variant="outline" size="sm" className="text-destructive">
+                        删除
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>确认删除</AlertDialogTitle>
-                        <AlertDialogDescription>确定删除持仓"{h.name}"？</AlertDialogDescription>
+                        <AlertDialogDescription>
+                          确定删除持仓&ldquo;{h.name}&rdquo;？
+                        </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>取消</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(h.id)}>确认</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleDelete(h.id)}>
+                          确认
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>

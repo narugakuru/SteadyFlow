@@ -5,7 +5,53 @@ import { accounts, holdings, assetClasses, netvalue } from "@/db/schema";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { requireUser } from "@/lib/auth-utils";
+import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
+
+function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: number; id?: number }>(
+  items: T[]
+) {
+  return [...items].sort((a, b) => {
+    const aOrder = getDefaultAssetClassOrderIndex(a.name);
+    const bOrder = getDefaultAssetClassOrderIndex(b.name);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+
+    if (aOrder === Number.MAX_SAFE_INTEGER) {
+      const aSort = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+      const bSort = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+      return aSort - bSort || (a.id ?? 0) - (b.id ?? 0);
+    }
+
+    const aSort = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const bSort = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    return aSort - bSort || (a.id ?? 0) - (b.id ?? 0);
+  });
+}
+
+function normalizeAllocationSnapshot(
+  rows: { name: string; actualValue: number; actualPct: number }[]
+) {
+  const merged = new Map<string, { name: string; actualValue: number; actualPct: number }>();
+
+  for (const row of rows) {
+    const normalizedName = normalizeAssetClassName(row.name);
+    const existing = merged.get(normalizedName);
+    if (!existing) {
+      merged.set(normalizedName, { ...row, name: normalizedName });
+      continue;
+    }
+    existing.actualValue = roundForStorage(existing.actualValue + row.actualValue, "amount");
+    existing.actualPct = roundForStorage(existing.actualPct + row.actualPct, "percent");
+  }
+
+  return sortByDefaultAssetClassOrder(
+    Array.from(merged.values()).map((item, index) => ({
+      ...item,
+      sortOrder: getDefaultAssetClassOrderIndex(item.name),
+      id: index,
+    }))
+  ).map(({ name, actualValue, actualPct }) => ({ name, actualValue, actualPct }));
+}
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -22,7 +68,14 @@ export async function GET() {
   return NextResponse.json(
     rows.map((r: any) => ({
       ...r,
-      dataJson: JSON.parse(r.dataJson),
+      dataJson: (() => {
+        const parsed = JSON.parse(r.dataJson);
+        if (!Array.isArray(parsed?.allocation)) return parsed;
+        return {
+          ...parsed,
+          allocation: normalizeAllocationSnapshot(parsed.allocation),
+        };
+      })(),
     }))
   );
 }
@@ -46,9 +99,13 @@ export async function POST() {
   ]);
 
   const accountIds = allAccounts.map((account: any) => account.id);
-  const allHoldings = accountIds.length
+  const rawHoldings = accountIds.length
     ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
     : [];
+  const allHoldings = rawHoldings.map((h: any) => ({
+    ...h,
+    assetClass: normalizeAssetClassName(h.assetClass),
+  }));
 
   const rates = ratesResult.rates;
   const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));
@@ -79,8 +136,24 @@ export async function POST() {
     return sum + convertToCNY(a.cashBalance, a.currency, rates);
   }, 0);
 
+  const mergedClasses = new Map<string, any>();
+  for (const cls of allClasses) {
+    const normalizedName = normalizeAssetClassName(cls.name);
+    const existing = mergedClasses.get(normalizedName);
+    if (!existing) {
+      mergedClasses.set(normalizedName, {
+        ...cls,
+        name: normalizedName,
+      });
+    } else {
+      existing.targetPct = roundForStorage(existing.targetPct + cls.targetPct, "percent");
+    }
+  }
+
+  const classesForSnapshot = sortByDefaultAssetClassOrder(Array.from(mergedClasses.values()));
+
   const data = {
-    allocation: allClasses.map((cls: any) => {
+    allocation: classesForSnapshot.map((cls: any) => {
       const actualValue = cls.name === "现金" ? totalCashCny : classValues[cls.name] || 0;
       const actualPct =
         totalAssetCny > 0 ? roundForStorage((actualValue / totalAssetCny) * 100, "percent") : 0;

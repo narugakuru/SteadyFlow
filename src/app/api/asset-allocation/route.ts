@@ -5,7 +5,28 @@ import { accounts, holdings, assetClasses, settings } from "@/db/schema";
 import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
+
+function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: number; id?: number }>(
+  items: T[]
+) {
+  return [...items].sort((a, b) => {
+    const aOrder = getDefaultAssetClassOrderIndex(a.name);
+    const bOrder = getDefaultAssetClassOrderIndex(b.name);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+
+    if (aOrder === Number.MAX_SAFE_INTEGER) {
+      const aSort = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+      const bSort = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+      return aSort - bSort || (a.id ?? 0) - (b.id ?? 0);
+    }
+
+    const aSort = a.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    const bSort = b.sortOrder ?? Number.MAX_SAFE_INTEGER;
+    return aSort - bSort || (a.id ?? 0) - (b.id ?? 0);
+  });
+}
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -24,9 +45,13 @@ export async function GET() {
   ]);
 
   const accountIds = allAccounts.map((account: any) => account.id);
-  const allHoldings = accountIds.length
+  const rawHoldings = accountIds.length
     ? await db.select().from(holdings).where(inArray(holdings.accountId, accountIds))
     : [];
+  const allHoldings = rawHoldings.map((h: any) => ({
+    ...h,
+    assetClass: normalizeAssetClassName(h.assetClass),
+  }));
 
   const rates = ratesResult.rates;
 
@@ -97,7 +122,23 @@ export async function GET() {
   }
 
   // Build allocation result
-  const allocation = allClasses.map((cls: any) => {
+  const mergedClasses = new Map<string, any>();
+  for (const cls of allClasses) {
+    const normalizedName = normalizeAssetClassName(cls.name);
+    const existing = mergedClasses.get(normalizedName);
+    if (!existing) {
+      mergedClasses.set(normalizedName, {
+        ...cls,
+        name: normalizedName,
+      });
+    } else {
+      existing.targetPct = roundForStorage(existing.targetPct + cls.targetPct, "percent");
+    }
+  }
+
+  const classesForAllocation = sortByDefaultAssetClassOrder(Array.from(mergedClasses.values()));
+
+  const allocation = classesForAllocation.map((cls: any) => {
     const isCash = cls.name === "现金";
     const actualValue = isCash ? totalCashCny : classValues[cls.name] || 0;
     const actualPct =

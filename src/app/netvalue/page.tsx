@@ -2,10 +2,9 @@
 
 import { useFetch } from "@/lib/hooks";
 import { NetvalueRecord } from "@/lib/types";
-import { Button } from "@/components/ui/button";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { NetvalueCharts } from "@/components/netvalue-charts";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import Link from "next/link";
 import { formatAmount } from "@/lib/format";
 
 export default function NetvaluePage() {
@@ -19,11 +18,6 @@ export default function NetvaluePage() {
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">📸 净值历史</h1>
-        <Link href="/">
-          <Button variant="outline" size="sm">
-            ← 返回 Dashboard
-          </Button>
-        </Link>
       </div>
 
       {!records || records.length === 0 ? (
@@ -47,7 +41,7 @@ export default function NetvaluePage() {
                 {records.map((s) => {
                   const alloc = s.dataJson.allocation;
                   const getPct = (name: string) => {
-                    const item = alloc.find((a) => a.name === name);
+                    const item = alloc.find((a) => normalizeAssetClassName(a.name) === name);
                     return item ? `${item.actualPct}%` : "-";
                   };
                   return (

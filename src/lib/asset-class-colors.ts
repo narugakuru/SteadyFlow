@@ -1,3 +1,5 @@
+import { normalizeAssetClassName } from "@/lib/asset-class";
+
 const COLORS = [
   "bg-blue-100 text-blue-800",
   "bg-yellow-100 text-yellow-800",
@@ -14,9 +16,10 @@ const COLORS = [
 const colorCache = new Map<string, string>();
 
 export function getAssetClassColor(className: string): string {
-  if (colorCache.has(className)) return colorCache.get(className)!;
+  const normalizedName = normalizeAssetClassName(className);
+  if (colorCache.has(normalizedName)) return colorCache.get(normalizedName)!;
   const index = colorCache.size % COLORS.length;
   const color = COLORS[index];
-  colorCache.set(className, color);
+  colorCache.set(normalizedName, color);
   return color;
 }

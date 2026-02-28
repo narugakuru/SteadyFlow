@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
 import { getAssetClassColor } from "@/lib/asset-class-colors";
-import Link from "next/link";
+import { normalizeAssetClassName } from "@/lib/asset-class";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatAmount, formatShares } from "@/lib/format";
 
@@ -30,14 +30,8 @@ export default function BatchUpdatePage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [accRes, holdRes] = await Promise.all([
-      fetch("/api/accounts"),
-      fetch("/api/holdings"),
-    ]);
-    const [accData, holdData] = await Promise.all([
-      accRes.json(),
-      holdRes.json(),
-    ]);
+    const [accRes, holdRes] = await Promise.all([fetch("/api/accounts"), fetch("/api/holdings")]);
+    const [accData, holdData] = await Promise.all([accRes.json(), holdRes.json()]);
     setAccounts(accData);
     setHoldings(holdData);
     setEdits({ holdings: {} });
@@ -45,6 +39,7 @@ export default function BatchUpdatePage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
@@ -124,19 +119,26 @@ export default function BatchUpdatePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
-        <div className="flex items-center gap-2">
-          {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
-          <Button variant="outline" size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
-            {fetchingPrices ? "更新中..." : "📡 更新股价"}
-          </Button>
-          <Link href="/">
-            <Button variant="outline" size="sm">← 返回 Dashboard</Button>
-          </Link>
-          <Button size="sm" onClick={handleSave} disabled={!hasChanges || saving}>
-            {saving ? "保存中..." : "保存所有变更"}
-          </Button>
+        <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
+          {priceMsg && <p className="text-xs text-muted-foreground md:hidden">{priceMsg}</p>}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap md:justify-end">
+            {priceMsg && (
+              <span className="hidden text-xs text-muted-foreground md:inline">{priceMsg}</span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFetchPrices}
+              disabled={fetchingPrices}
+            >
+              {fetchingPrices ? "更新中..." : "📡 更新股价"}
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={!hasChanges || saving}>
+              {saving ? "保存中..." : "保存所有变更"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -156,53 +158,66 @@ export default function BatchUpdatePage() {
 
             return (
               <div key={acc.id} className="border rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{acc.name}</span>
                     <Badge variant="outline">{acc.currency}</Badge>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>总价值 {sym}{formatAmount(acc.accountValue)}</span>
-                    <span>现金 {sym}{formatAmount(acc.cashBalance)}</span>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground md:gap-4">
+                    <span>
+                      总价值 {sym}
+                      {formatAmount(acc.accountValue)}
+                    </span>
+                    <span>
+                      现金 {sym}
+                      {formatAmount(acc.cashBalance)}
+                    </span>
                   </div>
                 </div>
 
                 {accHoldings.length > 0 && (
-                  <div className="space-y-1.5 pl-2">
+                  <div className="space-y-2">
                     {accHoldings.map((h) => {
                       const edit = edits.holdings[h.id];
                       const isModified = !!edit;
                       const isShares = h.valuationMode === "shares";
                       const modifiedStyle = "border-blue-400 bg-blue-50";
+                      const assetClassName = normalizeAssetClassName(h.assetClass);
 
                       return (
-                        <div key={h.id} className="flex flex-col md:flex-row md:items-center justify-between text-sm gap-2">
-                          <div className="flex items-center gap-2 min-w-0 shrink-0">
+                        <div key={h.id} className="rounded-md border border-dashed p-3 text-sm">
+                          <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
                             <span className="truncate">{h.name}</span>
-                            <Badge variant="secondary" className={`text-xs ${getAssetClassColor(h.assetClass)}`}>
-                              {h.assetClass}
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs ${getAssetClassColor(assetClassName)}`}
+                            >
+                              {assetClassName}
                             </Badge>
                           </div>
+
                           {isShares ? (
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <div className="flex items-center gap-1">
-                                <span className="text-muted-foreground text-xs">市值</span>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                              <div className="flex items-center gap-2">
+                                <span className="w-12 text-xs text-muted-foreground">市值</span>
                                 <Input
                                   type="number"
-                                  className={`w-28 text-right ${isModified ? modifiedStyle : ""}`}
+                                  className={`w-full text-right ${isModified ? modifiedStyle : ""}`}
                                   value={edit ? edit.marketValue : h.marketValue}
                                   onChange={(e) => handleMarketValueChange(h, e.target.value)}
                                 />
                               </div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-muted-foreground text-xs">股数</span>
-                                <span className="w-20 text-right inline-block">{formatShares(h.shares)}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="w-12 text-xs text-muted-foreground">股数</span>
+                                <span className="inline-block w-full text-right">
+                                  {formatShares(h.shares)}
+                                </span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <span className="text-muted-foreground text-xs">股价</span>
+                              <div className="flex items-center gap-2">
+                                <span className="w-12 text-xs text-muted-foreground">股价</span>
                                 <Input
                                   type="number"
-                                  className={`w-24 text-right ${isModified ? modifiedStyle : ""}`}
+                                  className={`w-full text-right ${isModified ? modifiedStyle : ""}`}
                                   value={edit?.price !== undefined ? edit.price : h.price}
                                   onChange={(e) => handlePriceChange(h, e.target.value)}
                                   disabled={h.shares === 0}
@@ -211,11 +226,11 @@ export default function BatchUpdatePage() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">市值 ({sym})</span>
+                              <span className="text-xs text-muted-foreground">市值 ({sym})</span>
                               <Input
                                 type="number"
-                                className={`w-32 text-right ${isModified ? modifiedStyle : ""}`}
-                                defaultValue={h.marketValue}
+                                className={`w-full text-right md:w-40 ${isModified ? modifiedStyle : ""}`}
+                                value={edit ? edit.marketValue : h.marketValue}
                                 onChange={(e) => handleMarketValueChange(h, e.target.value)}
                               />
                             </div>
