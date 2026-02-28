@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
-import { BookOpenText, Eye, PenSquare, Plus, Trash2 } from "lucide-react";
+import { BookOpenText, Plus, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { DisciplineNote } from "@/lib/types";
@@ -26,17 +26,13 @@ function pickQuote(): string {
 
 type NoteFormState = {
   title: string;
-  quote: string;
   plan: string;
-  content: string;
 };
 
 function createDefaultFormState(): NoteFormState {
   return {
     title: "新建投资笔记",
-    quote: pickQuote(),
     plan: "开盘前计划：\n- 关注标的\n- 计划买入价\n- 风险控制条件",
-    content: "## 内容区域\n\n- 买入前提\n- 加仓条件\n- 卖出纪律",
   };
 }
 
@@ -46,10 +42,12 @@ export function DisciplineNotesFab() {
   const [notes, setNotes] = useState<DisciplineNote[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [form, setForm] = useState<NoteFormState>(createDefaultFormState);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [isPlanEditing, setIsPlanEditing] = useState(false);
+  const [randomQuote, setRandomQuote] = useState(() => pickQuote());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const planEditorRef = useRef<HTMLTextAreaElement | null>(null);
 
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedId) ?? null,
@@ -59,9 +57,7 @@ export function DisciplineNotesFab() {
   const hydrateForm = (note: DisciplineNote) => {
     setForm({
       title: note.title,
-      quote: note.quote,
       plan: note.plan,
-      content: note.content,
     });
   };
 
@@ -91,6 +87,8 @@ export function DisciplineNotesFab() {
 
   useEffect(() => {
     if (open && status === "authenticated") {
+      setRandomQuote(pickQuote());
+      setIsPlanEditing(false);
       void fetchNotes();
     }
   }, [open, status]);
@@ -109,7 +107,12 @@ export function DisciplineNotesFab() {
       const res = await fetch("/api/discipline-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          title: payload.title,
+          quote: pickQuote(),
+          plan: payload.plan,
+          content: payload.plan,
+        }),
       });
       if (!res.ok) {
         const err = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -142,9 +145,9 @@ export function DisciplineNotesFab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title,
-          quote: form.quote,
+          quote: selectedNote?.quote || pickQuote(),
           plan: form.plan,
-          content: form.content,
+          content: form.plan,
         }),
       });
       if (!res.ok) {
@@ -267,60 +270,27 @@ export function DisciplineNotesFab() {
               </div>
 
               <div>
-                <Label>经典句子</Label>
-                <Input
-                  value={form.quote}
-                  onChange={(e) => setForm((prev) => ({ ...prev, quote: e.target.value }))}
-                  placeholder="例如：市场先生每天都在报价，但你不必每天交易。"
-                />
-              </div>
-
-              <div>
                 <Label>交易计划</Label>
-                <textarea
-                  value={form.plan}
-                  onChange={(e) => setForm((prev) => ({ ...prev, plan: e.target.value }))}
-                  className="mt-1 min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  placeholder="开盘前计划..."
-                />
-              </div>
-
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <Label>内容区域</Label>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant={previewMode ? "outline" : "secondary"}
-                      size="sm"
-                      className="h-8"
-                      onClick={() => setPreviewMode(false)}
-                    >
-                      <PenSquare className="size-4" />
-                      编辑
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={previewMode ? "secondary" : "outline"}
-                      size="sm"
-                      className="h-8"
-                      onClick={() => setPreviewMode(true)}
-                    >
-                      <Eye className="size-4" />
-                      预览
-                    </Button>
-                  </div>
-                </div>
-                {!previewMode ? (
+                {isPlanEditing ? (
                   <textarea
-                    value={form.content}
-                    onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
+                    ref={planEditorRef}
+                    value={form.plan}
+                    onChange={(e) => setForm((prev) => ({ ...prev, plan: e.target.value }))}
+                    onBlur={() => setIsPlanEditing(false)}
                     className="min-h-56 w-full rounded-md border bg-background px-3 py-2 text-sm font-mono outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     placeholder="支持 Markdown，例如 ## 标题 / - 列表 / **加粗**"
                   />
                 ) : (
-                  <article className="min-h-56 rounded-md border p-3 text-sm leading-6 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2">
-                    <ReactMarkdown skipHtml>{form.content || "_暂无内容_"}</ReactMarkdown>
+                  <article
+                    className="min-h-56 cursor-text rounded-md border p-3 text-sm leading-6 hover:bg-accent/20 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2"
+                    onClick={() => {
+                      setIsPlanEditing(true);
+                      requestAnimationFrame(() => {
+                        planEditorRef.current?.focus();
+                      });
+                    }}
+                  >
+                    <ReactMarkdown skipHtml>{form.plan || "_点击此处编辑交易计划_"}</ReactMarkdown>
                   </article>
                 )}
               </div>
@@ -341,6 +311,8 @@ export function DisciplineNotesFab() {
                   {saving ? "保存中..." : "保存笔记"}
                 </Button>
               </div>
+
+              <p className="text-sm italic text-muted-foreground">{`"${randomQuote}"`}</p>
             </section>
           </div>
         </DialogContent>
