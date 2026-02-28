@@ -149,18 +149,18 @@ function TransactionsContent() {
         <p className="text-muted-foreground text-center py-8">暂无交易记录</p>
       ) : (
         <div className="overflow-x-auto border rounded-lg">
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full text-sm table-auto">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 font-medium">账户</th>
-                <th className="text-left p-3 font-medium">标的名称</th>
-                <th className="text-left p-3 font-medium">操作类型</th>
-                <th className="text-right p-3 font-medium">股数</th>
-                <th className="text-right p-3 font-medium">股价</th>
-                <th className="text-right p-3 font-medium">金额</th>
-                <th className="text-right p-3 font-medium">手续费</th>
-                <th className="text-left p-3 font-medium">日期</th>
-                <th className="text-center p-3 font-medium w-16">操作</th>
+                <th className="text-left p-3 font-medium whitespace-nowrap">账户</th>
+                <th className="text-left p-3 font-medium whitespace-nowrap">标的名称</th>
+                <th className="text-left p-3 font-medium whitespace-nowrap">操作类型</th>
+                <th className="text-right p-3 font-medium whitespace-nowrap">股数</th>
+                <th className="text-right p-3 font-medium whitespace-nowrap">股价</th>
+                <th className="text-right p-3 font-medium whitespace-nowrap">金额</th>
+                <th className="text-right p-3 font-medium whitespace-nowrap">手续费</th>
+                <th className="text-left p-3 font-medium whitespace-nowrap">日期</th>
+                <th className="text-center p-3 font-medium w-16 whitespace-nowrap">操作</th>
               </tr>
             </thead>
             <tbody>

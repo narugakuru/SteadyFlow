@@ -121,8 +121,20 @@ export default function Dashboard() {
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
           {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
-          <Button variant="outline" size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
-            {fetchingPrices ? "更新中..." : "📡 更新股价"}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleFetchPrices}
+            disabled={fetchingPrices}
+            className="bg-black hover:bg-zinc-800 text-white font-semibold shadow-sm transition-all active:scale-95"
+          >
+            {fetchingPrices ? (
+              <span className="flex items-center gap-1">
+                <LoadingSpinner className="w-3 h-3 text-white" /> 更新中...
+              </span>
+            ) : (
+              "📡 更新股价"
+            )}
           </Button>
           <Button variant="outline" size="sm" onClick={handleRefreshNetvalue}>
             📸 记录净值

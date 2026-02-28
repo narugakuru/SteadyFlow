@@ -76,7 +76,7 @@ export default function BatchUpdatePage() {
         : undefined;
       const originalMarketValue = roundForStorage(h.marketValue, "amount");
       const originalPrice = roundForStorage(h.price, "price");
-      // Check if value is back to original
+
       if (
         normalizedMarketValue === originalMarketValue &&
         (!isShares || newPrice === originalPrice)
@@ -129,7 +129,7 @@ export default function BatchUpdatePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6 text-foreground">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
         <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
@@ -139,15 +139,29 @@ export default function BatchUpdatePage() {
               <span className="hidden text-xs text-muted-foreground md:inline">{priceMsg}</span>
             )}
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleFetchPrices}
-              disabled={fetchingPrices}
+              variant="default" // 使用实色背景变体
+              size="sm" // 保持较小尺寸以匹配界面
+              onClick={handleFetchPrices} // 绑定点击事件
+              disabled={fetchingPrices} // 正在获取时禁用
+              // 核心样式：
+              // bg-black / hover:bg-stone-900: 黑底色及悬停效果，符合软件冷静风格
+              // text-white: 白字色
+              // font-bold / shadow-md: 增强辨识度，使其在 outline 按钮旁更显眼
+              className="bg-black hover:bg-stone-900 text-white font-bold shadow-md transition-all px-4 active:scale-95" // 添加 Tailwind 类名
             >
-              {fetchingPrices ? "更新中..." : "📡 更新股价"}
+              {fetchingPrices ? (
+                // 正在获取时的状态显示
+                <span className="flex items-center gap-1">
+                  <LoadingSpinner className="w-3 h-3 text-white" /> {/* 确保加载转圈也是白色 */}
+                  正在连接市场...
+                </span>
+              ) : (
+                // 默认状态显示
+                "📡 更新股价"
+              )}
             </Button>
             <Button size="sm" onClick={handleSave} disabled={!hasChanges || saving}>
-              {saving ? "保存中..." : "保存所有变更"}
+              {saving ? "保存中..." : "保存变更"}
             </Button>
           </div>
         </div>
@@ -168,19 +182,21 @@ export default function BatchUpdatePage() {
             const accHoldings = holdings.filter((h) => h.accountId === acc.id);
 
             return (
-              <div key={acc.id} className="border rounded-lg p-4 space-y-3">
+              <div key={acc.id} className="border rounded-lg p-4 space-y-3 shadow-sm">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{acc.name}</span>
-                    <Badge variant="outline">{acc.currency}</Badge>
+                    <span className="font-semibold text-base">{acc.name}</span>
+                    <Badge variant="outline" className="font-mono">
+                      {acc.currency}
+                    </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground md:gap-4">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <span>
-                      总价值 {sym}
+                      总价值: {sym}
                       {formatAmount(acc.accountValue)}
                     </span>
                     <span>
-                      现金 {sym}
+                      现金: {sym}
                       {formatAmount(acc.cashBalance)}
                     </span>
                   </div>
@@ -192,32 +208,83 @@ export default function BatchUpdatePage() {
                       const edit = edits.holdings[h.id];
                       const isModified = !!edit;
                       const isShares = h.valuationMode === "shares";
-                      const modifiedStyle = "border-blue-400 bg-blue-50";
+                      const modifiedStyle = "border-blue-400 bg-blue-50/50";
                       const assetClassName = normalizeAssetClassName(h.assetClass);
 
                       return (
-                        <div key={h.id} className="rounded-md border border-dashed p-3 text-sm">
-                          <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-                            <span className="truncate">{h.name}</span>
+                        <div
+                          key={h.id}
+                          className="rounded-md border border-dashed p-3 text-sm flex flex-col md:flex-row md:items-center transition-colors hover:bg-muted/30"
+                        >
+                          {/* 资产名区域 */}
+                          <div className="flex items-center gap-2 md:w-40 shrink-0 mb-3 md:mb-0">
+                            <span className="font-medium truncate max-w-[120px] md:max-w-none">
+                              {h.name}
+                            </span>
                             <Badge
                               variant="secondary"
-                              className={`text-xs ${getAssetClassColor(assetClassName)}`}
+                              className={`text-[10px] px-1 py-0 leading-tight shrink-0 ${getAssetClassColor(assetClassName)}`}
                             >
                               {assetClassName}
                             </Badge>
                           </div>
 
-                          {isShares ? (
-                            <div className="flex flex-col gap-2 md:ml-auto md:flex-row md:items-center md:justify-end md:gap-4">
-                              <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
-                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                                  市值
+                          {/* 控件区域 */}
+                          <div className="flex flex-col gap-2 md:flex-row md:items-center md:ml-auto md:gap-4 lg:gap-6">
+                            {isShares ? (
+                              <>
+                                <div className="flex items-center justify-between md:justify-end gap-2">
+                                  <span className="text-[11px] text-muted-foreground shrink-0">
+                                    市值
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    inputMode="decimal"
+                                    className={`w-28 text-right tabular-nums h-8 text-xs ${isModified ? modifiedStyle : ""}`}
+                                    value={
+                                      edit
+                                        ? edit.marketValue
+                                        : roundForStorage(h.marketValue, "amount")
+                                    }
+                                    onChange={(e) => handleMarketValueChange(h, e.target.value)}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between md:justify-end gap-2">
+                                  <span className="text-[11px] text-muted-foreground shrink-0">
+                                    股数
+                                  </span>
+                                  {/* 核心修正：添加 pr-2 并在移动端也保持一定的对齐感 */}
+                                  <span className="w-28 md:w-16 text-right tabular-nums font-medium text-xs pr-2">
+                                    {formatShares(h.shares)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between md:justify-end gap-2">
+                                  <span className="text-[11px] text-muted-foreground shrink-0">
+                                    股价
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    inputMode="decimal"
+                                    className={`w-28 text-right tabular-nums h-8 text-xs ${isModified ? modifiedStyle : ""}`}
+                                    value={
+                                      edit?.price !== undefined
+                                        ? edit.price
+                                        : roundForStorage(h.price, "price")
+                                    }
+                                    onChange={(e) => handlePriceChange(h, e.target.value)}
+                                    disabled={h.shares === 0}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto">
+                                <span className="text-[11px] text-muted-foreground shrink-0">
+                                  市值 ({sym})
                                 </span>
                                 <Input
                                   type="number"
                                   inputMode="decimal"
-                                  step="0.01"
-                                  className={`w-40 text-right md:w-36 ${isModified ? modifiedStyle : ""}`}
+                                  className={`w-28 text-right tabular-nums h-8 text-xs ${isModified ? modifiedStyle : ""}`}
                                   value={
                                     edit
                                       ? edit.marketValue
@@ -226,48 +293,8 @@ export default function BatchUpdatePage() {
                                   onChange={(e) => handleMarketValueChange(h, e.target.value)}
                                 />
                               </div>
-                              <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
-                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                                  股数
-                                </span>
-                                <span className="inline-flex min-w-20 justify-end text-right tabular-nums">
-                                  {formatShares(h.shares)}
-                                </span>
-                              </div>
-                              <div className="flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
-                                <span className="w-10 shrink-0 text-xs text-muted-foreground">
-                                  股价
-                                </span>
-                                <Input
-                                  type="number"
-                                  inputMode="decimal"
-                                  step="0.0001"
-                                  className={`w-36 text-right md:w-32 ${isModified ? modifiedStyle : ""}`}
-                                  value={
-                                    edit?.price !== undefined
-                                      ? edit.price
-                                      : roundForStorage(h.price, "price")
-                                  }
-                                  onChange={(e) => handlePriceChange(h, e.target.value)}
-                                  disabled={h.shares === 0}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">市值 ({sym})</span>
-                              <Input
-                                type="number"
-                                inputMode="decimal"
-                                step="0.01"
-                                className={`w-full max-w-44 text-right ${isModified ? modifiedStyle : ""}`}
-                                value={
-                                  edit ? edit.marketValue : roundForStorage(h.marketValue, "amount")
-                                }
-                                onChange={(e) => handleMarketValueChange(h, e.target.value)}
-                              />
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -275,7 +302,7 @@ export default function BatchUpdatePage() {
                 )}
 
                 {accHoldings.length === 0 && (
-                  <p className="text-sm text-muted-foreground pl-2">暂无持仓</p>
+                  <p className="text-sm text-muted-foreground pl-2 italic">暂无持仓</p>
                 )}
               </div>
             );
