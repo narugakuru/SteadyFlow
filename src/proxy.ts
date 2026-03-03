@@ -6,7 +6,7 @@ const PUBLIC_ROUTES = new Set(["/login", "/register"]);
 const PUBLIC_API_PREFIXES = ["/api/auth", "/api/register"];
 const ADMIN_PREFIXES = ["/admin", "/api/admin"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {

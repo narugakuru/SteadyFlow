@@ -38,7 +38,7 @@ src/
 │       ├── discipline-notes/       # 纪律笔记 CRUD
 │       ├── netvalue/               # 净值
 │       └── cron/netvalue/          # 净值定时任务入口（CRON_SECRET 鉴权）
-├── middleware.ts                  # 路由守卫（JWT + 管理员权限）
+├── proxy.ts                       # 路由守卫（JWT + 管理员权限）
 ├── components/
 │   ├── ui/                         # shadcn 基础组件（含 loading-spinner）
 │   ├── navbar.tsx                  # 全局导航栏
