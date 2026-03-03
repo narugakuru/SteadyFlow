@@ -9,6 +9,10 @@ import { getAssetClassColor } from "@/lib/asset-class-colors";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatAmount, formatShares, roundForStorage } from "@/lib/format";
+import {
+  PriceUpdateResult,
+  PriceUpdateResultDialog,
+} from "@/components/price-update-result-dialog";
 
 interface HoldingEdit {
   marketValue: number;
@@ -26,7 +30,8 @@ export default function BatchUpdatePage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchingPrices, setFetchingPrices] = useState(false);
-  const [priceMsg, setPriceMsg] = useState("");
+  const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -47,21 +52,39 @@ export default function BatchUpdatePage() {
 
   const handleFetchPrices = async () => {
     setFetchingPrices(true);
-    setPriceMsg("");
     try {
       const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
-      const data = await res.json();
-      const parts: string[] = [];
-      if (data.updated?.length) parts.push(`更新 ${data.updated.length} 个`);
-      if (data.failed?.length) parts.push(`失败 ${data.failed.length} 个`);
-      if (data.skipped?.length) parts.push(`跳过 ${data.skipped.length} 个`);
-      setPriceMsg(parts.length > 0 ? parts.join("，") : "没有可自动更新的持仓");
+      const data: unknown = await res.json().catch(() => null);
+      const result: PriceUpdateResult = {
+        updated:
+          data &&
+          typeof data === "object" &&
+          Array.isArray((data as { updated?: unknown[] }).updated)
+            ? ((data as { updated: PriceUpdateResult["updated"] }).updated ?? [])
+            : [],
+        failed:
+          data && typeof data === "object" && Array.isArray((data as { failed?: unknown[] }).failed)
+            ? ((data as { failed: PriceUpdateResult["failed"] }).failed ?? [])
+            : [],
+        skipped:
+          data &&
+          typeof data === "object" &&
+          Array.isArray((data as { skipped?: unknown[] }).skipped)
+            ? ((data as { skipped: PriceUpdateResult["skipped"] }).skipped ?? [])
+            : [],
+      };
+      setPriceResult(result);
+      setResultOpen(true);
       await fetchData();
     } catch {
-      setPriceMsg("更新股价失败");
+      setPriceResult({
+        updated: [],
+        failed: [{ id: -1, name: "系统", ticker: "-", error: "更新股价失败，请稍后重试" }],
+        skipped: [],
+      });
+      setResultOpen(true);
     }
     setFetchingPrices(false);
-    setTimeout(() => setPriceMsg(""), 5000);
   };
 
   const handleMarketValueChange = (h: Holding, value: string) => {
@@ -133,11 +156,7 @@ export default function BatchUpdatePage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
         <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
-          {priceMsg && <p className="text-xs text-muted-foreground md:hidden">{priceMsg}</p>}
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap md:justify-end">
-            {priceMsg && (
-              <span className="hidden text-xs text-muted-foreground md:inline">{priceMsg}</span>
-            )}
             <Button
               variant="default" // 使用实色背景变体
               size="sm" // 保持较小尺寸以匹配界面
@@ -309,6 +328,12 @@ export default function BatchUpdatePage() {
           })}
         </div>
       )}
+
+      <PriceUpdateResultDialog
+        open={resultOpen}
+        onOpenChange={setResultOpen}
+        result={priceResult}
+      />
     </div>
   );
 }

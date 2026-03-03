@@ -12,6 +12,10 @@ import { AllocationData } from "@/lib/types";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { formatAmount, formatRate } from "@/lib/format";
 import { AlertCircle } from "lucide-react";
+import {
+  PriceUpdateResult,
+  PriceUpdateResultDialog,
+} from "@/components/price-update-result-dialog";
 
 function isAllocationData(value: unknown): value is AllocationData {
   if (!value || typeof value !== "object") return false;
@@ -24,7 +28,8 @@ export default function Dashboard() {
   const [allocation, setAllocation] = useState<AllocationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchingPrices, setFetchingPrices] = useState(false);
-  const [priceMsg, setPriceMsg] = useState("");
+  const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
+  const [resultOpen, setResultOpen] = useState(false);
   const [error, setError] = useState("");
 
   const fetchAll = useCallback(async () => {
@@ -69,21 +74,39 @@ export default function Dashboard() {
 
   const handleFetchPrices = async () => {
     setFetchingPrices(true);
-    setPriceMsg("");
     try {
       const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
-      const data = await res.json();
-      const parts: string[] = [];
-      if (data.updated?.length) parts.push(`更新 ${data.updated.length} 个`);
-      if (data.failed?.length) parts.push(`失败 ${data.failed.length} 个`);
-      if (data.skipped?.length) parts.push(`跳过 ${data.skipped.length} 个`);
-      setPriceMsg(parts.length > 0 ? parts.join("，") : "没有可自动更新的持仓");
+      const data: unknown = await res.json().catch(() => null);
+      const result: PriceUpdateResult = {
+        updated:
+          data &&
+          typeof data === "object" &&
+          Array.isArray((data as { updated?: unknown[] }).updated)
+            ? ((data as { updated: PriceUpdateResult["updated"] }).updated ?? [])
+            : [],
+        failed:
+          data && typeof data === "object" && Array.isArray((data as { failed?: unknown[] }).failed)
+            ? ((data as { failed: PriceUpdateResult["failed"] }).failed ?? [])
+            : [],
+        skipped:
+          data &&
+          typeof data === "object" &&
+          Array.isArray((data as { skipped?: unknown[] }).skipped)
+            ? ((data as { skipped: PriceUpdateResult["skipped"] }).skipped ?? [])
+            : [],
+      };
+      setPriceResult(result);
+      setResultOpen(true);
       await fetchAll();
     } catch {
-      setPriceMsg("更新股价失败");
+      setPriceResult({
+        updated: [],
+        failed: [{ id: -1, name: "系统", ticker: "-", error: "更新股价失败，请稍后重试" }],
+        skipped: [],
+      });
+      setResultOpen(true);
     }
     setFetchingPrices(false);
-    setTimeout(() => setPriceMsg(""), 5000);
   };
 
   if (loading) {
@@ -116,7 +139,6 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
-          {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
           <Button
             variant="default"
             size="sm"
@@ -177,6 +199,12 @@ export default function Dashboard() {
         allocation={allocation.allocation}
         warningThreshold={allocation.settings.warningThreshold}
         colorMode={allocation.settings.colorMode}
+      />
+
+      <PriceUpdateResultDialog
+        open={resultOpen}
+        onOpenChange={setResultOpen}
+        result={priceResult}
       />
     </div>
   );
