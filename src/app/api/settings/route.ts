@@ -9,6 +9,15 @@ import {
   normalizeNetvalueTimeZone,
 } from "@/lib/timezone";
 
+const SETTING_KEYS = {
+  warningThreshold: "warning_threshold",
+  dangerThreshold: "danger_threshold",
+  colorMode: "color_mode",
+  netvalueTimezone: "netvalue.timezone",
+  twelveDataApiKey: "quote_api.twelvedata_key",
+  eodhdApiKey: "quote_api.eodhd_key",
+} as const;
+
 async function upsertSetting(userId: string, key: string, value: string) {
   const [existing] = await db
     .select()
@@ -27,6 +36,10 @@ async function upsertSetting(userId: string, key: string, value: string) {
   await db.insert(settings).values({ userId, key, value });
 }
 
+async function deleteSetting(userId: string, key: string) {
+  await db.delete(settings).where(and(eq(settings.userId, userId), eq(settings.key, key)));
+}
+
 export async function GET() {
   const { userId, response } = await requireUser();
   if (!userId) {
@@ -39,10 +52,12 @@ export async function GET() {
     result[row.key] = row.value;
   }
   return NextResponse.json({
-    warningThreshold: parseFloat(result.warning_threshold ?? "5"),
-    dangerThreshold: parseFloat(result.danger_threshold ?? "15"),
-    colorMode: result.color_mode ?? "cn",
-    netvalueTimezone: normalizeNetvalueTimeZone(result["netvalue.timezone"]),
+    warningThreshold: parseFloat(result[SETTING_KEYS.warningThreshold] ?? "5"),
+    dangerThreshold: parseFloat(result[SETTING_KEYS.dangerThreshold] ?? "15"),
+    colorMode: result[SETTING_KEYS.colorMode] ?? "cn",
+    netvalueTimezone: normalizeNetvalueTimeZone(result[SETTING_KEYS.netvalueTimezone]),
+    twelveDataApiKey: result[SETTING_KEYS.twelveDataApiKey] ?? "",
+    eodhdApiKey: result[SETTING_KEYS.eodhdApiKey] ?? "",
   });
 }
 
@@ -63,23 +78,41 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Invalid IANA timezone" }, { status: 400 });
   }
 
-  await upsertSetting(userId, "warning_threshold", String(warningThreshold));
-  await upsertSetting(userId, "danger_threshold", String(dangerThreshold));
+  await upsertSetting(userId, SETTING_KEYS.warningThreshold, String(warningThreshold));
+  await upsertSetting(userId, SETTING_KEYS.dangerThreshold, String(dangerThreshold));
 
   const normalizedColorMode = colorMode === "us" ? "us" : "cn";
-  await upsertSetting(userId, "color_mode", normalizedColorMode);
+  await upsertSetting(userId, SETTING_KEYS.colorMode, normalizedColorMode);
 
   let normalizedTimeZone = DEFAULT_NETVALUE_TIMEZONE;
   if (netvalueTimezone !== undefined) {
     normalizedTimeZone = normalizeNetvalueTimeZone(netvalueTimezone);
-    await upsertSetting(userId, "netvalue.timezone", normalizedTimeZone);
+    await upsertSetting(userId, SETTING_KEYS.netvalueTimezone, normalizedTimeZone);
   } else {
     const [existingTimeZone] = await db
       .select({ value: settings.value })
       .from(settings)
-      .where(and(eq(settings.userId, userId), eq(settings.key, "netvalue.timezone")))
+      .where(and(eq(settings.userId, userId), eq(settings.key, SETTING_KEYS.netvalueTimezone)))
       .limit(1);
     normalizedTimeZone = normalizeNetvalueTimeZone(existingTimeZone?.value);
+  }
+
+  if (typeof body.twelveDataApiKey === "string") {
+    const value = body.twelveDataApiKey.trim();
+    if (value) {
+      await upsertSetting(userId, SETTING_KEYS.twelveDataApiKey, value);
+    } else {
+      await deleteSetting(userId, SETTING_KEYS.twelveDataApiKey);
+    }
+  }
+
+  if (typeof body.eodhdApiKey === "string") {
+    const value = body.eodhdApiKey.trim();
+    if (value) {
+      await upsertSetting(userId, SETTING_KEYS.eodhdApiKey, value);
+    } else {
+      await deleteSetting(userId, SETTING_KEYS.eodhdApiKey);
+    }
   }
 
   return NextResponse.json({
@@ -87,5 +120,7 @@ export async function PUT(request: Request) {
     dangerThreshold,
     colorMode: normalizedColorMode,
     netvalueTimezone: normalizedTimeZone,
+    twelveDataApiKey: typeof body.twelveDataApiKey === "string" ? body.twelveDataApiKey.trim() : "",
+    eodhdApiKey: typeof body.eodhdApiKey === "string" ? body.eodhdApiKey.trim() : "",
   });
 }

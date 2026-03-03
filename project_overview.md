@@ -57,6 +57,7 @@ openspec/       # 需求规格与变更流程
 
 ## 进展日志（精简）
 
+- [2026-03-03] 股价更新接口新增港股/A股双供应商适配：以 Twelve Data 为主（按 8 条/批、批次间隔 65s 分批抓取），EODHD 为备援；美股/日股保持 Stooq 原逻辑。同步在设置弹窗新增 `Twelve Data API Key` 与 `EODHD API Key` 用户配置项（按用户存储于 settings 键值）
 - [2026-03-03] 完成净值自动化改造：Dashboard 移除“记录净值”按钮；账户/持仓/交易/批量改价等写接口统一通过封装自动刷新当日净值；新增 `netvalue.timezone` 用户设置（默认 `Asia/Shanghai`）与 IANA 校验；新增 `POST /api/cron/netvalue` + `vercel.json` 小时级调度，按用户本地时区命中凌晨 3 点自动记录净值
 - [2026-03-03] 优化资产偏离图：偏离百分比统一为最多两位小数；压缩移动端图表左侧空白并扩大横向占用（`src/components/deviation-chart.tsx`）
 - [2026-02-24] 完成 MVP（账户/持仓/资产配置/汇率/每日净值）

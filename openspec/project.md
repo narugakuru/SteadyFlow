@@ -97,4 +97,4 @@ src/
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                    |
 | netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
 | disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                               |
-| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone` 键，默认 `Asia/Shanghai`）                                                                                   |
+| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key` 等键）                                                    |

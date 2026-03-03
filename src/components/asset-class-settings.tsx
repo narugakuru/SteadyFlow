@@ -22,6 +22,8 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
     dangerThreshold: 5,
     colorMode: "cn",
     netvalueTimezone: "Asia/Shanghai",
+    twelveDataApiKey: "",
+    eodhdApiKey: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -43,6 +45,8 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
         ...prev,
         ...settingsData,
         netvalueTimezone: settingsData.netvalueTimezone || "Asia/Shanghai",
+        twelveDataApiKey: settingsData.twelveDataApiKey || "",
+        eodhdApiKey: settingsData.eodhdApiKey || "",
       }));
     });
   };
@@ -276,6 +280,39 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
             <p className="text-xs text-muted-foreground mt-2">
               用于计算“当日净值”日期和每日自动记录时间（本地凌晨 3:00）。
             </p>
+          </div>
+
+          {/* Quote API keys */}
+          <div className="border-t pt-4 space-y-3">
+            <p className="text-sm font-medium">股价数据源 API Key（用户自定义）</p>
+            <div>
+              <Label className="text-xs mb-2 block">Twelve Data API Key（主）</Label>
+              <Input
+                type="password"
+                autoComplete="off"
+                value={settings.twelveDataApiKey || ""}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, twelveDataApiKey: e.target.value.trim() }))
+                }
+                placeholder="输入 Twelve Data API Key"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                港股/A股优先使用 Twelve Data。按 8 条/分钟分批抓取，批次间隔约 65 秒。
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs mb-2 block">EODHD API Key（备）</Label>
+              <Input
+                type="password"
+                autoComplete="off"
+                value={settings.eodhdApiKey || ""}
+                onChange={(e) => setSettings((s) => ({ ...s, eodhdApiKey: e.target.value.trim() }))}
+                placeholder="输入 EODHD API Key"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Twelve Data 无法返回时自动回退到 EODHD（优先实时价，否则前一交易日收盘）。
+              </p>
+            </div>
           </div>
 
           {error && <p className="text-destructive text-sm">{error}</p>}

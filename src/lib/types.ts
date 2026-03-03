@@ -81,6 +81,8 @@ export interface Settings {
   dangerThreshold: number;
   colorMode: "cn" | "us";
   netvalueTimezone: string;
+  twelveDataApiKey?: string;
+  eodhdApiKey?: string;
 }
 
 export interface AllocationHolding {

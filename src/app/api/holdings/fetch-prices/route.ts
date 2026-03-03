@@ -1,24 +1,82 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { holdings, accounts } from "@/db/schema";
+import { holdings, accounts, settings } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { fetchStooqQuote } from "@/lib/stooq";
-import { fetchYahooQuotes } from "@/lib/yahoo";
+import { fetchTwelveDataQuotesInBatches } from "@/lib/twelve-data";
+import { fetchEodhdQuote } from "@/lib/eodhd";
 import { roundForStorage } from "@/lib/format";
 import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
-/**
- * 按 ticker 后缀判断数据源：
- * - .us / .jp → Stooq
- * - .SS / .SZ / .HK → Yahoo
- * - 其他 → 不支持
- */
-function getTickerSource(ticker: string): "stooq" | "yahoo" | null {
-  const lower = ticker.toLowerCase();
-  if (lower.endsWith(".us") || lower.endsWith(".jp")) return "stooq";
-  if (ticker.endsWith(".SS") || ticker.endsWith(".SZ") || ticker.endsWith(".HK")) return "yahoo";
+const TWELVE_BATCH_SIZE = 8;
+const TWELVE_BATCH_DELAY_MS = 65000;
+
+function normalizeTicker(ticker: string) {
+  return ticker.trim().toUpperCase();
+}
+
+function getTickerSource(ticker: string): "stooq" | "asia" | null {
+  if (ticker.endsWith(".US") || ticker.endsWith(".JP")) return "stooq";
+  if (ticker.endsWith(".SS") || ticker.endsWith(".SZ") || ticker.endsWith(".HK")) return "asia";
   return null;
+}
+
+interface AsiaTickerProfile {
+  normalizedTicker: string;
+  twelveSymbol: string;
+  twelveExchange: "HKEX" | "SSE" | "SZSE";
+  eodhdSymbol: string;
+}
+
+function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
+  const normalizedTicker = normalizeTicker(ticker);
+  const [rawCode, suffix] = normalizedTicker.split(".");
+  if (!rawCode || !suffix) return null;
+
+  const digitsOnly = rawCode.replace(/\D/g, "");
+  if (!digitsOnly) return null;
+
+  if (suffix === "HK") {
+    const code = digitsOnly.padStart(4, "0");
+    return {
+      normalizedTicker: `${code}.HK`,
+      twelveSymbol: code,
+      twelveExchange: "HKEX",
+      eodhdSymbol: `${code}.HK`,
+    };
+  }
+
+  if (suffix === "SS") {
+    const code = digitsOnly.padStart(6, "0");
+    return {
+      normalizedTicker: `${code}.SS`,
+      twelveSymbol: code,
+      twelveExchange: "SSE",
+      eodhdSymbol: `${code}.SHG`,
+    };
+  }
+
+  if (suffix === "SZ") {
+    const code = digitsOnly.padStart(6, "0");
+    return {
+      normalizedTicker: `${code}.SZ`,
+      twelveSymbol: code,
+      twelveExchange: "SZSE",
+      eodhdSymbol: `${code}.SHE`,
+    };
+  }
+
+  return null;
+}
+
+interface HoldingForPrice {
+  id: number;
+  name: string;
+  ticker: string | null;
+  valuationMode: "amount" | "shares";
+  shares: number;
+  price: number;
 }
 
 interface UpdatedItem {
@@ -27,13 +85,17 @@ interface UpdatedItem {
   ticker: string;
   oldPrice: number;
   newPrice: number;
+  provider: string;
+  source: "realtime" | "previous_close";
 }
+
 interface FailedItem {
   id: number;
   name: string;
   ticker: string;
   error: string;
 }
+
 interface SkippedItem {
   id: number;
   name: string;
@@ -41,11 +103,42 @@ interface SkippedItem {
   reason: string;
 }
 
-export async function POST() {
-  const { userId, response } = await requireUser();
-  if (!userId) return response;
+async function applyQuoteToHolding(
+  h: HoldingForPrice,
+  ticker: string,
+  newPriceRaw: number,
+  provider: string,
+  source: "realtime" | "previous_close",
+  updated: UpdatedItem[]
+) {
+  const oldPrice = h.price;
+  const newPrice = roundForStorage(newPriceRaw, "price");
+  const newMarketValue = roundForStorage(h.shares * newPrice, "amount");
 
-  // 查询当前用户所有持仓
+  await db
+    .update(holdings)
+    .set({
+      price: newPrice,
+      marketValue: newMarketValue,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(holdings.id, h.id));
+
+  updated.push({
+    id: h.id,
+    name: h.name,
+    ticker,
+    oldPrice,
+    newPrice,
+    provider,
+    source,
+  });
+}
+
+export async function POST() {
+  const { userId, response: authResponse } = await requireUser();
+  if (!userId) return authResponse;
+
   const userAccounts = await db
     .select({ id: accounts.id })
     .from(accounts)
@@ -61,15 +154,19 @@ export async function POST() {
     .from(holdings)
     .where(inArray(holdings.accountId, accountIds));
 
+  const holdingRows = allHoldings as HoldingForPrice[];
   const updated: UpdatedItem[] = [];
   const failed: FailedItem[] = [];
   const skipped: SkippedItem[] = [];
 
-  // 分组
-  const stooqHoldings: typeof allHoldings = [];
-  const yahooHoldings: typeof allHoldings = [];
+  const stooqHoldings: {
+    holding: HoldingForPrice;
+    stooqSymbol: string;
+    normalizedTicker: string;
+  }[] = [];
+  const asiaHoldings: { holding: HoldingForPrice; profile: AsiaTickerProfile }[] = [];
 
-  for (const h of allHoldings) {
+  for (const h of holdingRows) {
     if (h.valuationMode !== "shares") {
       skipped.push({ id: h.id, name: h.name, ticker: h.ticker, reason: "amount 模式" });
       continue;
@@ -78,64 +175,123 @@ export async function POST() {
       skipped.push({ id: h.id, name: h.name, ticker: null, reason: "无股票代码" });
       continue;
     }
-    const source = getTickerSource(h.ticker);
+
+    const normalizedTicker = normalizeTicker(h.ticker);
+    const source = getTickerSource(normalizedTicker);
     if (source === "stooq") {
-      stooqHoldings.push(h);
-    } else if (source === "yahoo") {
-      yahooHoldings.push(h);
-    } else {
-      skipped.push({ id: h.id, name: h.name, ticker: h.ticker, reason: "不支持的代码格式" });
+      stooqHoldings.push({
+        holding: h,
+        stooqSymbol: normalizedTicker.toLowerCase(),
+        normalizedTicker,
+      });
+      continue;
     }
+
+    if (source === "asia") {
+      const profile = parseAsiaTicker(normalizedTicker);
+      if (!profile) {
+        skipped.push({ id: h.id, name: h.name, ticker: h.ticker, reason: "代码格式无法识别" });
+        continue;
+      }
+      asiaHoldings.push({ holding: h, profile });
+      continue;
+    }
+
+    skipped.push({ id: h.id, name: h.name, ticker: h.ticker, reason: "不支持的代码格式" });
   }
 
-  // Stooq: 逐个请求
-  for (const h of stooqHoldings) {
+  for (const item of stooqHoldings) {
+    const { holding: h, stooqSymbol, normalizedTicker } = item;
     try {
-      const quote = await fetchStooqQuote(h.ticker!);
+      const quote = await fetchStooqQuote(stooqSymbol);
       if (quote && quote.close > 0) {
-        const oldPrice = h.price;
-        const newPrice = roundForStorage(quote.close, "price");
-        const newMarketValue = roundForStorage(h.shares * newPrice, "amount");
-        await db
-          .update(holdings)
-          .set({
-            price: newPrice,
-            marketValue: newMarketValue,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(holdings.id, h.id));
-        updated.push({ id: h.id, name: h.name, ticker: h.ticker!, oldPrice, newPrice });
+        await applyQuoteToHolding(h, normalizedTicker, quote.close, "stooq", "realtime", updated);
       } else {
-        failed.push({ id: h.id, name: h.name, ticker: h.ticker!, error: "Stooq 无数据" });
+        failed.push({ id: h.id, name: h.name, ticker: normalizedTicker, error: "Stooq 无数据" });
       }
     } catch {
-      failed.push({ id: h.id, name: h.name, ticker: h.ticker!, error: "Stooq 请求失败" });
+      failed.push({ id: h.id, name: h.name, ticker: normalizedTicker, error: "Stooq 请求失败" });
     }
   }
 
-  // Yahoo: 批量请求
-  if (yahooHoldings.length > 0) {
-    const yahooSymbols = yahooHoldings.map((h: { ticker: string | null }) => h.ticker!);
-    const yahooQuotes = await fetchYahooQuotes(yahooSymbols);
-    const quoteMap = new Map(yahooQuotes.map((q) => [q.symbol, q]));
+  if (asiaHoldings.length > 0) {
+    const userSettingsRows = await db
+      .select({ key: settings.key, value: settings.value })
+      .from(settings)
+      .where(eq(settings.userId, userId));
+    const userSettings = new Map<string, string>(
+      userSettingsRows.map((row: { key: string; value: string }) => [row.key, row.value])
+    );
 
-    for (const h of yahooHoldings) {
-      const quote = quoteMap.get(h.ticker!);
-      if (quote && quote.price > 0) {
-        const oldPrice = h.price;
-        const newPrice = roundForStorage(quote.price, "price");
-        const newMarketValue = roundForStorage(h.shares * newPrice, "amount");
-        await db
-          .update(holdings)
-          .set({
-            price: newPrice,
-            marketValue: newMarketValue,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(holdings.id, h.id));
-        updated.push({ id: h.id, name: h.name, ticker: h.ticker!, oldPrice, newPrice });
-      } else {
-        failed.push({ id: h.id, name: h.name, ticker: h.ticker!, error: "Yahoo 无数据" });
+    const twelveApiKey = (userSettings.get("quote_api.twelvedata_key") ?? "").trim();
+    const eodhdApiKey = (userSettings.get("quote_api.eodhd_key") ?? "").trim();
+
+    if (!twelveApiKey && !eodhdApiKey) {
+      for (const { holding: h, profile } of asiaHoldings) {
+        failed.push({
+          id: h.id,
+          name: h.name,
+          ticker: profile.normalizedTicker,
+          error: "未配置 Twelve Data / EODHD API Key",
+        });
+      }
+    } else {
+      const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
+
+      if (twelveApiKey) {
+        const twelveResults = await fetchTwelveDataQuotesInBatches(
+          twelveApiKey,
+          asiaHoldings.map(({ holding, profile }) => ({
+            requestId: String(holding.id),
+            symbol: profile.twelveSymbol,
+            exchange: profile.twelveExchange,
+          })),
+          { batchSize: TWELVE_BATCH_SIZE, batchDelayMs: TWELVE_BATCH_DELAY_MS }
+        );
+
+        for (const result of twelveResults) {
+          const holdingId = Number.parseInt(result.requestId, 10);
+          const item = unresolvedById.get(holdingId);
+          if (!item || !result.quote) continue;
+
+          await applyQuoteToHolding(
+            item.holding,
+            item.profile.normalizedTicker,
+            result.quote.price,
+            "twelve-data",
+            result.quote.source,
+            updated
+          );
+          unresolvedById.delete(holdingId);
+        }
+      }
+
+      if (unresolvedById.size > 0 && eodhdApiKey) {
+        for (const [holdingId, item] of unresolvedById.entries()) {
+          const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
+          if (!quote) continue;
+
+          await applyQuoteToHolding(
+            item.holding,
+            item.profile.normalizedTicker,
+            quote.price,
+            "eodhd",
+            quote.source,
+            updated
+          );
+          unresolvedById.delete(holdingId);
+        }
+      }
+
+      for (const item of unresolvedById.values()) {
+        failed.push({
+          id: item.holding.id,
+          name: item.holding.name,
+          ticker: item.profile.normalizedTicker,
+          error: eodhdApiKey
+            ? "Twelve Data / EODHD 均未返回可用价格"
+            : "Twelve Data 无数据，且未配置 EODHD API Key",
+        });
       }
     }
   }
