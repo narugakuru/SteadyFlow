@@ -15,10 +15,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
+import { Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/utils/types";
 import { HoldingEditDialog } from "@/components/holding-edit-dialog";
 import { TransactionForm } from "@/components/transaction-form";
-import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/format";
+import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/utils/format";
 
 interface HoldingRowProps {
   holding: Holding;

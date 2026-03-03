@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { seedUserData } from "@/lib/user-seed";
+import { seedUserData } from "@/lib/services/user-seed";
 
 export const runtime = "nodejs";
 

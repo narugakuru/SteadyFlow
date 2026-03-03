@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { assetClasses } from "@/db/schema";
 import { and, asc, desc, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
-import { roundForStorage } from "@/lib/format";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { roundForStorage } from "@/lib/utils/format";
 
 type AssetClassRow = typeof assetClasses.$inferSelect;
 

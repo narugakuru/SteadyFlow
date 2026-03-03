@@ -24,11 +24,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
+import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/utils/types";
 import { Pencil, Trash2 } from "lucide-react";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
-import { formatAmount, formatPercent } from "@/lib/format";
+import { formatAmount, formatPercent } from "@/lib/utils/format";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 
 // ─── Account Form (create/edit) ───

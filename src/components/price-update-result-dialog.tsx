@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatPrice } from "@/lib/format";
+import { formatPrice } from "@/lib/utils/format";
 
 export interface PriceUpdatedItem {
   id: number;

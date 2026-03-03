@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { disciplineNotes } from "@/db/schema";
-import { requireUser } from "@/lib/auth-utils";
+import { requireUser } from "@/lib/auth/auth-utils";
 
 const MAX_TITLE_LEN = 120;
 const MAX_QUOTE_LEN = 280;

@@ -25,12 +25,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
-import { useFetch, useTriFieldLinked } from "@/lib/hooks";
+import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/utils/types";
+import { useFetch, useTriFieldLinked } from "@/lib/utils/hooks";
 import { getAssetClassColor } from "@/lib/visualization/asset-class-colors";
-import { normalizeAssetClassName } from "@/lib/asset-class";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { TransactionForm } from "@/components/transaction-form";
-import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/format";
+import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/utils/format";
 
 interface HoldingFormProps {
   holding?: Holding;

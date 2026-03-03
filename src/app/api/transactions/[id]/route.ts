@@ -2,9 +2,9 @@
 import { db } from "@/db";
 import { accounts, holdings, transactions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { fromDbBool } from "@/lib/utils";
-import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { fromDbBool } from "@/lib/utils/utils";
+import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId, response } = await requireUser();

@@ -12,9 +12,9 @@ import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { getAssetClassColor } from "@/lib/visualization/asset-class-colors";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import { Account, CURRENCY_SYMBOLS, Holding } from "@/lib/types";
-import { formatAmount, formatShares, roundForStorage } from "@/lib/format";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { Account, CURRENCY_SYMBOLS, Holding } from "@/lib/utils/types";
+import { formatAmount, formatShares, roundForStorage } from "@/lib/utils/format";
 
 interface HoldingEdit {
   marketValue: number;

@@ -9,7 +9,7 @@ import { DataFreshness } from "@/components/data-freshness";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
-import { Account, AllocationData } from "@/lib/types";
+import { Account, AllocationData } from "@/lib/utils/types";
 
 function AccountsContent() {
   const searchParams = useSearchParams();

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import { roundForStorage } from "@/lib/format";
-import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { roundForStorage } from "@/lib/utils/format";
+import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db

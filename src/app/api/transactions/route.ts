@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { transactions, holdings, accounts } from "@/db/schema";
 import { eq, desc, and } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { fromDbBool, toDbBool } from "@/lib/utils";
-import { roundForStorage } from "@/lib/format";
-import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { fromDbBool, toDbBool } from "@/lib/utils/utils";
+import { roundForStorage } from "@/lib/utils/format";
+import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
 export async function GET(request: Request) {
   const { userId, response } = await requireUser();

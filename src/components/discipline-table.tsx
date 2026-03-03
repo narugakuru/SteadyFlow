@@ -9,14 +9,14 @@ import {
   Account,
   CURRENCY_SYMBOLS,
   pnlColorClass,
-} from "@/lib/types";
+} from "@/lib/utils/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import { formatAmount, formatPercent } from "@/lib/format";
-import { cn } from "@/lib/utils"; // 确保你有这个工具函数，没有的话可以手动写类名
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/utils"; // 确保你有这个工具函数，没有的话可以手动写类名
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 
 interface DisciplineTableProps {

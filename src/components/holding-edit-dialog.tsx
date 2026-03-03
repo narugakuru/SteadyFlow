@@ -12,9 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import { AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
-import { useTriFieldLinked } from "@/lib/hooks";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { AssetClass, CURRENCY_SYMBOLS } from "@/lib/utils/types";
+import { useTriFieldLinked } from "@/lib/utils/hooks";
 import { useMutationJson } from "@/lib/cache/hooks";
 
 interface HoldingEditDialogProps {

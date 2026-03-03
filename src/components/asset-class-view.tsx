@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Holding, Account, CURRENCY_SYMBOLS } from "@/lib/types";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import { formatAmount, formatPercent } from "@/lib/format";
+import { Holding, Account, CURRENCY_SYMBOLS } from "@/lib/utils/types";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { formatAmount, formatPercent } from "@/lib/utils/format";
 
 interface AssetClassViewProps {
   allocation: {

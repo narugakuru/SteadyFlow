@@ -1,4 +1,4 @@
-import { recordTodayNetvalue } from "@/lib/netvalue-service";
+import { recordTodayNetvalue } from "@/lib/services/netvalue-service";
 
 export async function runMutationWithNetvalue<T>(
   userId: string,

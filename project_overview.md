@@ -30,7 +30,7 @@ src/
   app/          # 页面与 API 路由
   components/   # UI 与业务组件
   db/           # schema、连接、迁移启动与 seed
-  lib/          # auth、格式化、工具与数据服务（含 lib/cache、lib/visualization、lib/data-source）
+  lib/          # 分层库代码（含 lib/cache、lib/auth、lib/services、lib/utils、lib/visualization、lib/data-source）
 docs/           # 运维与说明文档
 openspec/       # 需求规格与变更流程
 
@@ -62,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-03] `src/lib` 继续细分：新增 `lib/auth`、`lib/services`、`lib/utils`，完成认证/服务/工具与类型文件迁移，并全量更新业务代码导入路径。
 - [2026-03-03] `src/lib` 目录重构：新增 `lib/visualization`（图表与展示配色）与 `lib/data-source`（行情/汇率供应商与市场数据聚合），并完成全量导入路径迁移。
 - [2026-03-03] 实现 `global-local-cache-swr`：接入 TanStack Query + IndexedDB 持久化与统一 `policy.ts`；完成 Dashboard/Accounts/Transactions/BatchUpdate/Netvalue/Market/Admin 页面缓存优先读取迁移；新增后台刷新失败通知条、低侵入数据新鲜度展示、登出与 401 缓存清理、跨标签页失效同步。
 - [2026-03-03] 品牌文案统一：浏览器标签页全局标题由“资产组合管理”改为 `SteadyFlow`（`src/app/layout.tsx` metadata.title）。

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 
 const sizeMap = {
   sm: { container: "w-10 h-10", text: "text-xs" },

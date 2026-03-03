@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { roundForStorage } from "@/lib/format";
-import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { roundForStorage } from "@/lib/utils/format";
+import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
 export async function GET() {
   const { userId, response } = await requireUser();

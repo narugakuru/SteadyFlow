@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { holdings, accounts, settings } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
+import { requireUser } from "@/lib/auth/auth-utils";
 import { fetchStooqQuote } from "@/lib/data-source/stooq";
 import { fetchTwelveDataQuotesInBatches } from "@/lib/data-source/twelve-data";
 import { fetchEodhdQuote } from "@/lib/data-source/eodhd";
@@ -10,8 +10,8 @@ import {
   fetchTencentQuotesInBatches,
   toTencentSimpleQuoteSymbol,
 } from "@/lib/data-source/tencent-quote";
-import { roundForStorage } from "@/lib/format";
-import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
+import { roundForStorage } from "@/lib/utils/format";
+import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
 const TWELVE_BATCH_SIZE = 8;
 const TENCENT_BATCH_SIZE = 30;

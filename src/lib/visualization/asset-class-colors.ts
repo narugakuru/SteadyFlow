@@ -1,4 +1,4 @@
-import { normalizeAssetClassName } from "@/lib/asset-class";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 
 const COLORS = [
   "bg-blue-100 text-blue-800",

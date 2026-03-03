@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { roundForStorage } from "@/lib/format";
+import { roundForStorage } from "@/lib/utils/format";
 
 export type TriField = "price" | "shares" | "marketValue";
 

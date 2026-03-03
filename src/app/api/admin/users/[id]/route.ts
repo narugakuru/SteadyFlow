@@ -2,7 +2,7 @@
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
+import { requireUser } from "@/lib/auth/auth-utils";
 
 const ROLE_VALUES = new Set(["admin", "user"]);
 const PLAN_VALUES = new Set(["free", "pro"]);

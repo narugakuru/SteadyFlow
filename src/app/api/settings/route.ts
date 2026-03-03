@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
+import { requireUser } from "@/lib/auth/auth-utils";
 import {
   DEFAULT_NETVALUE_TIMEZONE,
   isValidIanaTimeZone,
   normalizeNetvalueTimeZone,
-} from "@/lib/timezone";
+} from "@/lib/utils/timezone";
 
 const SETTING_KEYS = {
   warningThreshold: "warning_threshold",

@@ -4,8 +4,8 @@ import { DataFreshness } from "@/components/data-freshness";
 import { NetvalueCharts } from "@/components/netvalue-charts";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import type { NetvalueRecord } from "@/lib/types";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
+import type { NetvalueRecord } from "@/lib/utils/types";
 
 function formatFixed2(value: number): string {
   const safeValue = Number.isFinite(value) ? value : 0;

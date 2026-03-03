@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataFreshness } from "@/components/data-freshness";
 import { RefreshCw, ExternalLink } from "lucide-react";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
-import { formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/utils/format";
 
 // --- 静态分组配置 ---
 

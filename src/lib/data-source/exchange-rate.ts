@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { exchangeRates } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { roundForStorage } from "@/lib/format";
+import { roundForStorage } from "@/lib/utils/format";
 
 const DEFAULT_RATES: Record<string, number> = {
   "USD/CNY": 7.2,

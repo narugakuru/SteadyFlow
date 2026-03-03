@@ -1,7 +1,7 @@
 "use client";
 
-import { AllocationItem, pnlColorClass } from "@/lib/types";
-import { formatAmount, formatPercent } from "@/lib/format";
+import { AllocationItem, pnlColorClass } from "@/lib/utils/types";
+import { formatAmount, formatPercent } from "@/lib/utils/format";
 
 interface RebalancePanelProps {
   allocation: AllocationItem[];

@@ -13,8 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Account, Holding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
-import { formatAmount, roundForStorage } from "@/lib/format";
+import { Account, Holding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/utils/types";
+import { formatAmount, roundForStorage } from "@/lib/utils/format";
 import { fetchJson } from "@/lib/cache/http";
 import { useMutationJson } from "@/lib/cache/hooks";
 

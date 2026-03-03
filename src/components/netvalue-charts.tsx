@@ -12,10 +12,10 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { NetvalueRecord } from "@/lib/types";
-import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
+import { NetvalueRecord } from "@/lib/utils/types";
+import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/visualization/chart-colors";
-import { formatAmount, formatNumber, formatPercent } from "@/lib/format";
+import { formatAmount, formatNumber, formatPercent } from "@/lib/utils/format";
 
 interface NetvalueChartsProps {
   records: NetvalueRecord[];

@@ -10,7 +10,7 @@ import {
   Cell,
   ReferenceLine,
 } from "recharts";
-import { AllocationItem } from "@/lib/types";
+import { AllocationItem } from "@/lib/utils/types";
 import { getClassColor } from "@/lib/visualization/chart-colors";
 
 interface DeviationChartProps {

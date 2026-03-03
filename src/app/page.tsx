@@ -16,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
-import { formatAmount, formatRate } from "@/lib/format";
-import type { AllocationData } from "@/lib/types";
+import { formatAmount, formatRate } from "@/lib/utils/format";
+import type { AllocationData } from "@/lib/utils/types";
 
 export default function Dashboard() {
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);

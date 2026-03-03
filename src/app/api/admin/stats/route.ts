@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { requireUser } from "@/lib/auth-utils";
+import { requireUser } from "@/lib/auth/auth-utils";
 
 export async function GET() {
   const { session, userId, response } = await requireUser();

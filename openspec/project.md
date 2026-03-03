@@ -65,13 +65,21 @@ src/
 │   ├── index.ts                    # 数据库连接（动态选择 SQLite/PostgreSQL）
 │   └── seed.ts                     # 种子数据（async，兼容双数据库）
 ├── lib/
-│   ├── auth.ts                     # Auth.js 配置与导出
-│   ├── auth-utils.ts               # Session 获取与 401 封装
-│   ├── user-seed.ts                # 用户级默认数据初始化
-│   ├── utils.ts                    # 工具函数
-│   ├── format.ts                   # 数值精度配置与统一格式化/截断函数
-│   ├── types.ts                    # 类型定义
-│   ├── hooks.ts                    # 自定义 Hooks
+│   ├── auth/                       # 认证相关
+│   │   ├── auth.ts                 # Auth.js 配置与导出
+│   │   └── auth-utils.ts           # Session 获取与 401 封装
+│   ├── services/                   # 业务服务层
+│   │   ├── user-seed.ts            # 用户级默认数据初始化
+│   │   ├── netvalue-service.ts     # 净值计算与写入服务（时区 + upsert）
+│   │   └── mutation-with-netvalue.ts # 写操作后自动触发净值刷新封装
+│   ├── utils/                      # 通用工具、类型与 hooks
+│   │   ├── utils.ts                # 工具函数
+│   │   ├── format.ts               # 数值精度配置与统一格式化/截断函数
+│   │   ├── types.ts                # 类型定义
+│   │   ├── hooks.ts                # 自定义 Hooks
+│   │   ├── asset-class.ts          # 资产类别标准化与默认顺序
+│   │   └── timezone.ts             # IANA 时区校验与本地日期/时间计算
+│   ├── cache/                      # 客户端缓存层（Query/持久化/广播）
 │   ├── visualization/              # 可视化相关（图表、配色）
 │   │   ├── chart-colors.ts         # 图表颜色常量
 │   │   └── asset-class-colors.ts   # 资产类别标签配色
@@ -84,9 +92,6 @@ src/
 │   │   ├── tencent-quote.ts        # 腾讯简易行情（A/H/BJ）
 │   │   ├── twelve-data.ts          # Twelve Data 行情
 │   │   └── eodhd.ts                # EODHD 行情
-│   ├── netvalue-service.ts         # 净值计算与写入服务（时区 + upsert）
-│   ├── mutation-with-netvalue.ts   # 写操作后自动触发净值刷新封装
-│   └── timezone.ts                 # IANA 时区校验与本地日期/时间计算
 └── types/
     └── next-auth.d.ts              # Auth.js 类型扩展
 ```

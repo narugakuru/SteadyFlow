@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AssetClass, Settings } from "@/lib/types";
-import { formatNumber } from "@/lib/format";
+import { AssetClass, Settings } from "@/lib/utils/types";
+import { formatNumber } from "@/lib/utils/format";
 import { AssetClassSortDialog } from "@/components/asset-class-sort-dialog";
 
 interface AssetClassSettingsProps {

@@ -29,8 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
-import { Account, CURRENCY_SYMBOLS, Holding, Transaction } from "@/lib/types";
-import { formatAmount, formatPrice, formatShares } from "@/lib/format";
+import { Account, CURRENCY_SYMBOLS, Holding, Transaction } from "@/lib/utils/types";
+import { formatAmount, formatPrice, formatShares } from "@/lib/utils/format";
 
 const TX_TYPE_LABELS: Record<string, string> = {
   buy: "买入",

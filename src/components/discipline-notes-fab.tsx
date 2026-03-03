@@ -5,8 +5,8 @@ import { useSession } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import { BookOpenText, Plus, Trash2 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import type { DisciplineNote } from "@/lib/types";
+import { cn } from "@/lib/utils/utils";
+import type { DisciplineNote } from "@/lib/utils/types";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";

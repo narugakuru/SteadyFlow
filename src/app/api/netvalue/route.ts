@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { netvalue } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { normalizeAllocationSnapshot, recordTodayNetvalue } from "@/lib/netvalue-service";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { normalizeAllocationSnapshot, recordTodayNetvalue } from "@/lib/services/netvalue-service";
 
 export async function GET() {
   const { userId, response } = await requireUser();

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
-import { requireUser } from "@/lib/auth-utils";
-import { normalizeAssetClassName } from "@/lib/asset-class";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 
 export async function POST(request: Request) {
   const { userId, response } = await requireUser();

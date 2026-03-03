@@ -3,8 +3,8 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { settings, users } from "@/db/schema";
-import { recordTodayNetvalue } from "@/lib/netvalue-service";
-import { normalizeNetvalueTimeZone } from "@/lib/timezone";
+import { recordTodayNetvalue } from "@/lib/services/netvalue-service";
+import { normalizeNetvalueTimeZone } from "@/lib/utils/timezone";
 
 function getCronSecretFromRequest(request: Request): string {
   const bearer = request.headers.get("authorization");
