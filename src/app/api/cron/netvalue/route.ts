@@ -4,7 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { settings, users } from "@/db/schema";
 import { recordTodayNetvalue } from "@/lib/netvalue-service";
-import { getTimePartsInTimeZone, normalizeNetvalueTimeZone } from "@/lib/timezone";
+import { normalizeNetvalueTimeZone } from "@/lib/timezone";
 
 function getCronSecretFromRequest(request: Request): string {
   const bearer = request.headers.get("authorization");
@@ -55,17 +55,14 @@ export async function POST(request: Request) {
   let triggeredUsers = 0;
   let succeeded = 0;
   let failed = 0;
+  const triggeredDates: Record<string, string> = {};
 
   for (const user of allUsers as { id: string }[]) {
     const timeZone = timeZoneMap.get(user.id) ?? normalizeNetvalueTimeZone(undefined);
-    const localTime = getTimePartsInTimeZone(now, timeZone);
-    if (localTime.hour !== 3) {
-      continue;
-    }
-
     triggeredUsers += 1;
     try {
-      await recordTodayNetvalue(user.id, { timeZone, now });
+      const result = await recordTodayNetvalue(user.id, { timeZone, now });
+      triggeredDates[user.id] = result.date;
       succeeded += 1;
     } catch (error) {
       failed += 1;
@@ -78,6 +75,8 @@ export async function POST(request: Request) {
     triggeredUsers,
     succeeded,
     failed,
+    mode: "daily-once-per-user",
+    triggeredDates,
     executedAt: now.toISOString(),
   });
 }

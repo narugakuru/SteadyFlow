@@ -124,10 +124,10 @@ GITHUB_SECRET=your-github-client-secret
 
 ### 净值自动记录定时任务
 
-- 云端（Vercel）：根目录 `vercel.json` 已配置每小时触发一次 `POST /api/cron/netvalue`。
-- 调度逻辑：任务按用户时区判断本地时间，命中本地凌晨 `03:00` 时为该用户自动记录/刷新当日净值。
+- 云端（Vercel）：根目录 `vercel.json` 已配置每天触发一次 `POST /api/cron/netvalue`（兼容 Hobby 免费计划）。
+- 调度逻辑：每次 cron 执行时都会为所有用户记录/刷新其“当前时区当天”的净值（按 `userId + date` upsert），即使用户当天未登录也会被自动记录。
 - 鉴权：请求需携带 `CRON_SECRET`（`Authorization: Bearer <CRON_SECRET>` 或 `x-cron-secret`）。
-- 本地离线：可用系统计划任务（Windows Task Scheduler / cron）每小时调用一次该接口，行为与云端一致。
+- 本地离线：可用系统计划任务（Windows Task Scheduler / cron）每天调用一次该接口，行为与云端一致。
 
 ### 方案 B：Windows 离线分发包
 
