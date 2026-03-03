@@ -5,9 +5,9 @@ import { assetClasses, settings } from "@/db/schema";
 
 const DEFAULT_ASSET_CLASSES = [
   { name: "股票", targetPct: 40, sortOrder: 1 },
-  { name: "黄金", targetPct: 20, sortOrder: 2 },
-  { name: "债券", targetPct: 25, sortOrder: 3 },
-  { name: "现金", targetPct: 15, sortOrder: 4 },
+  { name: "黄金", targetPct: 10, sortOrder: 2 },
+  { name: "债券", targetPct: 20, sortOrder: 3 },
+  { name: "现金", targetPct: 30, sortOrder: 4 },
 ];
 
 const DEFAULT_SETTINGS = [

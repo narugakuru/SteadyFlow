@@ -26,7 +26,7 @@ export function DataFreshness({
   return (
     <p className={`text-[11px] text-muted-foreground ${className}`}>
       {isFetching ? "后台更新中 · " : ""}
-      更新于 {formatAge(updatedAt)}
+      数据更新于 {formatAge(updatedAt)}
     </p>
   );
 }
