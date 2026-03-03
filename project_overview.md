@@ -57,6 +57,7 @@ openspec/       # 需求规格与变更流程
 
 ## 进展日志（精简）
 
+- [2026-03-03] 修复股价映射兼容：A股 Twelve Data 代码映射改为优先使用 `xxxxxx.SSE`/`xxxxxx.SZSE` 并保留多候选回退；美股 Stooq 增加 `BRK.B.US -> brk-b.us` 兼容转换，减少“有行情但匹配失败”问题
 - [2026-03-03] “更新股价”交互改为结果弹窗：Dashboard 与批量更新页统一展示逐条明细（每个标的一行），成功项显示最新股价及来源，失败/跳过项显示具体原因，便于定位代码格式或 API 配置问题
 - [2026-03-03] 股价更新接口新增港股/A股双供应商适配：以 Twelve Data 为主（按 8 条/批、批次间隔 65s 分批抓取），EODHD 为备援；美股/日股保持 Stooq 原逻辑。同步在设置弹窗新增 `Twelve Data API Key` 与 `EODHD API Key` 用户配置项（按用户存储于 settings 键值）
 - [2026-03-03] 完成净值自动化改造：Dashboard 移除“记录净值”按钮；账户/持仓/交易/批量改价等写接口统一通过封装自动刷新当日净值；新增 `netvalue.timezone` 用户设置（默认 `Asia/Shanghai`）与 IANA 校验；新增 `POST /api/cron/netvalue` + `vercel.json` 小时级调度，按用户本地时区命中凌晨 3 点自动记录净值

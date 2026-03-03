@@ -7,8 +7,10 @@ export interface TwelveDataQuote {
 
 export interface TwelveDataRequest {
   requestId: string;
-  symbol: string;
-  exchange?: string;
+  candidates: Array<{
+    symbol: string;
+    exchange?: string;
+  }>;
 }
 
 export interface TwelveDataBatchResult {
@@ -45,7 +47,7 @@ function toIsoDatetime(value: unknown): string {
 
 export async function fetchTwelveDataQuote(
   apiKey: string,
-  request: TwelveDataRequest
+  request: { symbol: string; exchange?: string }
 ): Promise<TwelveDataQuote | null> {
   try {
     const url = new URL("https://api.twelvedata.com/quote");
@@ -87,6 +89,24 @@ export async function fetchTwelveDataQuote(
   }
 }
 
+async function fetchTwelveDataQuoteWithFallback(
+  apiKey: string,
+  request: TwelveDataRequest
+): Promise<TwelveDataQuote | null> {
+  const seen = new Set<string>();
+  for (const candidate of request.candidates) {
+    const symbol = candidate.symbol.trim();
+    if (!symbol) continue;
+    const key = `${symbol}|${candidate.exchange ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const quote = await fetchTwelveDataQuote(apiKey, candidate);
+    if (quote) return quote;
+  }
+  return null;
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -112,7 +132,7 @@ export async function fetchTwelveDataQuotesInBatches(
     const batch = requests.slice(i, i + batchSize);
     const batchResults = await Promise.all(
       batch.map(async (req) => {
-        const quote = await fetchTwelveDataQuote(apiKey, req);
+        const quote = await fetchTwelveDataQuoteWithFallback(apiKey, req);
         return {
           requestId: req.requestId,
           quote,

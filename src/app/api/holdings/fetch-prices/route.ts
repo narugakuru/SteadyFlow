@@ -24,9 +24,19 @@ function getTickerSource(ticker: string): "stooq" | "asia" | null {
 
 interface AsiaTickerProfile {
   normalizedTicker: string;
-  twelveSymbol: string;
-  twelveExchange: "HKEX" | "SSE" | "SZSE";
+  twelveCandidates: Array<{
+    symbol: string;
+    exchange?: "HKEX" | "SSE" | "SZSE";
+  }>;
   eodhdSymbol: string;
+}
+
+function toStooqSymbol(normalizedTicker: string): string {
+  const lastDot = normalizedTicker.lastIndexOf(".");
+  if (lastDot <= 0) return normalizedTicker.toLowerCase();
+  const code = normalizedTicker.slice(0, lastDot).replaceAll(".", "-");
+  const market = normalizedTicker.slice(lastDot + 1);
+  return `${code}.${market}`.toLowerCase();
 }
 
 function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
@@ -41,8 +51,11 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
     const code = digitsOnly.padStart(4, "0");
     return {
       normalizedTicker: `${code}.HK`,
-      twelveSymbol: code,
-      twelveExchange: "HKEX",
+      twelveCandidates: [
+        { symbol: `${code}.HK` },
+        { symbol: `${code}.HKEX` },
+        { symbol: code, exchange: "HKEX" },
+      ],
       eodhdSymbol: `${code}.HK`,
     };
   }
@@ -51,8 +64,11 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
     const code = digitsOnly.padStart(6, "0");
     return {
       normalizedTicker: `${code}.SS`,
-      twelveSymbol: code,
-      twelveExchange: "SSE",
+      twelveCandidates: [
+        { symbol: `${code}.SSE` },
+        { symbol: code, exchange: "SSE" },
+        { symbol: `${code}.SS` },
+      ],
       eodhdSymbol: `${code}.SHG`,
     };
   }
@@ -61,8 +77,11 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
     const code = digitsOnly.padStart(6, "0");
     return {
       normalizedTicker: `${code}.SZ`,
-      twelveSymbol: code,
-      twelveExchange: "SZSE",
+      twelveCandidates: [
+        { symbol: `${code}.SZSE` },
+        { symbol: code, exchange: "SZSE" },
+        { symbol: `${code}.SZ` },
+      ],
       eodhdSymbol: `${code}.SHE`,
     };
   }
@@ -181,7 +200,7 @@ export async function POST() {
     if (source === "stooq") {
       stooqHoldings.push({
         holding: h,
-        stooqSymbol: normalizedTicker.toLowerCase(),
+        stooqSymbol: toStooqSymbol(normalizedTicker),
         normalizedTicker,
       });
       continue;
@@ -243,8 +262,7 @@ export async function POST() {
           twelveApiKey,
           asiaHoldings.map(({ holding, profile }) => ({
             requestId: String(holding.id),
-            symbol: profile.twelveSymbol,
-            exchange: profile.twelveExchange,
+            candidates: profile.twelveCandidates,
           })),
           { batchSize: TWELVE_BATCH_SIZE, batchDelayMs: TWELVE_BATCH_DELAY_MS }
         );
