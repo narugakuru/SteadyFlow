@@ -256,6 +256,7 @@ export async function POST() {
       }
     } else {
       const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
+      const twelveErrorById = new Map<number, string>();
 
       if (twelveApiKey) {
         const twelveResults = await fetchTwelveDataQuotesInBatches(
@@ -270,7 +271,13 @@ export async function POST() {
         for (const result of twelveResults) {
           const holdingId = Number.parseInt(result.requestId, 10);
           const item = unresolvedById.get(holdingId);
-          if (!item || !result.quote) continue;
+          if (!item) continue;
+          if (!result.quote) {
+            if (result.error) {
+              twelveErrorById.set(holdingId, result.error);
+            }
+            continue;
+          }
 
           await applyQuoteToHolding(
             item.holding,
@@ -302,13 +309,18 @@ export async function POST() {
       }
 
       for (const item of unresolvedById.values()) {
+        const twelveError = twelveErrorById.get(item.holding.id);
         failed.push({
           id: item.holding.id,
           name: item.holding.name,
           ticker: item.profile.normalizedTicker,
           error: eodhdApiKey
-            ? "Twelve Data / EODHD 均未返回可用价格"
-            : "Twelve Data 无数据，且未配置 EODHD API Key",
+            ? twelveError
+              ? `Twelve Data: ${twelveError}；EODHD: 无可用价格`
+              : "Twelve Data / EODHD 均未返回可用价格"
+            : twelveError
+              ? `Twelve Data: ${twelveError}；且未配置 EODHD API Key`
+              : "Twelve Data 无数据，且未配置 EODHD API Key",
         });
       }
     }

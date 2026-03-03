@@ -19,6 +19,11 @@ export interface TwelveDataBatchResult {
   error?: string;
 }
 
+interface TwelveDataAttemptResult {
+  quote: TwelveDataQuote | null;
+  error?: string;
+}
+
 function toPositiveNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
     return value;
@@ -49,6 +54,14 @@ export async function fetchTwelveDataQuote(
   apiKey: string,
   request: { symbol: string; exchange?: string }
 ): Promise<TwelveDataQuote | null> {
+  const result = await fetchTwelveDataQuoteAttempt(apiKey, request);
+  return result.quote;
+}
+
+async function fetchTwelveDataQuoteAttempt(
+  apiKey: string,
+  request: { symbol: string; exchange?: string }
+): Promise<TwelveDataAttemptResult> {
   try {
     const url = new URL("https://api.twelvedata.com/quote");
     url.searchParams.set("apikey", apiKey);
@@ -63,37 +76,44 @@ export async function fetchTwelveDataQuote(
     });
 
     if (!res.ok) {
-      return null;
+      return { quote: null, error: `HTTP ${res.status}` };
     }
 
     const data = (await res.json()) as Record<string, unknown>;
     if (!data || data.status === "error") {
-      return null;
+      const message =
+        typeof data?.message === "string" && data.message.trim()
+          ? data.message.trim()
+          : "Twelve Data 返回错误";
+      return { quote: null, error: message };
     }
 
     const realtime = toPositiveNumber(data.close) ?? toPositiveNumber(data.price);
     const previousClose = toPositiveNumber(data.previous_close);
     const price = realtime ?? previousClose;
     if (!price) {
-      return null;
+      return { quote: null, error: "未返回可用 price/close/previous_close" };
     }
 
     return {
-      symbol: String(data.symbol ?? request.symbol),
-      price,
-      updatedAt: toIsoDatetime(data.datetime ?? data.timestamp),
-      source: realtime ? "realtime" : "previous_close",
+      quote: {
+        symbol: String(data.symbol ?? request.symbol),
+        price,
+        updatedAt: toIsoDatetime(data.datetime ?? data.timestamp),
+        source: realtime ? "realtime" : "previous_close",
+      },
     };
   } catch {
-    return null;
+    return { quote: null, error: "请求异常" };
   }
 }
 
 async function fetchTwelveDataQuoteWithFallback(
   apiKey: string,
   request: TwelveDataRequest
-): Promise<TwelveDataQuote | null> {
+): Promise<TwelveDataAttemptResult> {
   const seen = new Set<string>();
+  let lastError = "Twelve Data 无数据";
   for (const candidate of request.candidates) {
     const symbol = candidate.symbol.trim();
     if (!symbol) continue;
@@ -101,10 +121,13 @@ async function fetchTwelveDataQuoteWithFallback(
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const quote = await fetchTwelveDataQuote(apiKey, candidate);
-    if (quote) return quote;
+    const attempt = await fetchTwelveDataQuoteAttempt(apiKey, candidate);
+    if (attempt.quote) return attempt;
+    if (attempt.error) {
+      lastError = `${symbol}${candidate.exchange ? ` (${candidate.exchange})` : ""}: ${attempt.error}`;
+    }
   }
-  return null;
+  return { quote: null, error: lastError };
 }
 
 function delay(ms: number) {
@@ -132,11 +155,11 @@ export async function fetchTwelveDataQuotesInBatches(
     const batch = requests.slice(i, i + batchSize);
     const batchResults = await Promise.all(
       batch.map(async (req) => {
-        const quote = await fetchTwelveDataQuoteWithFallback(apiKey, req);
+        const attempt = await fetchTwelveDataQuoteWithFallback(apiKey, req);
         return {
           requestId: req.requestId,
-          quote,
-          error: quote ? undefined : "Twelve Data 无数据",
+          quote: attempt.quote,
+          error: attempt.error,
         } satisfies TwelveDataBatchResult;
       })
     );
