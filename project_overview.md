@@ -60,6 +60,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-03] 品牌文案统一：浏览器标签页全局标题由“资产组合管理”改为 `SteadyFlow`（`src/app/layout.tsx` metadata.title）。
 - [2026-03-03] 自动报价路由重构：`/api/holdings/fetch-prices` 亚洲市场改为 Tencent 主、EODHD 次、Twelve Data 最低权重备份；新增 `.BJ`（北交所）映射；移除 Twelve Data 历史 65s 批次等待，供应商请求链路不再使用固定秒级延时。
 - [2026-03-03] 自动化与调度：上线 `Vercel Cron` 每日自动记录净值；新增 `netvalue.timezone` 用户设置，实现按时区自动 upsert。
 - [2026-03-03] 股价引擎增强：集成 Twelve Data 与 EODHD 供应商，支持港/A股多候选匹配及美股映射（如 BRK.B）；新增股价更新明细弹窗，透传供应商原始错误。

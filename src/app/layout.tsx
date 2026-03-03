@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "资产组合管理",
+  title: "SteadyFlow",
   description: "个人投资组合纪律交易管理工具",
 };
 
