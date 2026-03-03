@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/auth-utils";
@@ -9,7 +9,7 @@ export async function GET() {
     return response;
   }
 
-  if ((session?.user as any)?.role !== "admin") {
+  if (session?.user?.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

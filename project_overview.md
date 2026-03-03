@@ -62,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-03] 历史质量问题修复：清理 `admin` API 中显式 `any`、修复 `useTriFieldLinked/useFetch` 的 React Hooks lint 违规，并为 Node 脚本入口补齐 CommonJS lint 规则豁免；`lint` 与 `typecheck` 均通过（仅剩 `navbar` 的 `<img>` 优化 warning）。
 - [2026-03-03] `src/lib` 继续细分：新增 `lib/auth`、`lib/services`、`lib/utils`，完成认证/服务/工具与类型文件迁移，并全量更新业务代码导入路径。
 - [2026-03-03] `src/lib` 目录重构：新增 `lib/visualization`（图表与展示配色）与 `lib/data-source`（行情/汇率供应商与市场数据聚合），并完成全量导入路径迁移。
 - [2026-03-03] 实现 `global-local-cache-swr`：接入 TanStack Query + IndexedDB 持久化与统一 `policy.ts`；完成 Dashboard/Accounts/Transactions/BatchUpdate/Netvalue/Market/Admin 页面缓存优先读取迁移；新增后台刷新失败通知条、低侵入数据新鲜度展示、登出与 401 缓存清理、跨标签页失效同步。

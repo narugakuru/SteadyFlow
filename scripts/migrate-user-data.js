@@ -1,4 +1,4 @@
-﻿/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const bcrypt = require("bcrypt");
 const { randomUUID } = require("crypto");
 const fs = require("fs");
@@ -21,7 +21,7 @@ function loadEnvFile() {
     const key = trimmed.slice(0, idx).trim();
     let value = trimmed.slice(idx + 1).trim();
     if (
-      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1);
@@ -33,7 +33,6 @@ function loadEnvFile() {
 }
 
 async function migrateSqlite(email, password) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Database = require("better-sqlite3");
 
   const dbDir = path.join(process.cwd(), "data");
@@ -45,9 +44,7 @@ async function migrateSqlite(email, password) {
   const db = new Database(dbPath);
   db.pragma("foreign_keys = ON");
 
-  const existing = db
-    .prepare("SELECT id, role FROM users WHERE email = ? LIMIT 1")
-    .get(email);
+  const existing = db.prepare("SELECT id, role FROM users WHERE email = ? LIMIT 1").get(email);
 
   let adminId = existing?.id;
   if (existing) {
@@ -72,7 +69,6 @@ async function migrateSqlite(email, password) {
 }
 
 async function migratePostgres(email, password) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { neon } = require("@neondatabase/serverless");
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -117,9 +113,10 @@ async function main() {
 
   const dbType = process.env.DB_TYPE || "sqlite";
 
-  const adminId = dbType === "postgres"
-    ? await migratePostgres(email, password)
-    : await migrateSqlite(email, password);
+  const adminId =
+    dbType === "postgres"
+      ? await migratePostgres(email, password)
+      : await migrateSqlite(email, password);
 
   console.log("User data migration complete. Default admin:", email, "id:", adminId);
 }

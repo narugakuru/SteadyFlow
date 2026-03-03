@@ -1,7 +1,18 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { authAccounts, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/auth-utils";
+
+type AdminUserRow = {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: "admin" | "user";
+  plan: "free" | "pro";
+  password: string | null;
+  createdAt: string;
+};
 
 export async function GET() {
   const { session, userId, response } = await requireUser();
@@ -9,11 +20,11 @@ export async function GET() {
     return response;
   }
 
-  if ((session?.user as any)?.role !== "admin") {
+  if (session?.user?.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const allUsers = await db.select().from(users);
+  const allUsers = (await db.select().from(users)) as AdminUserRow[];
   const accountRows = await db
     .select({ userId: authAccounts.userId, provider: authAccounts.provider })
     .from(authAccounts);
@@ -26,12 +37,9 @@ export async function GET() {
     providerMap.get(row.userId)!.add(row.provider);
   }
 
-  const result = allUsers.map((user: any) => {
+  const result = allUsers.map((user) => {
     const providers = Array.from(providerMap.get(user.id) ?? []);
-    const loginMethods = [
-      ...(user.password ? ["password"] : []),
-      ...providers,
-    ];
+    const loginMethods = [...(user.password ? ["password"] : []), ...providers];
 
     return {
       id: user.id,

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * InvestManage Windows 打包脚本
  *
@@ -121,7 +122,9 @@ function embedNodeExe() {
     fs.copyFileSync(localNode, path.join(OUT, "node.exe"));
     return;
   }
-  throw new Error("Could not find node.exe. Please place node.exe (Windows x64) into dist/InvestManage/.");
+  throw new Error(
+    "Could not find node.exe. Please place node.exe (Windows x64) into dist/InvestManage/."
+  );
 }
 
 function createZip() {

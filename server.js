@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * InvestManage 启动脚本
  * 包装 Next.js standalone server，添加端口检测和自动打开浏览器功能

@@ -1,33 +1,34 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
 
-const ROLE_VALUES = new Set(["admin", "user"]);
-const PLAN_VALUES = new Set(["free", "pro"]);
+type Role = "admin" | "user";
+type Plan = "free" | "pro";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const ROLE_VALUES = new Set<Role>(["admin", "user"]);
+const PLAN_VALUES = new Set<Plan>(["free", "pro"]);
+
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session, userId, response } = await requireUser();
   if (!userId) {
     return response;
   }
 
-  if ((session?.user as any)?.role !== "admin") {
+  if (session?.user?.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
-  const body = await request.json();
-  const { role, plan } = body as { role?: string; plan?: string };
+  const body = (await request.json()) as { role?: unknown; plan?: unknown };
+  const role = typeof body.role === "string" ? body.role : undefined;
+  const plan = typeof body.plan === "string" ? body.plan : undefined;
 
-  if (role !== undefined && !ROLE_VALUES.has(role)) {
+  if (role !== undefined && !ROLE_VALUES.has(role as Role)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
-  if (plan !== undefined && !PLAN_VALUES.has(plan)) {
+  if (plan !== undefined && !PLAN_VALUES.has(plan as Plan)) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
@@ -35,9 +36,9 @@ export async function PUT(
     return NextResponse.json({ error: "不能修改自己的角色" }, { status: 400 });
   }
 
-  const updateData: Record<string, any> = {};
-  if (role !== undefined) updateData.role = role;
-  if (plan !== undefined) updateData.plan = plan;
+  const updateData: Partial<{ role: Role; plan: Plan }> = {};
+  if (role !== undefined) updateData.role = role as Role;
+  if (plan !== undefined) updateData.plan = plan as Plan;
 
   if (Object.keys(updateData).length === 0) {
     return NextResponse.json({ error: "No changes" }, { status: 400 });

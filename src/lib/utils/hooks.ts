@@ -38,7 +38,8 @@ export function useTriFieldLinked(initial: UseTriFieldLinkedOptions): UseTriFiel
     return all.find((f) => !lastEdited.current.includes(f))!;
   };
 
-  const [computedField, setComputedField] = useState<TriField>(getComputedField);
+  // 初始锁定 price/shares，因此 marketValue 为自动计算字段
+  const [computedField, setComputedField] = useState<TriField>("marketValue");
 
   const pushEdited = (field: TriField) => {
     const [, newer] = lastEdited.current;
@@ -133,8 +134,27 @@ export function useFetch<T>(url: string) {
   }, [url]);
 
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    let canceled = false;
+
+    async function loadInitial() {
+      try {
+        const res = await fetch(url);
+        const json = await res.json();
+        if (!canceled) {
+          setData(json);
+        }
+      } finally {
+        if (!canceled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadInitial();
+    return () => {
+      canceled = true;
+    };
+  }, [url]);
 
   return { data, loading, refetch };
 }
