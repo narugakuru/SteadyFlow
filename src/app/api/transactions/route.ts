@@ -5,6 +5,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { fromDbBool, toDbBool } from "@/lib/utils";
 import { roundForStorage } from "@/lib/format";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 export async function GET(request: Request) {
   const { userId, response } = await requireUser();
@@ -155,8 +156,7 @@ export async function POST(request: Request) {
   const parsedAmount = roundForStorage(parseFloat(amount) || 0, "amount");
   const parsedTxShares =
     txShares != null ? roundForStorage(parseFloat(txShares) || 0, "shares") : null;
-  const parsedTxPrice =
-    txPrice != null ? roundForStorage(parseFloat(txPrice) || 0, "price") : null;
+  const parsedTxPrice = txPrice != null ? roundForStorage(parseFloat(txPrice) || 0, "price") : null;
   const parsedFee = roundForStorage(parseFloat(fee) || 0, "amount");
 
   // Sell validations
@@ -213,9 +213,7 @@ export async function POST(request: Request) {
         if (holding.valuationMode === "shares" && parsedTxShares != null) {
           const newShares = roundForStorage(holding.shares + parsedTxShares, "shares");
           const newPrice =
-            parsedTxPrice != null
-              ? parsedTxPrice
-              : roundForStorage(holding.price, "price");
+            parsedTxPrice != null ? parsedTxPrice : roundForStorage(holding.price, "price");
           // 加权平均成本法：newCost = (oldCost × oldShares + txPrice × txShares) / newShares
           // cost 在 shares 模式下存储的是"平均每股成本"
           const newCostRaw =
@@ -263,9 +261,7 @@ export async function POST(request: Request) {
           // shares 模式卖出：cost（平均每股成本）不变，只减少份额
           const newShares = roundForStorage(holding.shares - parsedTxShares, "shares");
           const newPrice =
-            parsedTxPrice != null
-              ? parsedTxPrice
-              : roundForStorage(holding.price, "price");
+            parsedTxPrice != null ? parsedTxPrice : roundForStorage(holding.price, "price");
           await db
             .update(holdings)
             .set({
@@ -342,12 +338,14 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json(
-    {
-      ...txRecord,
-      affectCash: fromDbBool(txRecord.affectCash),
-      affectHolding: fromDbBool(txRecord.affectHolding),
-    },
-    { status: 201 }
+  return runMutationWithNetvalue(userId, async () =>
+    NextResponse.json(
+      {
+        ...txRecord,
+        affectCash: fromDbBool(txRecord.affectCash),
+        affectHolding: fromDbBool(txRecord.affectHolding),
+      },
+      { status: 201 }
+    )
   );
 }

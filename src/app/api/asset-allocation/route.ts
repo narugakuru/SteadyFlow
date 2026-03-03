@@ -7,6 +7,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
+import { normalizeNetvalueTimeZone } from "@/lib/timezone";
 
 function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: number; id?: number }>(
   items: T[]
@@ -72,9 +73,14 @@ export async function GET() {
     .select()
     .from(settings)
     .where(and(eq(settings.userId, userId), eq(settings.key, "color_mode")));
+  const [netvalueTimezoneRow] = await db
+    .select()
+    .from(settings)
+    .where(and(eq(settings.userId, userId), eq(settings.key, "netvalue.timezone")));
   const warningThreshold = warnRow ? parseFloat(warnRow.value) : 5;
   const dangerThreshold = dangerRow ? parseFloat(dangerRow.value) : 15;
   const colorMode = (colorRow?.value === "us" ? "us" : "cn") as "cn" | "us";
+  const netvalueTimezone = normalizeNetvalueTimeZone(netvalueTimezoneRow?.value);
 
   const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));
 
@@ -238,6 +244,6 @@ export async function GET() {
     totalAssetCny: roundForStorage(totalAssetCny, "amount"),
     allocation,
     rates: ratesResult,
-    settings: { warningThreshold, dangerThreshold, colorMode },
+    settings: { warningThreshold, dangerThreshold, colorMode, netvalueTimezone },
   });
 }

@@ -18,7 +18,7 @@ InvestManage 目标是提供一个轻量、可自托管、可多用户的投资�
 - 账户管理：现金余额、持仓列表、账户维度盈亏
 - 交易系统：买入/卖出/分红/出入金，支持副作用开关
 - 资产配置：目标比例、当前比例、偏离度可视化
-- 净值历史：按日记录总资产净值并展示趋势
+- 净值历史：按日记录总资产净值并展示趋势（资产变动自动刷新 + 每日自动记录）
 - 市场概览：主要指数行情 + TradingView 图表
 - 用户系统：邮箱密码登录、GitHub OAuth、管理员后台
 
@@ -59,6 +59,7 @@ npm install
 DB_TYPE=sqlite
 AUTH_SECRET=your-auth-secret
 AUTH_URL=http://localhost:3000
+CRON_SECRET=your-cron-secret
 GITHUB_ID=your-github-client-id
 GITHUB_SECRET=your-github-client-secret
 DEFAULT_ADMIN_EMAIL=admin@example.com
@@ -95,6 +96,7 @@ DB_TYPE=postgres
 DATABASE_URL=postgresql://...
 AUTH_SECRET=your-production-secret
 AUTH_URL=https://your-app.vercel.app or https://localhost:3000
+CRON_SECRET=your-cron-secret
 # Github OAuth登录（可选项）
 GITHUB_ID=your-github-client-id
 GITHUB_SECRET=your-github-client-secret
@@ -119,6 +121,13 @@ GITHUB_SECRET=your-github-client-secret
 
 - 运行时会自动尝试执行 PostgreSQL 迁移（`drizzle-pg/`）并做 seed 兜底。
 - 生产环境建议在发布前手动执行一次 `npm run db:migrate:pg` 做显式迁移控制。
+
+### 净值自动记录定时任务
+
+- 云端（Vercel）：根目录 `vercel.json` 已配置每小时触发一次 `POST /api/cron/netvalue`。
+- 调度逻辑：任务按用户时区判断本地时间，命中本地凌晨 `03:00` 时为该用户自动记录/刷新当日净值。
+- 鉴权：请求需携带 `CRON_SECRET`（`Authorization: Bearer <CRON_SECRET>` 或 `x-cron-secret`）。
+- 本地离线：可用系统计划任务（Windows Task Scheduler / cron）每小时调用一次该接口，行为与云端一致。
 
 ### 方案 B：Windows 离线分发包
 

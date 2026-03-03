@@ -21,6 +21,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
     warningThreshold: 3,
     dangerThreshold: 5,
     colorMode: "cn",
+    netvalueTimezone: "Asia/Shanghai",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +39,11 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
           (a: AssetClass, b: AssetClass) => a.sortOrder - b.sortOrder || a.id - b.id
         )
       );
-      setSettings(settingsData);
+      setSettings((prev) => ({
+        ...prev,
+        ...settingsData,
+        netvalueTimezone: settingsData.netvalueTimezone || "Asia/Shanghai",
+      }));
     });
   };
 
@@ -102,7 +107,8 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
       const data = await classRes.json();
       setError(data.error || "保存失败");
     } else if (!settingsRes.ok) {
-      setError("阈值保存失败");
+      const data = await settingsRes.json().catch(() => null);
+      setError((data && data.error) || "设置保存失败");
     } else {
       onOpenChange(false);
       onSaved();
@@ -246,6 +252,30 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 🇺🇸 正绿负红（美股）
               </Button>
             </div>
+          </div>
+
+          {/* Netvalue timezone */}
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium mb-3">净值时区</p>
+            <Input
+              list="netvalue-timezone-options"
+              value={settings.netvalueTimezone}
+              onChange={(e) =>
+                setSettings((s) => ({ ...s, netvalueTimezone: e.target.value.trim() }))
+              }
+              placeholder="例如 Asia/Shanghai"
+            />
+            <datalist id="netvalue-timezone-options">
+              <option value="Asia/Shanghai" />
+              <option value="Asia/Hong_Kong" />
+              <option value="Asia/Tokyo" />
+              <option value="America/New_York" />
+              <option value="America/Los_Angeles" />
+              <option value="Europe/London" />
+            </datalist>
+            <p className="text-xs text-muted-foreground mt-2">
+              用于计算“当日净值”日期和每日自动记录时间（本地凌晨 3:00）。
+            </p>
           </div>
 
           {error && <p className="text-destructive text-sm">{error}</p>}

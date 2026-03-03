@@ -5,6 +5,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db
@@ -133,23 +134,25 @@ export async function POST(request: Request) {
       ? roundForStorage(finalShares * finalPrice, "amount")
       : roundForStorage(marketValue != null ? parseFloat(marketValue) : finalCost, "amount");
 
-  const [result] = await db
-    .insert(holdings)
-    .values({
-      accountId: accountIdNum,
-      name,
-      ticker: ticker || null,
-      valuationMode,
-      cost: finalCost,
-      marketValue: finalMarketValue,
-      shares: finalShares,
-      price: finalPrice,
-      assetClass: normalizedAssetClass,
-      accountSortOrder: nextAccountSortOrder,
-      disciplineSortOrder: nextDisciplineSortOrder,
-      memo: memoText || null,
-    })
-    .returning();
+  return runMutationWithNetvalue(userId, async () => {
+    const [result] = await db
+      .insert(holdings)
+      .values({
+        accountId: accountIdNum,
+        name,
+        ticker: ticker || null,
+        valuationMode,
+        cost: finalCost,
+        marketValue: finalMarketValue,
+        shares: finalShares,
+        price: finalPrice,
+        assetClass: normalizedAssetClass,
+        accountSortOrder: nextAccountSortOrder,
+        disciplineSortOrder: nextDisciplineSortOrder,
+        memo: memoText || null,
+      })
+      .returning();
 
-  return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
+  });
 }

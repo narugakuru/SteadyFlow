@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { roundForStorage } from "@/lib/format";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 async function getValidAssetClasses(userId: string): Promise<string[]> {
   const rows = await db
@@ -159,13 +160,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     updateSet.marketValue = roundForStorage(parseFloat(marketValue) || 0, "amount");
   }
 
-  const [result] = await db
-    .update(holdings)
-    .set(updateSet)
-    .where(eq(holdings.id, Number(id)))
-    .returning();
+  return runMutationWithNetvalue(userId, async () => {
+    const [result] = await db
+      .update(holdings)
+      .set(updateSet)
+      .where(eq(holdings.id, Number(id)))
+      .returning();
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  });
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -191,11 +194,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Holding not found" }, { status: 404 });
   }
 
-  const [result] = await db.delete(holdings).where(eq(holdings.id, numId)).returning();
+  return runMutationWithNetvalue(userId, async () => {
+    const [result] = await db.delete(holdings).where(eq(holdings.id, numId)).returning();
 
-  if (!result) {
-    return NextResponse.json({ error: "Holding not found" }, { status: 404 });
-  }
+    if (!result) {
+      return NextResponse.json({ error: "Holding not found" }, { status: 404 });
+    }
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  });
 }

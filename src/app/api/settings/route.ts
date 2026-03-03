@@ -3,6 +3,29 @@ import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
+import {
+  DEFAULT_NETVALUE_TIMEZONE,
+  isValidIanaTimeZone,
+  normalizeNetvalueTimeZone,
+} from "@/lib/timezone";
+
+async function upsertSetting(userId: string, key: string, value: string) {
+  const [existing] = await db
+    .select()
+    .from(settings)
+    .where(and(eq(settings.userId, userId), eq(settings.key, key)))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(settings)
+      .set({ value })
+      .where(and(eq(settings.userId, userId), eq(settings.key, key)));
+    return;
+  }
+
+  await db.insert(settings).values({ userId, key, value });
+}
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -19,6 +42,7 @@ export async function GET() {
     warningThreshold: parseFloat(result.warning_threshold ?? "5"),
     dangerThreshold: parseFloat(result.danger_threshold ?? "15"),
     colorMode: result.color_mode ?? "cn",
+    netvalueTimezone: normalizeNetvalueTimeZone(result["netvalue.timezone"]),
   });
 }
 
@@ -29,52 +53,39 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json();
-  const { warningThreshold, dangerThreshold, colorMode } = body;
+  const { warningThreshold, dangerThreshold, colorMode, netvalueTimezone } = body;
 
   if (warningThreshold == null || dangerThreshold == null) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  // Upsert warning_threshold
-  const [existingWarn] = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.userId, userId), eq(settings.key, "warning_threshold")));
-  if (existingWarn) {
-    await db.update(settings)
-      .set({ value: String(warningThreshold) })
-      .where(and(eq(settings.userId, userId), eq(settings.key, "warning_threshold")));
-  } else {
-    await db.insert(settings).values({ userId, key: "warning_threshold", value: String(warningThreshold) });
+  if (netvalueTimezone !== undefined && !isValidIanaTimeZone(String(netvalueTimezone).trim())) {
+    return NextResponse.json({ error: "Invalid IANA timezone" }, { status: 400 });
   }
 
-  // Upsert danger_threshold
-  const [existingDanger] = await db
-    .select()
-    .from(settings)
-    .where(and(eq(settings.userId, userId), eq(settings.key, "danger_threshold")));
-  if (existingDanger) {
-    await db.update(settings)
-      .set({ value: String(dangerThreshold) })
-      .where(and(eq(settings.userId, userId), eq(settings.key, "danger_threshold")));
-  } else {
-    await db.insert(settings).values({ userId, key: "danger_threshold", value: String(dangerThreshold) });
-  }
+  await upsertSetting(userId, "warning_threshold", String(warningThreshold));
+  await upsertSetting(userId, "danger_threshold", String(dangerThreshold));
 
-  // Upsert color_mode
-  if (colorMode) {
-    const [existingColor] = await db
-      .select()
+  const normalizedColorMode = colorMode === "us" ? "us" : "cn";
+  await upsertSetting(userId, "color_mode", normalizedColorMode);
+
+  let normalizedTimeZone = DEFAULT_NETVALUE_TIMEZONE;
+  if (netvalueTimezone !== undefined) {
+    normalizedTimeZone = normalizeNetvalueTimeZone(netvalueTimezone);
+    await upsertSetting(userId, "netvalue.timezone", normalizedTimeZone);
+  } else {
+    const [existingTimeZone] = await db
+      .select({ value: settings.value })
       .from(settings)
-      .where(and(eq(settings.userId, userId), eq(settings.key, "color_mode")));
-    if (existingColor) {
-      await db.update(settings)
-        .set({ value: String(colorMode) })
-        .where(and(eq(settings.userId, userId), eq(settings.key, "color_mode")));
-    } else {
-      await db.insert(settings).values({ userId, key: "color_mode", value: String(colorMode) });
-    }
+      .where(and(eq(settings.userId, userId), eq(settings.key, "netvalue.timezone")))
+      .limit(1);
+    normalizedTimeZone = normalizeNetvalueTimeZone(existingTimeZone?.value);
   }
 
-  return NextResponse.json({ warningThreshold, dangerThreshold, colorMode: colorMode ?? "cn" });
+  return NextResponse.json({
+    warningThreshold,
+    dangerThreshold,
+    colorMode: normalizedColorMode,
+    netvalueTimezone: normalizedTimeZone,
+  });
 }

@@ -4,11 +4,9 @@ import { accounts, holdings, transactions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { fromDbBool } from "@/lib/utils";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId, response } = await requireUser();
   if (!userId) {
     return response;
@@ -53,10 +51,7 @@ export async function GET(
   });
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { userId, response } = await requireUser();
   if (!userId) {
     return response;
@@ -76,7 +71,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
   }
 
-  await db.delete(transactions).where(eq(transactions.id, numId));
-
-  return NextResponse.json({ success: true });
+  return runMutationWithNetvalue(userId, async () => {
+    await db.delete(transactions).where(eq(transactions.id, numId));
+    return NextResponse.json({ success: true });
+  });
 }

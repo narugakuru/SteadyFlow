@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { holdings, accounts } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { fetchStooqQuote } from "@/lib/stooq";
 import { fetchYahooQuotes } from "@/lib/yahoo";
 import { roundForStorage } from "@/lib/format";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 /**
  * 按 ticker 后缀判断数据源：
@@ -139,5 +140,9 @@ export async function POST() {
     }
   }
 
-  return NextResponse.json({ updated, failed, skipped });
+  const resultResponse = NextResponse.json({ updated, failed, skipped });
+  if (updated.length === 0) {
+    return resultResponse;
+  }
+  return runMutationWithNetvalue(userId, async () => resultResponse);
 }

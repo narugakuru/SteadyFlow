@@ -80,6 +80,7 @@ export interface Settings {
   warningThreshold: number;
   dangerThreshold: number;
   colorMode: "cn" | "us";
+  netvalueTimezone: string;
 }
 
 export interface AllocationHolding {

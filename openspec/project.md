@@ -36,7 +36,8 @@ src/
 │       ├── exchange-rates/         # 汇率
 │       ├── market/                 # 市场指数行情（Yahoo Finance）
 │       ├── discipline-notes/       # 纪律笔记 CRUD
-│       └── netvalue/                # 净值
+│       ├── netvalue/               # 净值
+│       └── cron/netvalue/          # 净值定时任务入口（CRON_SECRET 鉴权）
 ├── middleware.ts                  # 路由守卫（JWT + 管理员权限）
 ├── components/
 │   ├── ui/                         # shadcn 基础组件（含 loading-spinner）
@@ -73,7 +74,10 @@ src/
 │   ├── hooks.ts                    # 自定义 Hooks
 │   ├── chart-colors.ts             # 图表颜色常量
 │   ├── exchange-rate.ts            # 汇率获取逻辑
-│   └── market-data.ts              # 市场指数数据获取（Yahoo Finance API）
+│   ├── market-data.ts              # 市场指数数据获取（Yahoo Finance API）
+│   ├── netvalue-service.ts         # 净值计算与写入服务（时区 + upsert）
+│   ├── mutation-with-netvalue.ts   # 写操作后自动触发净值刷新封装
+│   └── timezone.ts                 # IANA 时区校验与本地日期/时间计算
 └── types/
     └── next-auth.d.ts              # Auth.js 类型扩展
 ```
@@ -93,4 +97,4 @@ src/
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                    |
 | netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
 | disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                               |
-| settings           | 系统设置       | userId(FK, not null), key, value                                                                                                                                      |
+| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone` 键，默认 `Asia/Shanghai`）                                                                                   |

@@ -4,6 +4,7 @@ import { accounts, holdings } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { roundForStorage } from "@/lib/format";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -51,15 +52,17 @@ export async function POST(request: Request) {
 
   const cashVal = roundForStorage(parseFloat(cashBalance) || 0, "amount");
 
-  const [result] = await db
-    .insert(accounts)
-    .values({
-      userId,
-      name,
-      currency,
-      cashBalance: cashVal,
-    })
-    .returning();
+  return runMutationWithNetvalue(userId, async () => {
+    const [result] = await db
+      .insert(accounts)
+      .values({
+        userId,
+        name,
+        currency,
+        cashBalance: cashVal,
+      })
+      .returning();
 
-  return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
+  });
 }

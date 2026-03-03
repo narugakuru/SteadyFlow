@@ -4,6 +4,7 @@ import { accounts, holdings } from "@/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { roundForStorage } from "@/lib/format";
+import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 interface BatchPayload {
   holdings?: { id: number; marketValue: number; price?: number }[];
@@ -33,26 +34,26 @@ async function handleBatchUpdate(request: Request) {
     return NextResponse.json({ error: "持仓不存在" }, { status: 404 });
   }
 
-  const now = new Date().toISOString();
+  return runMutationWithNetvalue(userId, async () => {
+    const now = new Date().toISOString();
 
-  for (const h of holdingUpdates) {
-    const updateData: Record<string, any> = {
-      marketValue: roundForStorage(h.marketValue, "amount"),
-      updatedAt: now,
-    };
-    if (h.price !== undefined) {
-      updateData.price = roundForStorage(h.price, "price");
+    for (const h of holdingUpdates) {
+      const updateData: { marketValue: number; updatedAt: string; price?: number } = {
+        marketValue: roundForStorage(h.marketValue, "amount"),
+        updatedAt: now,
+      };
+      if (h.price !== undefined) {
+        updateData.price = roundForStorage(h.price, "price");
+      }
+      await db.update(holdings).set(updateData).where(eq(holdings.id, h.id));
     }
-    await db.update(holdings)
-      .set(updateData)
-      .where(eq(holdings.id, h.id));
-  }
 
-  return NextResponse.json({
-    success: true,
-    updated: {
-      holdings: holdingUpdates.length,
-    },
+    return NextResponse.json({
+      success: true,
+      updated: {
+        holdings: holdingUpdates.length,
+      },
+    });
   });
 }
 

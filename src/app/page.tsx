@@ -67,10 +67,6 @@ export default function Dashboard() {
     });
   }, [fetchAll]);
 
-  const handleRefreshNetvalue = async () => {
-    await fetch("/api/netvalue", { method: "POST" });
-  };
-
   const handleFetchPrices = async () => {
     setFetchingPrices(true);
     setPriceMsg("");
@@ -135,9 +131,6 @@ export default function Dashboard() {
             ) : (
               "📡 更新股价"
             )}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleRefreshNetvalue}>
-            📸 记录净值
           </Button>
         </div>
       </div>
