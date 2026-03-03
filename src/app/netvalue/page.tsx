@@ -5,7 +5,14 @@ import { NetvalueRecord } from "@/lib/types";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { NetvalueCharts } from "@/components/netvalue-charts";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { formatAmount } from "@/lib/format";
+
+function formatFixed2(value: number): string {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return safeValue.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 export default function NetvaluePage() {
   const { data: records, loading } = useFetch<NetvalueRecord[]>("/api/netvalue");
@@ -26,7 +33,7 @@ export default function NetvaluePage() {
         <>
           <NetvalueCharts records={records} />
           <div className="border rounded-lg overflow-x-auto">
-            <table className="w-full text-sm min-w-[500px]">
+            <table className="w-full text-sm min-w-[760px]">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="text-left p-3 font-medium">日期</th>
@@ -40,20 +47,26 @@ export default function NetvaluePage() {
               <tbody>
                 {records.map((s) => {
                   const alloc = s.dataJson.allocation;
-                  const getPct = (name: string) => {
+                  const getAllocationCell = (name: string) => {
                     const item = alloc.find((a) => normalizeAssetClassName(a.name) === name);
-                    return item ? `${item.actualPct}%` : "-";
+                    if (!item) return "-";
+                    return (
+                      <div className="leading-tight">
+                        <div>¥{formatFixed2(item.actualValue)}</div>
+                        <div>{formatFixed2(item.actualPct)}%</div>
+                      </div>
+                    );
                   };
                   return (
                     <tr key={s.id} className="border-t">
                       <td className="p-3">{s.date}</td>
                       <td className="p-3 text-right font-medium">
-                        ¥{formatAmount(s.totalAssetCny)}
+                        ¥{formatFixed2(s.totalAssetCny)}
                       </td>
-                      <td className="p-3 text-right">{getPct("股票")}</td>
-                      <td className="p-3 text-right">{getPct("黄金")}</td>
-                      <td className="p-3 text-right">{getPct("债券")}</td>
-                      <td className="p-3 text-right">{getPct("现金")}</td>
+                      <td className="p-3 text-right">{getAllocationCell("股票")}</td>
+                      <td className="p-3 text-right">{getAllocationCell("黄金")}</td>
+                      <td className="p-3 text-right">{getAllocationCell("债券")}</td>
+                      <td className="p-3 text-right">{getAllocationCell("现金")}</td>
                     </tr>
                   );
                 })}
