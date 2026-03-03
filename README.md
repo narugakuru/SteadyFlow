@@ -125,7 +125,13 @@ GITHUB_SECRET=your-github-client-secret
 ### 净值自动记录定时任务
 
 - 云端（Vercel）：根目录 `vercel.json` 已配置每天触发一次 `POST /api/cron/netvalue`（兼容 Hobby 免费计划）。
-- 调度逻辑：每次 cron 执行时都会为所有用户记录/刷新其“当前时区当天”的净值（按 `userId + date` upsert），即使用户当天未登录也会被自动记录。
+- 调度逻辑：Cron 对每个用户执行“先更新股价、后写入当日净值”，并以 `(userId + date)` 幂等 upsert。
+- 宽松模式：股价同步结果无论是 `ok` / `partial` / `failed`，都继续写入净值；响应中包含每用户 `quoteSyncStatus` 与失败摘要，便于排障。
+- 分批与预算：支持按批处理用户并基于时间预算提前停止，避免函数被平台强杀。可通过环境变量调优：
+  - `CRON_NETVALUE_BATCH_SIZE`（默认 `25`）
+  - `CRON_NETVALUE_TIME_BUDGET_MS`（默认 `50000`）
+  - `CRON_NETVALUE_SAFE_REMAINING_MS`（默认 `6000`）
+- 续跑补偿：Cron 会在 `settings` 保存游标 `cron.netvalue.cursor`，下次从上次中断位置继续；到用户列表末尾后自动重置到起点循环覆盖。
 - 鉴权：请求需携带 `CRON_SECRET`（`Authorization: Bearer <CRON_SECRET>` 或 `x-cron-secret`）。
 - 本地离线：可用系统计划任务（Windows Task Scheduler / cron）每天调用一次该接口，行为与云端一致。
 
