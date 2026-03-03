@@ -62,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-03] OpenSpec 补同步（无 change 提案）：将“新用户默认资产目标占比调整为 40/10/20/30”补充到 `asset-allocation` 主 spec。
 - [2026-03-03] OpenSpec 补同步（无 change 提案）：将“会话初始化阶段视为加载中，避免误报失败闪烁”补充到 `client-cache-layer` 主 spec。
 - [2026-03-03] OpenSpec 补同步（无 change 提案）：将“全站浏览器标签页标题统一为 SteadyFlow”补充到 `navigation-layout` 主 spec。
 - [2026-03-03] OpenSpec 补同步（无 change 提案）：将免费版 Cron 的“每日固定一次、扫描全量用户记录净值”行为补充到 `daily-netvalue` 主 spec（替换旧的本地 03:00 命中窗口描述）。
