@@ -18,6 +18,7 @@
 - `.HK` -> `hk` + 5 位代码（不足 5 位前补零）
 
 系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。
+系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。
 
 #### Scenario: 成功更新美股持仓价格（Stooq）
 
@@ -48,6 +49,11 @@
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`601088.SS`，腾讯与 EODHD 均未返回可用价格，且已配置 Twelve Data key
 - **THEN** 系统使用 Twelve Data 获取价格并更新该持仓，`provider` 返回 `twelve-data`
+
+#### Scenario: Twelve Data 不使用固定延时批次等待
+
+- **WHEN** 当前用户触发自动报价并命中 Twelve Data 回退路径
+- **THEN** 系统不执行固定 65 秒或其他秒级 sleep 等待，按无固定延时策略继续请求与回退流程
 
 #### Scenario: 未配置任何回退 key 但腾讯可用
 
