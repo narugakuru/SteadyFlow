@@ -6,11 +6,13 @@ import { requireUser } from "@/lib/auth-utils";
 import { fetchStooqQuote } from "@/lib/stooq";
 import { fetchTwelveDataQuotesInBatches } from "@/lib/twelve-data";
 import { fetchEodhdQuote } from "@/lib/eodhd";
+import { fetchTencentQuotesInBatches, toTencentSimpleQuoteSymbol } from "@/lib/tencent-quote";
 import { roundForStorage } from "@/lib/format";
 import { runMutationWithNetvalue } from "@/lib/mutation-with-netvalue";
 
 const TWELVE_BATCH_SIZE = 8;
-const TWELVE_BATCH_DELAY_MS = 65000;
+const TENCENT_BATCH_SIZE = 30;
+const TENCENT_MAX_RETRIES = 1;
 
 function normalizeTicker(ticker: string) {
   return ticker.trim().toUpperCase();
@@ -18,15 +20,23 @@ function normalizeTicker(ticker: string) {
 
 function getTickerSource(ticker: string): "stooq" | "asia" | null {
   if (ticker.endsWith(".US") || ticker.endsWith(".JP")) return "stooq";
-  if (ticker.endsWith(".SS") || ticker.endsWith(".SZ") || ticker.endsWith(".HK")) return "asia";
+  if (
+    ticker.endsWith(".SS") ||
+    ticker.endsWith(".SZ") ||
+    ticker.endsWith(".HK") ||
+    ticker.endsWith(".BJ")
+  ) {
+    return "asia";
+  }
   return null;
 }
 
 interface AsiaTickerProfile {
   normalizedTicker: string;
+  tencentSymbol: string;
   twelveCandidates: Array<{
     symbol: string;
-    exchange?: "HKEX" | "SSE" | "SZSE";
+    exchange?: string;
   }>;
   eodhdSymbol: string;
 }
@@ -44,6 +54,9 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
   const [rawCode, suffix] = normalizedTicker.split(".");
   if (!rawCode || !suffix) return null;
 
+  const tencentSymbol = toTencentSimpleQuoteSymbol(normalizedTicker);
+  if (!tencentSymbol) return null;
+
   const digitsOnly = rawCode.replace(/\D/g, "");
   if (!digitsOnly) return null;
 
@@ -51,6 +64,7 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
     const code = digitsOnly.padStart(4, "0");
     return {
       normalizedTicker: `${code}.HK`,
+      tencentSymbol,
       twelveCandidates: [
         { symbol: `${code}.HK` },
         { symbol: `${code}.HKEX` },
@@ -64,6 +78,7 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
     const code = digitsOnly.padStart(6, "0");
     return {
       normalizedTicker: `${code}.SS`,
+      tencentSymbol,
       twelveCandidates: [
         { symbol: `${code}.SSE` },
         { symbol: code, exchange: "SSE" },
@@ -77,12 +92,23 @@ function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
     const code = digitsOnly.padStart(6, "0");
     return {
       normalizedTicker: `${code}.SZ`,
+      tencentSymbol,
       twelveCandidates: [
         { symbol: `${code}.SZSE` },
         { symbol: code, exchange: "SZSE" },
         { symbol: `${code}.SZ` },
       ],
       eodhdSymbol: `${code}.SHE`,
+    };
+  }
+
+  if (suffix === "BJ") {
+    const code = digitsOnly.padStart(6, "0");
+    return {
+      normalizedTicker: `${code}.BJ`,
+      tencentSymbol,
+      twelveCandidates: [{ symbol: `${code}.BJ` }, { symbol: code, exchange: "BSE" }],
+      eodhdSymbol: `${code}.BJ`,
     };
   }
 
@@ -245,84 +271,117 @@ export async function POST() {
     const twelveApiKey = (userSettings.get("quote_api.twelvedata_key") ?? "").trim();
     const eodhdApiKey = (userSettings.get("quote_api.eodhd_key") ?? "").trim();
 
-    if (!twelveApiKey && !eodhdApiKey) {
-      for (const { holding: h, profile } of asiaHoldings) {
-        failed.push({
-          id: h.id,
-          name: h.name,
-          ticker: profile.normalizedTicker,
-          error: "未配置 Twelve Data / EODHD API Key",
-        });
-      }
-    } else {
-      const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
-      const twelveErrorById = new Map<number, string>();
+    const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
+    const tencentErrorById = new Map<number, string>();
+    const eodhdErrorById = new Map<number, string>();
+    const twelveErrorById = new Map<number, string>();
 
-      if (twelveApiKey) {
-        const twelveResults = await fetchTwelveDataQuotesInBatches(
-          twelveApiKey,
-          asiaHoldings.map(({ holding, profile }) => ({
-            requestId: String(holding.id),
-            candidates: profile.twelveCandidates,
-          })),
-          { batchSize: TWELVE_BATCH_SIZE, batchDelayMs: TWELVE_BATCH_DELAY_MS }
+    const tencentResults = await fetchTencentQuotesInBatches(
+      asiaHoldings.map(({ holding, profile }) => ({
+        requestId: String(holding.id),
+        symbol: profile.tencentSymbol,
+      })),
+      { batchSize: TENCENT_BATCH_SIZE, maxRetries: TENCENT_MAX_RETRIES }
+    );
+
+    for (const result of tencentResults) {
+      const holdingId = Number.parseInt(result.requestId, 10);
+      const item = unresolvedById.get(holdingId);
+      if (!item) continue;
+
+      if (!result.quote) {
+        if (result.error) {
+          tencentErrorById.set(holdingId, result.error);
+        }
+        continue;
+      }
+
+      await applyQuoteToHolding(
+        item.holding,
+        item.profile.normalizedTicker,
+        result.quote.price,
+        "tencent",
+        result.quote.source,
+        updated
+      );
+      unresolvedById.delete(holdingId);
+    }
+
+    if (unresolvedById.size > 0 && eodhdApiKey) {
+      for (const [holdingId, item] of unresolvedById.entries()) {
+        const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
+        if (!quote) {
+          eodhdErrorById.set(holdingId, "无可用价格");
+          continue;
+        }
+
+        await applyQuoteToHolding(
+          item.holding,
+          item.profile.normalizedTicker,
+          quote.price,
+          "eodhd",
+          quote.source,
+          updated
         );
+        unresolvedById.delete(holdingId);
+      }
+    }
 
-        for (const result of twelveResults) {
-          const holdingId = Number.parseInt(result.requestId, 10);
-          const item = unresolvedById.get(holdingId);
-          if (!item) continue;
-          if (!result.quote) {
-            if (result.error) {
-              twelveErrorById.set(holdingId, result.error);
-            }
-            continue;
+    if (unresolvedById.size > 0 && twelveApiKey) {
+      const twelveResults = await fetchTwelveDataQuotesInBatches(
+        twelveApiKey,
+        [...unresolvedById.values()].map(({ holding, profile }) => ({
+          requestId: String(holding.id),
+          candidates: profile.twelveCandidates,
+        })),
+        { batchSize: TWELVE_BATCH_SIZE }
+      );
+
+      for (const result of twelveResults) {
+        const holdingId = Number.parseInt(result.requestId, 10);
+        const item = unresolvedById.get(holdingId);
+        if (!item) continue;
+
+        if (!result.quote) {
+          if (result.error) {
+            twelveErrorById.set(holdingId, result.error);
           }
-
-          await applyQuoteToHolding(
-            item.holding,
-            item.profile.normalizedTicker,
-            result.quote.price,
-            "twelve-data",
-            result.quote.source,
-            updated
-          );
-          unresolvedById.delete(holdingId);
+          continue;
         }
-      }
 
-      if (unresolvedById.size > 0 && eodhdApiKey) {
-        for (const [holdingId, item] of unresolvedById.entries()) {
-          const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
-          if (!quote) continue;
-
-          await applyQuoteToHolding(
-            item.holding,
-            item.profile.normalizedTicker,
-            quote.price,
-            "eodhd",
-            quote.source,
-            updated
-          );
-          unresolvedById.delete(holdingId);
-        }
+        await applyQuoteToHolding(
+          item.holding,
+          item.profile.normalizedTicker,
+          result.quote.price,
+          "twelve-data",
+          result.quote.source,
+          updated
+        );
+        unresolvedById.delete(holdingId);
       }
+    }
 
-      for (const item of unresolvedById.values()) {
-        const twelveError = twelveErrorById.get(item.holding.id);
-        failed.push({
-          id: item.holding.id,
-          name: item.holding.name,
-          ticker: item.profile.normalizedTicker,
-          error: eodhdApiKey
-            ? twelveError
-              ? `Twelve Data: ${twelveError}；EODHD: 无可用价格`
-              : "Twelve Data / EODHD 均未返回可用价格"
-            : twelveError
-              ? `Twelve Data: ${twelveError}；且未配置 EODHD API Key`
-              : "Twelve Data 无数据，且未配置 EODHD API Key",
-        });
-      }
+    for (const item of unresolvedById.values()) {
+      const holdingId = item.holding.id;
+      const reasons: string[] = [];
+      reasons.push(`Tencent: ${tencentErrorById.get(holdingId) ?? "无可用价格"}`);
+      reasons.push(
+        eodhdApiKey
+          ? `EODHD: ${eodhdErrorById.get(holdingId) ?? "无可用价格"}`
+          : "EODHD: 未配置 API Key"
+      );
+      reasons.push(
+        twelveApiKey
+          ? `Twelve Data: ${twelveErrorById.get(holdingId) ?? "无可用价格"}`
+          : "Twelve Data: 未配置 API Key"
+      );
+
+      failed.push({
+        id: holdingId,
+        name: item.holding.name,
+        ticker: item.profile.normalizedTicker,
+        error: reasons.join("；"),
+      });
     }
   }
 

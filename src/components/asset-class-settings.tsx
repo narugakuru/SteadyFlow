@@ -286,7 +286,22 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
           <div className="border-t pt-4 space-y-3">
             <p className="text-sm font-medium">股价数据源 API Key（用户自定义）</p>
             <div>
-              <Label className="text-xs mb-2 block">Twelve Data API Key（主）</Label>
+              <Label className="text-xs mb-2 block">EODHD API Key（次级回退，可选）</Label>
+              <Input
+                type="password"
+                autoComplete="off"
+                value={settings.eodhdApiKey || ""}
+                onChange={(e) => setSettings((s) => ({ ...s, eodhdApiKey: e.target.value.trim() }))}
+                placeholder="输入 EODHD API Key"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                腾讯主路由无可用价格时，自动回退到 EODHD（优先实时价，否则前一交易日收盘）。
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs mb-2 block">
+                Twelve Data API Key（最低权重备份，可选）
+              </Label>
               <Input
                 type="password"
                 autoComplete="off"
@@ -297,20 +312,8 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 placeholder="输入 Twelve Data API Key"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                港股/A股优先使用 Twelve Data。按 8 条/分钟分批抓取，批次间隔约 65 秒。
-              </p>
-            </div>
-            <div>
-              <Label className="text-xs mb-2 block">EODHD API Key（备）</Label>
-              <Input
-                type="password"
-                autoComplete="off"
-                value={settings.eodhdApiKey || ""}
-                onChange={(e) => setSettings((s) => ({ ...s, eodhdApiKey: e.target.value.trim() }))}
-                placeholder="输入 EODHD API Key"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Twelve Data 无法返回时自动回退到 EODHD（优先实时价，否则前一交易日收盘）。
+                仅在 Tencent 与 EODHD 均不可用时才尝试 Twelve Data；默认按 Pro 使用场景，不做固定 65
+                秒延时等待。
               </p>
             </div>
           </div>

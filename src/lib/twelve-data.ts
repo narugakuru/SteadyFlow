@@ -130,14 +130,10 @@ async function fetchTwelveDataQuoteWithFallback(
   return { quote: null, error: lastError };
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function fetchTwelveDataQuotesInBatches(
   apiKey: string,
   requests: TwelveDataRequest[],
-  options?: { batchSize?: number; batchDelayMs?: number }
+  options?: { batchSize?: number }
 ): Promise<TwelveDataBatchResult[]> {
   if (!apiKey || requests.length === 0) {
     return requests.map((req) => ({
@@ -148,7 +144,6 @@ export async function fetchTwelveDataQuotesInBatches(
   }
 
   const batchSize = Math.max(1, options?.batchSize ?? 8);
-  const batchDelayMs = Math.max(0, options?.batchDelayMs ?? 65000);
   const results: TwelveDataBatchResult[] = [];
 
   for (let i = 0; i < requests.length; i += batchSize) {
@@ -164,11 +159,6 @@ export async function fetchTwelveDataQuotesInBatches(
       })
     );
     results.push(...batchResults);
-
-    const hasMore = i + batchSize < requests.length;
-    if (hasMore) {
-      await delay(batchDelayMs);
-    }
   }
 
   return results;
