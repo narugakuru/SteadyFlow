@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { INDEX_CONFIG, type MarketIndex } from "@/lib/market-config";
+import { INDEX_CONFIG, type MarketIndex } from "@/lib/data-source/market-config";
 import { VixSentiment } from "@/components/vix-sentiment";
 import { TradingViewChart } from "@/components/tradingview-chart";
 import { Button } from "@/components/ui/button";

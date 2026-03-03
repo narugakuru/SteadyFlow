@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchMarketData } from "@/lib/market-data";
+import { fetchMarketData } from "@/lib/data-source/market-data";
 
 export async function GET() {
   // fetchMarketData 内部已处理异常，始终返回完整指数列表（失败时价格为空）

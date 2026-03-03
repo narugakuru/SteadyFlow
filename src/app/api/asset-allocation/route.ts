@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses, settings } from "@/db/schema";
-import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
+import { getExchangeRates, convertToCNY } from "@/lib/data-source/exchange-rate";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth-utils";
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";

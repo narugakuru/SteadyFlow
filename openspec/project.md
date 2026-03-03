@@ -72,9 +72,18 @@ src/
 │   ├── format.ts                   # 数值精度配置与统一格式化/截断函数
 │   ├── types.ts                    # 类型定义
 │   ├── hooks.ts                    # 自定义 Hooks
-│   ├── chart-colors.ts             # 图表颜色常量
-│   ├── exchange-rate.ts            # 汇率获取逻辑
-│   ├── market-data.ts              # 市场指数数据获取（Yahoo Finance API）
+│   ├── visualization/              # 可视化相关（图表、配色）
+│   │   ├── chart-colors.ts         # 图表颜色常量
+│   │   └── asset-class-colors.ts   # 资产类别标签配色
+│   ├── data-source/                # 数据源适配层（行情/汇率）
+│   │   ├── exchange-rate.ts        # 汇率获取逻辑
+│   │   ├── market-config.ts        # 市场指数配置
+│   │   ├── market-data.ts          # 市场指数数据聚合（Stooq/Yahoo）
+│   │   ├── stooq.ts                # Stooq 行情
+│   │   ├── yahoo.ts                # Yahoo Finance 行情
+│   │   ├── tencent-quote.ts        # 腾讯简易行情（A/H/BJ）
+│   │   ├── twelve-data.ts          # Twelve Data 行情
+│   │   └── eodhd.ts                # EODHD 行情
 │   ├── netvalue-service.ts         # 净值计算与写入服务（时区 + upsert）
 │   ├── mutation-with-netvalue.ts   # 写操作后自动触发净值刷新封装
 │   └── timezone.ts                 # IANA 时区校验与本地日期/时间计算

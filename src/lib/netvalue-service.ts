@@ -4,7 +4,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, assetClasses, holdings, netvalue, settings } from "@/db/schema";
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
-import { getExchangeRates, convertToCNY } from "@/lib/exchange-rate";
+import { getExchangeRates, convertToCNY } from "@/lib/data-source/exchange-rate";
 import { roundForStorage } from "@/lib/format";
 import {
   DEFAULT_NETVALUE_TIMEZONE,

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Holding, Account, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/types";
 import { useFetch, useTriFieldLinked } from "@/lib/hooks";
-import { getAssetClassColor } from "@/lib/asset-class-colors";
+import { getAssetClassColor } from "@/lib/visualization/asset-class-colors";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { TransactionForm } from "@/components/transaction-form";
 import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/format";

@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { NetvalueRecord } from "@/lib/types";
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/asset-class";
-import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/chart-colors";
+import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/visualization/chart-colors";
 import { formatAmount, formatNumber, formatPercent } from "@/lib/format";
 
 interface NetvalueChartsProps {

@@ -15,10 +15,9 @@ function isToday(dateStr: string): boolean {
 
 async function fetchRatesFromAPI(): Promise<Record<string, number> | null> {
   try {
-    const res = await fetch(
-      "https://open.er-api.com/v6/latest/CNY",
-      { signal: AbortSignal.timeout(5000) }
-    );
+    const res = await fetch("https://open.er-api.com/v6/latest/CNY", {
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return null;
     const data = await res.json();
     if (data.result !== "success") return null;
@@ -44,12 +43,12 @@ async function upsertRate(pair: string, rate: number) {
     .where(eq(exchangeRates.currencyPair, pair));
 
   if (existing) {
-    await db.update(exchangeRates)
+    await db
+      .update(exchangeRates)
       .set({ rate, updatedAt: now })
       .where(eq(exchangeRates.currencyPair, pair));
   } else {
-    await db.insert(exchangeRates)
-      .values({ currencyPair: pair, rate, updatedAt: now });
+    await db.insert(exchangeRates).values({ currencyPair: pair, rate, updatedAt: now });
   }
 }
 
@@ -108,9 +107,7 @@ export async function getExchangeRates() {
   return {
     rates,
     updatedAt,
-    source: (updatedAt === "default" ? "default" : "stale_cache") as
-      | "default"
-      | "stale_cache",
+    source: (updatedAt === "default" ? "default" : "stale_cache") as "default" | "stale_cache",
   };
 }
 

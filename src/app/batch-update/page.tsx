@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { getAssetClassColor } from "@/lib/asset-class-colors";
+import { getAssetClassColor } from "@/lib/visualization/asset-class-colors";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { Account, CURRENCY_SYMBOLS, Holding } from "@/lib/types";

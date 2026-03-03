@@ -11,7 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { AllocationItem } from "@/lib/types";
-import { getClassColor } from "@/lib/chart-colors";
+import { getClassColor } from "@/lib/visualization/chart-colors";
 
 interface DeviationChartProps {
   allocation: AllocationItem[];
