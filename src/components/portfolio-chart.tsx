@@ -28,7 +28,8 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
     }));
 
   // 外环：实际配置（按标的）
-  const holdingData: { name: string; value: number; pct: number; color: string; ring: "outer" }[] = [];
+  const holdingData: { name: string; value: number; pct: number; color: string; ring: "outer" }[] =
+    [];
   for (const cls of allocation) {
     const gradients = getClassGradients(cls.name);
     cls.holdings.forEach((h, i) => {
@@ -74,14 +75,14 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
             size="sm"
             onClick={() => setView("category")}
           >
-            按大类
+            类别
           </Button>
           <Button
             variant={view === "holding" ? "default" : "outline"}
             size="sm"
             onClick={() => setView("holding")}
           >
-            按标的
+            标的
           </Button>
         </div>
       </div>
