@@ -1,10 +1,12 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { DataFreshness } from "@/components/data-freshness";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useUserScopedQuery } from "@/lib/cache/hooks";
 
 interface AdminStats {
   total: number;
@@ -14,26 +16,14 @@ interface AdminStats {
 }
 
 export default function AdminPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const statsQuery = useUserScopedQuery<AdminStats>({
+    name: "admin-stats",
+    path: "/api/admin/stats",
+  });
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      const res = await fetch("/api/admin/stats");
-      if (!res.ok) {
-        setError("无法获取统计数据");
-        setLoading(false);
-        return;
-      }
-      const data = await res.json();
-      setStats(data);
-      setLoading(false);
-    };
-
-    fetchStats();
-  }, []);
+  const stats = statsQuery.data;
+  const loading = statsQuery.isLoading && !stats;
+  const error = statsQuery.error instanceof Error ? statsQuery.error.message : "";
 
   if (loading) {
     return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
@@ -55,6 +45,8 @@ export default function AdminPage() {
           <Button size="sm">用户管理</Button>
         </Link>
       </div>
+
+      <DataFreshness updatedAt={statsQuery.dataUpdatedAt} isFetching={statsQuery.isFetching} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

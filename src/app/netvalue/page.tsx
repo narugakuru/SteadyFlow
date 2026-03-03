@@ -1,10 +1,11 @@
 "use client";
 
-import { useFetch } from "@/lib/hooks";
-import { NetvalueRecord } from "@/lib/types";
-import { normalizeAssetClassName } from "@/lib/asset-class";
+import { DataFreshness } from "@/components/data-freshness";
 import { NetvalueCharts } from "@/components/netvalue-charts";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useUserScopedQuery } from "@/lib/cache/hooks";
+import { normalizeAssetClassName } from "@/lib/asset-class";
+import type { NetvalueRecord } from "@/lib/types";
 
 function formatFixed2(value: number): string {
   const safeValue = Number.isFinite(value) ? value : 0;
@@ -15,7 +16,13 @@ function formatFixed2(value: number): string {
 }
 
 export default function NetvaluePage() {
-  const { data: records, loading } = useFetch<NetvalueRecord[]>("/api/netvalue");
+  const recordsQuery = useUserScopedQuery<NetvalueRecord[]>({
+    name: "netvalue",
+    path: "/api/netvalue",
+  });
+
+  const records = recordsQuery.data;
+  const loading = recordsQuery.isLoading && !records;
 
   if (loading) {
     return <LoadingSpinner text="加载中..." className="min-h-screen" />;
@@ -26,6 +33,8 @@ export default function NetvaluePage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">📸 净值历史</h1>
       </div>
+
+      <DataFreshness updatedAt={recordsQuery.dataUpdatedAt} isFetching={recordsQuery.isFetching} />
 
       {!records || records.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无净值记录</p>
@@ -45,8 +54,8 @@ export default function NetvaluePage() {
                 </tr>
               </thead>
               <tbody>
-                {records.map((s) => {
-                  const alloc = s.dataJson.allocation;
+                {records.map((record) => {
+                  const alloc = record.dataJson.allocation;
                   const getAllocationCell = (name: string) => {
                     const item = alloc.find((a) => normalizeAssetClassName(a.name) === name);
                     if (!item) return "-";
@@ -58,10 +67,10 @@ export default function NetvaluePage() {
                     );
                   };
                   return (
-                    <tr key={s.id} className="border-t">
-                      <td className="p-3">{s.date}</td>
+                    <tr key={record.id} className="border-t">
+                      <td className="p-3">{record.date}</td>
                       <td className="p-3 text-right font-medium">
-                        ¥{formatFixed2(s.totalAssetCny)}
+                        ¥{formatFixed2(record.totalAssetCny)}
                       </td>
                       <td className="p-3 text-right">{getAllocationCell("股票")}</td>
                       <td className="p-3 text-right">{getAllocationCell("黄金")}</td>

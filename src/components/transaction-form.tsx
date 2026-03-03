@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Account, Holding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
 import { formatAmount, roundForStorage } from "@/lib/format";
+import { fetchJson } from "@/lib/cache/http";
+import { useMutationJson } from "@/lib/cache/hooks";
 
 export interface TransactionFormProps {
   open: boolean;
@@ -64,6 +66,7 @@ export function TransactionForm({
   const [creatingSaving, setCreatingSaving] = useState(false);
   // Local holdings list that can be refreshed after inline create
   const [localHoldings, setLocalHoldings] = useState<Holding[]>(holdings);
+  const mutation = useMutationJson<unknown, unknown>();
 
   // Reset form when opened
   useEffect(() => {
@@ -132,19 +135,17 @@ export function TransactionForm({
       payload.price = parseFloat(txPrice) || 0;
     }
 
-    const res = await fetch("/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
+    try {
+      await mutation.mutateAsync({
+        path: "/api/transactions",
+        method: "POST",
+        mutationName: "transactions-write",
+        body: payload,
+      });
+    } catch (err) {
       let errorMsg = "创建失败";
-      try {
-        const data = await res.json();
-        errorMsg = data.error || errorMsg;
-      } catch {
-        // response body is not valid JSON
+      if (err instanceof Error) {
+        errorMsg = err.message || errorMsg;
       }
       setError(errorMsg);
       setSaving(false);
@@ -352,21 +353,20 @@ export function TransactionForm({
                   disabled={creatingSaving || !newHoldingName}
                   onClick={async () => {
                     setCreatingSaving(true);
-                    const res = await fetch("/api/holdings", {
+                    const created = (await mutation.mutateAsync({
+                      path: "/api/holdings",
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
+                      mutationName: "holdings-write",
+                      body: {
                         accountId: Number(accountId),
                         name: newHoldingName,
                         ticker: newHoldingTicker || null,
                         valuationMode: newHoldingMode,
                         assetClass: newHoldingAssetClass,
-                      }),
-                    });
-                    const created = await res.json();
+                      },
+                    })) as Holding;
                     // Refresh local holdings
-                    const holdRes = await fetch("/api/holdings");
-                    const allHoldings: Holding[] = await holdRes.json();
+                    const allHoldings = await fetchJson<Holding[]>("/api/holdings");
                     setLocalHoldings(allHoldings);
                     if (onHoldingsRefresh) await onHoldingsRefresh();
                     // Auto-select the new holding

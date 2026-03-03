@@ -1,18 +1,12 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+import { DataFreshness } from "@/components/data-freshness";
+import { TransactionForm } from "@/components/transaction-form";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,9 +18,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Transaction, Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
-import { TransactionForm } from "@/components/transaction-form";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { Account, CURRENCY_SYMBOLS, Holding, Transaction } from "@/lib/types";
 import { formatAmount, formatPrice, formatShares } from "@/lib/format";
 
 const TX_TYPE_LABELS: Record<string, string> = {
@@ -55,48 +58,61 @@ export default function TransactionsPage() {
 
 function TransactionsContent() {
   const searchParams = useSearchParams();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-
-  // Filters - initialize from URL params
   const [filterAccount, setFilterAccount] = useState<string>(
     searchParams.get("accountId") || "all"
   );
   const [filterType, setFilterType] = useState<string>("all");
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const txQueryString = useMemo(() => {
     const params = new URLSearchParams();
     if (filterAccount !== "all") params.set("accountId", filterAccount);
     if (filterType !== "all") params.set("type", filterType);
-
-    const [txRes, accRes, holdRes] = await Promise.all([
-      fetch(`/api/transactions?${params}`),
-      fetch("/api/accounts"),
-      fetch("/api/holdings"),
-    ]);
-    const [txData, accData, holdData] = await Promise.all([
-      txRes.json(),
-      accRes.json(),
-      holdRes.json(),
-    ]);
-    setTransactions(txData);
-    setAccounts(accData);
-    setHoldings(holdData);
-    setLoading(false);
+    const serialized = params.toString();
+    return serialized ? `?${serialized}` : "";
   }, [filterAccount, filterType]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, [fetchData]);
+  const txQuery = useUserScopedQuery<Transaction[]>({
+    name: "transactions",
+    path: `/api/transactions${txQueryString}`,
+    params: {
+      accountId: filterAccount === "all" ? null : filterAccount,
+      type: filterType === "all" ? null : filterType,
+    },
+  });
+
+  const accountsQuery = useUserScopedQuery<Account[]>({
+    name: "accounts",
+    path: "/api/accounts",
+  });
+
+  const holdingsQuery = useUserScopedQuery<Holding[]>({
+    name: "holdings",
+    path: "/api/holdings",
+  });
+
+  const deleteTxMutation = useMutationJson<never, unknown>();
+
+  const loading =
+    (txQuery.isLoading && !txQuery.data) ||
+    (accountsQuery.isLoading && !accountsQuery.data) ||
+    (holdingsQuery.isLoading && !holdingsQuery.data);
+
+  const transactions = txQuery.data ?? [];
+  const accounts = accountsQuery.data ?? [];
+  const holdings = holdingsQuery.data ?? [];
+
+  const refreshAll = async () => {
+    await Promise.all([txQuery.refetch(), accountsQuery.refetch(), holdingsQuery.refetch()]);
+  };
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/transactions/${id}`, { method: "DELETE" });
-    fetchData();
+    await deleteTxMutation.mutateAsync({
+      path: `/api/transactions/${id}`,
+      method: "DELETE",
+      mutationName: "transactions-write",
+    });
+    await txQuery.refetch();
   };
 
   return (
@@ -108,7 +124,8 @@ function TransactionsContent() {
         </Button>
       </div>
 
-      {/* Filters */}
+      <DataFreshness updatedAt={txQuery.dataUpdatedAt} isFetching={txQuery.isFetching} />
+
       <div className="flex flex-col md:flex-row gap-3 md:gap-4">
         <div className="w-full md:w-48">
           <Select value={filterAccount} onValueChange={setFilterAccount}>
@@ -142,7 +159,6 @@ function TransactionsContent() {
         </div>
       </div>
 
-      {/* Transaction List */}
       {loading ? (
         <LoadingSpinner text="加载中..." className="py-8" />
       ) : transactions.length === 0 ? (
@@ -238,7 +254,7 @@ function TransactionsContent() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>取消</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(tx.id)}>
+                            <AlertDialogAction onClick={() => void handleDelete(tx.id)}>
                               确认删除
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -256,7 +272,7 @@ function TransactionsContent() {
       <TransactionForm
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSaved={fetchData}
+        onSaved={() => void refreshAll()}
         accounts={accounts}
         holdings={holdings}
       />

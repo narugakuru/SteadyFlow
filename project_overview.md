@@ -11,12 +11,14 @@
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
 - 核心页面已稳定：总览、账户、交易、净值、股价更新、市场、登录/注册、管理后台。
+- 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，按 `staleTime=60s` 条件后台刷新，`persist=3d`）。
 - 自动报价路由已升级：港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份。
 - OpenSpec 流程在用：变更通过 `openspec/changes` 管理，归档后同步到 `openspec/specs`。
 
 ## 技术栈（摘要）
 
 - 前端：Next.js 16 (App Router)、React 19、TypeScript、Tailwind CSS 4、shadcn/ui
+- 客户端数据层：TanStack Query + Persist Client + Async Storage Persister + IndexedDB (`idb-keyval`)
 - 后端：Next.js Route Handlers、Drizzle ORM
 - 数据库：SQLite (`better-sqlite3`) / PostgreSQL (Neon serverless)
 - 认证：Auth.js v5 (`next-auth@beta`) + Credentials + GitHub OAuth
@@ -28,7 +30,7 @@ src/
   app/          # 页面与 API 路由
   components/   # UI 与业务组件
   db/           # schema、连接、迁移启动与 seed
-  lib/          # auth、格式化、工具与数据服务
+  lib/          # auth、格式化、工具与数据服务（含 lib/cache 客户端缓存层）
 docs/           # 运维与说明文档
 openspec/       # 需求规格与变更流程
 
@@ -60,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-03] 实现 `global-local-cache-swr`：接入 TanStack Query + IndexedDB 持久化与统一 `policy.ts`；完成 Dashboard/Accounts/Transactions/BatchUpdate/Netvalue/Market/Admin 页面缓存优先读取迁移；新增后台刷新失败通知条、低侵入数据新鲜度展示、登出与 401 缓存清理、跨标签页失效同步。
 - [2026-03-03] 品牌文案统一：浏览器标签页全局标题由“资产组合管理”改为 `SteadyFlow`（`src/app/layout.tsx` metadata.title）。
 - [2026-03-03] OpenSpec：新增 `global-local-cache-swr` 变更工件（proposal/design/specs/tasks），确定全站本地缓存架构方向（`staleTime=60s`、`persist=3d`、缓存优先展示与条件异步刷新、刷新失败通知条）。
 - [2026-03-03] 自动报价路由重构：`/api/holdings/fetch-prices` 亚洲市场改为 Tencent 主、EODHD 次、Twelve Data 最低权重备份；新增 `.BJ`（北交所）映射；移除 Twelve Data 历史 65s 批次等待，供应商请求链路不再使用固定秒级延时。

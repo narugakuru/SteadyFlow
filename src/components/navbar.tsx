@@ -8,6 +8,7 @@ import { MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AssetClassSettings } from "@/components/asset-class-settings";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { clearCurrentUserClientCache } from "@/lib/cache/provider";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -27,6 +28,12 @@ export function Navbar() {
   ];
 
   const displayName = session?.user?.name || session?.user?.email || "用户";
+  const userId = session?.user?.id;
+
+  const handleSignOut = async () => {
+    await clearCurrentUserClientCache(userId);
+    await signOut({ callbackUrl: "/login" });
+  };
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -72,7 +79,7 @@ export function Navbar() {
               </div>
             )}
             {session?.user && (
-              <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 登出
               </Button>
             )}
@@ -141,7 +148,7 @@ export function Navbar() {
                 className="w-full"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  signOut({ callbackUrl: "/login" });
+                  void handleSignOut();
                 }}
               >
                 登出

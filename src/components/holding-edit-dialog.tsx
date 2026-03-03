@@ -15,6 +15,7 @@ import {
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { AssetClass, CURRENCY_SYMBOLS } from "@/lib/types";
 import { useTriFieldLinked } from "@/lib/hooks";
+import { useMutationJson } from "@/lib/cache/hooks";
 
 interface HoldingEditDialogProps {
   holdingId: number;
@@ -60,6 +61,7 @@ export function HoldingEditDialog({
 
   const sym = CURRENCY_SYMBOLS[currency] || "¥";
   const isShares = valuationMode === "shares";
+  const mutation = useMutationJson<unknown, unknown>();
 
   const tri = useTriFieldLinked({
     price: initPrice,
@@ -99,10 +101,11 @@ export function HoldingEditDialog({
       payload.marketValue = parseFloat(marketValue) || 0;
     }
 
-    await fetch(`/api/holdings/${holdingId}`, {
+    await mutation.mutateAsync({
+      path: `/api/holdings/${holdingId}`,
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      mutationName: "holdings-write",
+      body: payload,
     });
     setSaving(false);
     onSaved();

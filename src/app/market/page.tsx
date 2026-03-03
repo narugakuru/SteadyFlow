@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useFetch } from "@/lib/hooks";
 import { INDEX_CONFIG, type MarketIndex } from "@/lib/market-config";
 import { VixSentiment } from "@/components/vix-sentiment";
 import { TradingViewChart } from "@/components/tradingview-chart";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DataFreshness } from "@/components/data-freshness";
 import { RefreshCw, ExternalLink } from "lucide-react";
+import { useUserScopedQuery } from "@/lib/cache/hooks";
 import { formatNumber } from "@/lib/format";
 
 // --- 静态分组配置 ---
@@ -121,7 +122,10 @@ function formatTime(isoStr: string): string {
 // --- 组件 ---
 
 export default function MarketPage() {
-  const { data, loading, refetch } = useFetch<MarketIndex[]>("/api/market");
+  const marketQuery = useUserScopedQuery<MarketIndex[]>({
+    name: "market",
+    path: "/api/market",
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState("us");
   const [tabSymbols, setTabSymbols] = useState<Record<string, string>>(
@@ -130,9 +134,12 @@ export default function MarketPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await marketQuery.refetch();
     setRefreshing(false);
   };
+
+  const data = marketQuery.data;
+  const loading = marketQuery.isLoading && !data;
 
   // 用 API 数据填充价格，按 symbol 匹配
   const priceMap = new Map<string, MarketIndex>();
@@ -159,6 +166,8 @@ export default function MarketPage() {
           刷新
         </Button>
       </div>
+
+      <DataFreshness updatedAt={marketQuery.dataUpdatedAt} isFetching={marketQuery.isFetching} />
 
       {/* 图表区域：按市场分 Tab（置顶，大图） */}
       <section>

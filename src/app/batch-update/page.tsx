@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Account, Holding, CURRENCY_SYMBOLS } from "@/lib/types";
-import { getAssetClassColor } from "@/lib/asset-class-colors";
-import { normalizeAssetClassName } from "@/lib/asset-class";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { formatAmount, formatShares, roundForStorage } from "@/lib/format";
+import { useMemo, useState } from "react";
+
+import { DataFreshness } from "@/components/data-freshness";
 import {
   PriceUpdateResult,
   PriceUpdateResultDialog,
 } from "@/components/price-update-result-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { getAssetClassColor } from "@/lib/asset-class-colors";
+import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { normalizeAssetClassName } from "@/lib/asset-class";
+import { Account, CURRENCY_SYMBOLS, Holding } from "@/lib/types";
+import { formatAmount, formatShares, roundForStorage } from "@/lib/format";
 
 interface HoldingEdit {
   marketValue: number;
@@ -24,58 +26,60 @@ interface EditState {
 }
 
 export default function BatchUpdatePage() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [edits, setEdits] = useState<EditState>({ holdings: {} });
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fetchingPrices, setFetchingPrices] = useState(false);
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const [accRes, holdRes] = await Promise.all([fetch("/api/accounts"), fetch("/api/holdings")]);
-    const [accData, holdData] = await Promise.all([accRes.json(), holdRes.json()]);
-    setAccounts(accData);
-    setHoldings(holdData);
-    setEdits({ holdings: {} });
-    setLoading(false);
-  }, []);
+  const accountsQuery = useUserScopedQuery<Account[]>({
+    name: "accounts",
+    path: "/api/accounts",
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, [fetchData]);
+  const holdingsQuery = useUserScopedQuery<Holding[]>({
+    name: "holdings",
+    path: "/api/holdings",
+  });
 
+  const mutation = useMutationJson<unknown, unknown>();
+
+  const accounts = accountsQuery.data ?? [];
+  const holdings = holdingsQuery.data ?? [];
+  const loading =
+    (accountsQuery.isLoading && accounts.length === 0) ||
+    (holdingsQuery.isLoading && holdings.length === 0);
   const hasChanges = Object.keys(edits.holdings).length > 0;
+  const fetchingPrices = mutation.isPending;
+  const saving = mutation.isPending;
+
+  const lastUpdatedAt = useMemo(
+    () => Math.max(accountsQuery.dataUpdatedAt || 0, holdingsQuery.dataUpdatedAt || 0),
+    [accountsQuery.dataUpdatedAt, holdingsQuery.dataUpdatedAt]
+  );
+
+  const refreshAll = async () => {
+    await Promise.all([accountsQuery.refetch(), holdingsQuery.refetch()]);
+    setEdits({ holdings: {} });
+  };
 
   const handleFetchPrices = async () => {
-    setFetchingPrices(true);
     try {
-      const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
-      const data: unknown = await res.json().catch(() => null);
-      const result: PriceUpdateResult = {
-        updated:
-          data &&
-          typeof data === "object" &&
-          Array.isArray((data as { updated?: unknown[] }).updated)
-            ? ((data as { updated: PriceUpdateResult["updated"] }).updated ?? [])
-            : [],
-        failed:
-          data && typeof data === "object" && Array.isArray((data as { failed?: unknown[] }).failed)
-            ? ((data as { failed: PriceUpdateResult["failed"] }).failed ?? [])
-            : [],
-        skipped:
-          data &&
-          typeof data === "object" &&
-          Array.isArray((data as { skipped?: unknown[] }).skipped)
-            ? ((data as { skipped: PriceUpdateResult["skipped"] }).skipped ?? [])
-            : [],
+      const data = await mutation.mutateAsync({
+        path: "/api/holdings/fetch-prices",
+        method: "POST",
+        mutationName: "fetch-prices-write",
+      });
+      const safeData = data as {
+        updated?: PriceUpdateResult["updated"];
+        failed?: PriceUpdateResult["failed"];
+        skipped?: PriceUpdateResult["skipped"];
       };
-      setPriceResult(result);
+      setPriceResult({
+        updated: Array.isArray(safeData.updated) ? safeData.updated : [],
+        failed: Array.isArray(safeData.failed) ? safeData.failed : [],
+        skipped: Array.isArray(safeData.skipped) ? safeData.skipped : [],
+      });
       setResultOpen(true);
-      await fetchData();
+      await refreshAll();
     } catch {
       setPriceResult({
         updated: [],
@@ -84,12 +88,11 @@ export default function BatchUpdatePage() {
       });
       setResultOpen(true);
     }
-    setFetchingPrices(false);
   };
 
   const handleMarketValueChange = (h: Holding, value: string) => {
     const num = parseFloat(value);
-    if (isNaN(num)) return;
+    if (Number.isNaN(num)) return;
     setEdits((prev) => {
       const next = { ...prev, holdings: { ...prev.holdings } };
       const isShares = h.valuationMode === "shares" && h.shares > 0;
@@ -114,7 +117,7 @@ export default function BatchUpdatePage() {
 
   const handlePriceChange = (h: Holding, value: string) => {
     const num = parseFloat(value);
-    if (isNaN(num)) return;
+    if (Number.isNaN(num)) return;
     setEdits((prev) => {
       const next = { ...prev, holdings: { ...prev.holdings } };
       const normalizedPrice = roundForStorage(num, "price");
@@ -131,20 +134,19 @@ export default function BatchUpdatePage() {
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    await fetch("/api/batch-update", {
+    await mutation.mutateAsync({
+      path: "/api/batch-update",
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      mutationName: "batch-update-write",
+      body: {
         holdings: Object.entries(edits.holdings).map(([id, edit]) => ({
           id: Number(id),
           marketValue: edit.marketValue,
           ...(edit.price !== undefined ? { price: edit.price } : {}),
         })),
-      }),
+      },
     });
-    setSaving(false);
-    await fetchData();
+    await refreshAll();
   };
 
   if (loading) {
@@ -158,24 +160,18 @@ export default function BatchUpdatePage() {
         <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap md:justify-end">
             <Button
-              variant="default" // 使用实色背景变体
-              size="sm" // 保持较小尺寸以匹配界面
-              onClick={handleFetchPrices} // 绑定点击事件
-              disabled={fetchingPrices} // 正在获取时禁用
-              // 核心样式：
-              // bg-black / hover:bg-stone-900: 黑底色及悬停效果，符合软件冷静风格
-              // text-white: 白字色
-              // font-bold / shadow-md: 增强辨识度，使其在 outline 按钮旁更显眼
-              className="bg-black hover:bg-stone-900 text-white font-bold shadow-md transition-all px-4 active:scale-95" // 添加 Tailwind 类名
+              variant="default"
+              size="sm"
+              onClick={handleFetchPrices}
+              disabled={fetchingPrices}
+              className="bg-black hover:bg-stone-900 text-white font-bold shadow-md transition-all px-4 active:scale-95"
             >
               {fetchingPrices ? (
-                // 正在获取时的状态显示
                 <span className="flex items-center gap-1">
-                  <LoadingSpinner className="w-3 h-3 text-white" /> {/* 确保加载转圈也是白色 */}
+                  <LoadingSpinner className="w-3 h-3 text-white" />
                   正在连接市场...
                 </span>
               ) : (
-                // 默认状态显示
                 "📡 更新股价"
               )}
             </Button>
@@ -185,6 +181,11 @@ export default function BatchUpdatePage() {
           </div>
         </div>
       </div>
+
+      <DataFreshness
+        updatedAt={lastUpdatedAt}
+        isFetching={accountsQuery.isFetching || holdingsQuery.isFetching}
+      />
 
       {hasChanges && (
         <p className="text-sm text-muted-foreground">
@@ -205,9 +206,9 @@ export default function BatchUpdatePage() {
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-base">{acc.name}</span>
-                    <Badge variant="outline" className="font-mono">
+                    <span className="inline-flex items-center rounded border px-2 py-0.5 text-xs font-mono">
                       {acc.currency}
-                    </Badge>
+                    </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <span>
@@ -235,20 +236,17 @@ export default function BatchUpdatePage() {
                           key={h.id}
                           className="rounded-md border border-dashed p-3 text-sm flex flex-col md:flex-row md:items-center transition-colors hover:bg-muted/30"
                         >
-                          {/* 资产名区域 */}
                           <div className="flex items-center gap-2 md:w-40 shrink-0 mb-3 md:mb-0">
                             <span className="font-medium truncate max-w-[120px] md:max-w-none">
                               {h.name}
                             </span>
-                            <Badge
-                              variant="secondary"
-                              className={`text-[10px] px-1 py-0 leading-tight shrink-0 ${getAssetClassColor(assetClassName)}`}
+                            <span
+                              className={`inline-flex items-center rounded px-1 py-0 text-[10px] leading-tight shrink-0 ${getAssetClassColor(assetClassName)}`}
                             >
                               {assetClassName}
-                            </Badge>
+                            </span>
                           </div>
 
-                          {/* 控件区域 */}
                           <div className="flex flex-col gap-2 md:flex-row md:items-center md:ml-auto md:gap-4 lg:gap-6">
                             {isShares ? (
                               <>
@@ -272,7 +270,6 @@ export default function BatchUpdatePage() {
                                   <span className="text-[11px] text-muted-foreground shrink-0">
                                     股数
                                   </span>
-                                  {/* 核心修正：添加 pr-2 并在移动端也保持一定的对齐感 */}
                                   <span className="w-28 md:w-16 text-right tabular-nums font-medium text-xs pr-2">
                                     {formatShares(h.shares)}
                                   </span>

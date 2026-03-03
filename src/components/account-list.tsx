@@ -29,6 +29,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { formatAmount, formatPercent } from "@/lib/format";
+import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 
 // ─── Account Form (create/edit) ───
 
@@ -45,18 +46,23 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
   const [cashBalance, setCashBalance] = useState(account?.cashBalance?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const isEdit = !!account;
+  const mutation = useMutationJson<
+    { name: string; currency: string; cashBalance: number },
+    Account
+  >();
 
   const handleSubmit = async () => {
     setSaving(true);
     const url = isEdit ? `/api/accounts/${account.id}` : "/api/accounts";
-    await fetch(url, {
+    await mutation.mutateAsync({
+      path: url,
       method: isEdit ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      mutationName: "accounts-write",
+      body: {
         name,
         currency,
         cashBalance: parseFloat(cashBalance) || 0,
-      }),
+      },
     });
     setSaving(false);
     onOpenChange(false);
@@ -127,6 +133,16 @@ function HoldingForm({ accountId, open, onOpenChange, onSaved }: HoldingFormProp
   const [assetClass, setAssetClass] = useState("");
   const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
   const [saving, setSaving] = useState(false);
+  const mutation = useMutationJson<
+    {
+      accountId: number;
+      name: string;
+      ticker: string | null;
+      valuationMode: "amount" | "shares";
+      assetClass: string;
+    },
+    Holding
+  >();
 
   useEffect(() => {
     if (open) {
@@ -146,16 +162,17 @@ function HoldingForm({ accountId, open, onOpenChange, onSaved }: HoldingFormProp
 
   const handleSubmit = async () => {
     setSaving(true);
-    await fetch("/api/holdings", {
+    await mutation.mutateAsync({
+      path: "/api/holdings",
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      mutationName: "holdings-write",
+      body: {
         accountId,
         name,
         ticker: ticker || null,
         valuationMode,
         assetClass,
-      }),
+      },
     });
     setSaving(false);
     onOpenChange(false);
@@ -255,42 +272,42 @@ export function AccountList({
   );
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
-  const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
   const [sortHoldingFor, setSortHoldingFor] = useState<Account | null>(null);
-  const [fetchingPrices, setFetchingPrices] = useState(false);
   const [priceMsg, setPriceMsg] = useState("");
+  const holdingsQuery = useUserScopedQuery<Holding[]>({
+    name: "holdings",
+    path: "/api/holdings",
+  });
+  const mutation = useMutationJson<unknown, unknown>();
+  const allHoldings = holdingsQuery.data ?? [];
+  const fetchingPrices = mutation.isPending;
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
 
   const handleFetchPrices = async () => {
-    setFetchingPrices(true);
     setPriceMsg("");
     try {
-      const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
-      const data = await res.json();
+      const data = (await mutation.mutateAsync({
+        path: "/api/holdings/fetch-prices",
+        method: "POST",
+        mutationName: "fetch-prices-write",
+      })) as {
+        updated?: unknown[];
+        failed?: unknown[];
+        skipped?: unknown[];
+      };
       const parts: string[] = [];
       if (data.updated?.length) parts.push(`更新 ${data.updated.length} 个`);
       if (data.failed?.length) parts.push(`失败 ${data.failed.length} 个`);
       if (data.skipped?.length) parts.push(`跳过 ${data.skipped.length} 个`);
       setPriceMsg(parts.length > 0 ? parts.join("，") : "没有可自动更新的持仓");
-      await fetchHoldings();
+      await holdingsQuery.refetch();
       onRefresh();
     } catch {
       setPriceMsg("更新股价失败");
     }
-    setFetchingPrices(false);
     setTimeout(() => setPriceMsg(""), 5000);
   };
-
-  const fetchHoldings = async () => {
-    const res = await fetch("/api/holdings");
-    const data: Holding[] = await res.json();
-    setAllHoldings(data);
-  };
-
-  useEffect(() => {
-    fetchHoldings();
-  }, []);
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -302,19 +319,27 @@ export function AccountList({
   };
 
   const handleDeleteAccount = async (id: number) => {
-    await fetch(`/api/accounts/${id}`, { method: "DELETE" });
+    await mutation.mutateAsync({
+      path: `/api/accounts/${id}`,
+      method: "DELETE",
+      mutationName: "accounts-write",
+    });
     onRefresh();
-    fetchHoldings();
+    await holdingsQuery.refetch();
   };
 
   const handleDeleteHolding = async (id: number) => {
-    await fetch(`/api/holdings/${id}`, { method: "DELETE" });
-    fetchHoldings();
+    await mutation.mutateAsync({
+      path: `/api/holdings/${id}`,
+      method: "DELETE",
+      mutationName: "holdings-write",
+    });
+    await holdingsQuery.refetch();
     onRefresh();
   };
 
   const handleDataChange = () => {
-    fetchHoldings();
+    void holdingsQuery.refetch();
     onRefresh();
   };
 

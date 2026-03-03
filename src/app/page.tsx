@@ -1,103 +1,68 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle } from "lucide-react";
+
+import { DataFreshness } from "@/components/data-freshness";
+import { DeviationChart } from "@/components/deviation-chart";
 import { DisciplineTable } from "@/components/discipline-table";
 import { PortfolioChart } from "@/components/portfolio-chart";
-import { DeviationChart } from "@/components/deviation-chart";
-import { RebalancePanel } from "@/components/rebalance-panel";
-import { AllocationData } from "@/lib/types";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { formatAmount, formatRate } from "@/lib/format";
-import { AlertCircle } from "lucide-react";
 import {
   PriceUpdateResult,
   PriceUpdateResultDialog,
 } from "@/components/price-update-result-dialog";
-
-function isAllocationData(value: unknown): value is AllocationData {
-  if (!value || typeof value !== "object") return false;
-  const v = value as AllocationData;
-  return !!v.rates && !!v.rates.rates && Array.isArray(v.allocation) && !!v.settings;
-}
+import { RebalancePanel } from "@/components/rebalance-panel";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { formatAmount, formatRate } from "@/lib/format";
+import type { AllocationData } from "@/lib/types";
 
 export default function Dashboard() {
-  const router = useRouter();
-  const [allocation, setAllocation] = useState<AllocationData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchingPrices, setFetchingPrices] = useState(false);
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
-  const [error, setError] = useState("");
+  const netvalueTriggeredRef = useRef(false);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const allocRes = await fetch("/api/asset-allocation");
-      const allocData: unknown = await allocRes.json().catch(() => null);
-      if (!allocRes.ok) {
-        if (allocRes.status === 401) {
-          router.replace("/login");
-          return false;
-        }
-        const message =
-          allocData && typeof allocData === "object" && "error" in allocData
-            ? String(allocData.error)
-            : "加载资产配置失败";
-        throw new Error(message);
-      }
-      if (!isAllocationData(allocData)) {
-        throw new Error("资产配置数据格式异常");
-      }
-      setAllocation(allocData);
-      return true;
-    } catch (err) {
-      setAllocation(null);
-      setError(err instanceof Error ? err.message : "加载资产配置失败");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+  const allocationQuery = useUserScopedQuery<AllocationData>({
+    name: "asset-allocation",
+    path: "/api/asset-allocation",
+  });
 
-  // Auto netvalue on load
+  const priceMutation = useMutationJson<never, unknown>();
+
+  const allocation = allocationQuery.data;
+  const loading = allocationQuery.isLoading && !allocation;
+  const fetchingPrices = priceMutation.isPending;
+  const error = allocationQuery.error instanceof Error ? allocationQuery.error.message : "";
+
   useEffect(() => {
-    fetchAll().then((ok) => {
-      if (ok) {
-        fetch("/api/netvalue", { method: "POST" });
-      }
-    });
-  }, [fetchAll]);
+    if (!allocation || netvalueTriggeredRef.current) return;
+    netvalueTriggeredRef.current = true;
+    void fetch("/api/netvalue", { method: "POST" });
+  }, [allocation]);
 
   const handleFetchPrices = async () => {
-    setFetchingPrices(true);
     try {
-      const res = await fetch("/api/holdings/fetch-prices", { method: "POST" });
-      const data: unknown = await res.json().catch(() => null);
-      const result: PriceUpdateResult = {
-        updated:
-          data &&
-          typeof data === "object" &&
-          Array.isArray((data as { updated?: unknown[] }).updated)
-            ? ((data as { updated: PriceUpdateResult["updated"] }).updated ?? [])
-            : [],
-        failed:
-          data && typeof data === "object" && Array.isArray((data as { failed?: unknown[] }).failed)
-            ? ((data as { failed: PriceUpdateResult["failed"] }).failed ?? [])
-            : [],
-        skipped:
-          data &&
-          typeof data === "object" &&
-          Array.isArray((data as { skipped?: unknown[] }).skipped)
-            ? ((data as { skipped: PriceUpdateResult["skipped"] }).skipped ?? [])
-            : [],
+      const data = await priceMutation.mutateAsync({
+        path: "/api/holdings/fetch-prices",
+        method: "POST",
+        mutationName: "fetch-prices-write",
+      });
+
+      const safeData = data as {
+        updated?: PriceUpdateResult["updated"];
+        failed?: PriceUpdateResult["failed"];
+        skipped?: PriceUpdateResult["skipped"];
       };
-      setPriceResult(result);
+
+      setPriceResult({
+        updated: Array.isArray(safeData.updated) ? safeData.updated : [],
+        failed: Array.isArray(safeData.failed) ? safeData.failed : [],
+        skipped: Array.isArray(safeData.skipped) ? safeData.skipped : [],
+      });
       setResultOpen(true);
-      await fetchAll();
+      await allocationQuery.refetch();
     } catch {
       setPriceResult({
         updated: [],
@@ -106,7 +71,6 @@ export default function Dashboard() {
       });
       setResultOpen(true);
     }
-    setFetchingPrices(false);
   };
 
   if (loading) {
@@ -122,7 +86,7 @@ export default function Dashboard() {
             {error || "加载失败"}
           </p>
           <div>
-            <Button variant="outline" size="sm" onClick={() => fetchAll()}>
+            <Button variant="outline" size="sm" onClick={() => void allocationQuery.refetch()}>
               重试
             </Button>
           </div>
@@ -135,7 +99,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
@@ -157,7 +120,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Total Asset Card */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-muted-foreground">总资产 (CNY)</CardTitle>
@@ -175,13 +137,16 @@ export default function Dashboard() {
               .map(([pair, rate]) => ` · ${pair}: ${formatRate(rate)}`)
               .join("")}
           </p>
+          <DataFreshness
+            updatedAt={allocationQuery.dataUpdatedAt}
+            isFetching={allocationQuery.isFetching}
+            className="mt-1"
+          />
         </CardContent>
       </Card>
 
-      {/* Portfolio Chart */}
       <PortfolioChart allocation={allocation.allocation} />
 
-      {/* Discipline Table */}
       <div>
         <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
         <DisciplineTable
@@ -189,12 +154,11 @@ export default function Dashboard() {
           totalAssetCny={allocation.totalAssetCny}
           rates={rates}
           colorMode={allocation.settings.colorMode}
-          onDataChange={fetchAll}
+          onDataChange={() => void allocationQuery.refetch()}
         />
         <DeviationChart allocation={allocation.allocation} />
       </div>
 
-      {/* Rebalance Suggestions */}
       <RebalancePanel
         allocation={allocation.allocation}
         warningThreshold={allocation.settings.warningThreshold}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
+import { useState, Fragment } from "react";
 import { ArrowUpDown } from "lucide-react";
 import {
   AllocationItem,
@@ -17,6 +17,7 @@ import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { normalizeAssetClassName } from "@/lib/asset-class";
 import { formatAmount, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils"; // 确保你有这个工具函数，没有的话可以手动写类名
+import { useUserScopedQuery } from "@/lib/cache/hooks";
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
@@ -34,39 +35,22 @@ export function DisciplineTable({
   onDataChange,
 }: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [allHoldings, setAllHoldings] = useState<Holding[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [sortHoldingFor, setSortHoldingFor] = useState<{
     assetClass: string;
     title: string;
   } | null>(null);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const holdingsQuery = useUserScopedQuery<Holding[]>({
+    name: "holdings",
+    path: "/api/holdings",
+  });
+  const accountsQuery = useUserScopedQuery<Account[]>({
+    name: "accounts",
+    path: "/api/accounts",
+  });
+  const allHoldings = holdingsQuery.data ?? [];
+  const accounts = accountsQuery.data ?? [];
+  const dataLoaded = !holdingsQuery.isLoading && !accountsQuery.isLoading;
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
-
-  const fetchData = async () => {
-    const [hRes, aRes] = await Promise.all([fetch("/api/holdings"), fetch("/api/accounts")]);
-    const [hData, aData] = await Promise.all([hRes.json(), aRes.json()]);
-    return { hData, aData };
-  };
-
-  const applyFetchedData = ({ hData, aData }: { hData: Holding[]; aData: Account[] }) => {
-    setAllHoldings(hData);
-    setAccounts(aData);
-    setDataLoaded(true);
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void fetchData().then((data) => {
-      if (cancelled) return;
-      applyFetchedData(data);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -78,8 +62,8 @@ export function DisciplineTable({
   };
 
   const handleDataChange = () => {
-    void fetchData().then(applyFetchedData);
-    onDataChange();
+    void Promise.all([holdingsQuery.refetch(), accountsQuery.refetch()]);
+    void onDataChange();
   };
 
   const getFullHolding = (ah: AllocationHolding): Holding | null => {
