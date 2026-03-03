@@ -31,6 +31,7 @@ function AccountsContent() {
   const allocation = allocationQuery.data;
 
   const loading =
+    accountsQuery.sessionStatus === "loading" ||
     (accountsQuery.isLoading && accounts.length === 0) ||
     (allocationQuery.isLoading && !allocation);
   const errorQuery = accountsQuery.error ?? allocationQuery.error;

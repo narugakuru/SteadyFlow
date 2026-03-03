@@ -22,7 +22,7 @@ export default function AdminPage() {
   });
 
   const stats = statsQuery.data;
-  const loading = statsQuery.isLoading && !stats;
+  const loading = statsQuery.sessionStatus === "loading" || (statsQuery.isLoading && !stats);
   const error = statsQuery.error instanceof Error ? statsQuery.error.message : "";
 
   if (loading) {

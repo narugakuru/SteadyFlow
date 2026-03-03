@@ -32,7 +32,8 @@ export default function Dashboard() {
   const priceMutation = useMutationJson<never, unknown>();
 
   const allocation = allocationQuery.data;
-  const loading = allocationQuery.isLoading && !allocation;
+  const loading =
+    allocationQuery.sessionStatus === "loading" || (allocationQuery.isLoading && !allocation);
   const fetchingPrices = priceMutation.isPending;
   const error = allocationQuery.error instanceof Error ? allocationQuery.error.message : "";
 

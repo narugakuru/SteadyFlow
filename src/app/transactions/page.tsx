@@ -94,6 +94,7 @@ function TransactionsContent() {
   const deleteTxMutation = useMutationJson<never, unknown>();
 
   const loading =
+    txQuery.sessionStatus === "loading" ||
     (txQuery.isLoading && !txQuery.data) ||
     (accountsQuery.isLoading && !accountsQuery.data) ||
     (holdingsQuery.isLoading && !holdingsQuery.data);

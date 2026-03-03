@@ -22,7 +22,7 @@ export default function NetvaluePage() {
   });
 
   const records = recordsQuery.data;
-  const loading = recordsQuery.isLoading && !records;
+  const loading = recordsQuery.sessionStatus === "loading" || (recordsQuery.isLoading && !records);
 
   if (loading) {
     return <LoadingSpinner text="加载中..." className="min-h-screen" />;

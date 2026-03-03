@@ -139,7 +139,7 @@ export default function MarketPage() {
   };
 
   const data = marketQuery.data;
-  const loading = marketQuery.isLoading && !data;
+  const loading = marketQuery.sessionStatus === "loading" || (marketQuery.isLoading && !data);
 
   // 用 API 数据填充价格，按 symbol 匹配
   const priceMap = new Map<string, MarketIndex>();

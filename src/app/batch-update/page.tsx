@@ -45,6 +45,7 @@ export default function BatchUpdatePage() {
   const accounts = accountsQuery.data ?? [];
   const holdings = holdingsQuery.data ?? [];
   const loading =
+    accountsQuery.sessionStatus === "loading" ||
     (accountsQuery.isLoading && accounts.length === 0) ||
     (holdingsQuery.isLoading && holdings.length === 0);
   const hasChanges = Object.keys(edits.holdings).length > 0;
