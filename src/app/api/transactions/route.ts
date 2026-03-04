@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { db, isPostgres } from "@/db";
 import { transactions, holdings, accounts } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
@@ -201,27 +201,29 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const txRecord = await db.transaction(async (tx: any) => {
-    // Create transaction record
-    // affectCash/affectHolding: persist as 0/1 across SQLite and PostgreSQL
-    const [created] = await tx
-      .insert(transactions)
-      .values({
-        accountId: accountIdNum,
-        holdingId: holdingIdNum || null,
-        type,
-        date,
-        amount: finalAmount,
-        realizedPnl,
-        shares: parsedTxShares,
-        price: parsedTxPrice,
-        fee: parsedFee,
-        affectCash: toDbBool(affectCash),
-        affectHolding: toDbBool(affectHolding),
-        note: note || null,
-      })
-      .returning();
+  let txRecord;
+  if (isPostgres) {
+    // neon-http 不支持 db.transaction，改用原子 batch
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ops: any[] = [
+      db
+        .insert(transactions)
+        .values({
+          accountId: accountIdNum,
+          holdingId: holdingIdNum || null,
+          type,
+          date,
+          amount: finalAmount,
+          realizedPnl,
+          shares: parsedTxShares,
+          price: parsedTxPrice,
+          fee: parsedFee,
+          affectCash: toDbBool(affectCash),
+          affectHolding: toDbBool(affectHolding),
+          note: note || null,
+        })
+        .returning(),
+    ];
 
     switch (type) {
       case "buy": {
@@ -230,43 +232,46 @@ export async function POST(request: Request) {
             const newShares = roundForStorage(holding.shares + parsedTxShares, "shares");
             const newPrice =
               parsedTxPrice != null ? parsedTxPrice : roundForStorage(holding.price, "price");
-            // 加权平均成本法：newCost = (oldCost × oldShares + txPrice × txShares) / newShares
-            // cost 在 shares 模式下存储的是"平均每股成本"
             const newCostRaw =
               newShares > 0
                 ? (holding.cost * holding.shares + newPrice * parsedTxShares) / newShares
                 : newPrice;
             const newCost = roundForStorage(newCostRaw, "price");
-            await tx
-              .update(holdings)
-              .set({
-                cost: newCost,
-                shares: newShares,
-                price: newPrice,
-                marketValue: roundForStorage(newShares * newPrice, "amount"),
-                updatedAt: now,
-              })
-              .where(eq(holdings.id, holdingIdNum));
+            ops.push(
+              db
+                .update(holdings)
+                .set({
+                  cost: newCost,
+                  shares: newShares,
+                  price: newPrice,
+                  marketValue: roundForStorage(newShares * newPrice, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum))
+            );
           } else {
-            // amount 模式：cost 累加总成本
-            await tx
-              .update(holdings)
-              .set({
-                cost: roundForStorage(holding.cost + finalAmount, "amount"),
-                marketValue: roundForStorage(holding.marketValue + finalAmount, "amount"),
-                updatedAt: now,
-              })
-              .where(eq(holdings.id, holdingIdNum));
+            ops.push(
+              db
+                .update(holdings)
+                .set({
+                  cost: roundForStorage(holding.cost + finalAmount, "amount"),
+                  marketValue: roundForStorage(holding.marketValue + finalAmount, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum))
+            );
           }
         }
         if (affectCash) {
-          await tx
-            .update(accounts)
-            .set({
-              cashBalance: roundForStorage(account.cashBalance - finalAmount - feeVal, "amount"),
-              updatedAt: now,
-            })
-            .where(eq(accounts.id, accountIdNum));
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance - finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
         }
         break;
       }
@@ -274,97 +279,275 @@ export async function POST(request: Request) {
       case "sell": {
         if (affectHolding && holding) {
           if (holding.valuationMode === "shares" && parsedTxShares != null) {
-            // shares 模式卖出：cost（平均每股成本）不变，只减少份额
             const newShares = roundForStorage(holding.shares - parsedTxShares, "shares");
             const newPrice =
               parsedTxPrice != null ? parsedTxPrice : roundForStorage(holding.price, "price");
-            await tx
-              .update(holdings)
-              .set({
-                cost: roundForStorage(holding.cost, "price"), // 卖出不改变平均成本
-                shares: newShares,
-                price: newPrice,
-                marketValue: roundForStorage(newShares * newPrice, "amount"),
-                updatedAt: now,
-              })
-              .where(eq(holdings.id, holdingIdNum));
+            ops.push(
+              db
+                .update(holdings)
+                .set({
+                  cost: roundForStorage(holding.cost, "price"),
+                  shares: newShares,
+                  price: newPrice,
+                  marketValue: roundForStorage(newShares * newPrice, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum))
+            );
           } else {
-            // amount 模式卖出：按比例扣减成本
             const costReduce =
               holding.marketValue > 0 ? (finalAmount * holding.cost) / holding.marketValue : 0;
-            await tx
-              .update(holdings)
-              .set({
-                cost: roundForStorage(holding.cost - costReduce, "amount"),
-                marketValue: roundForStorage(holding.marketValue - finalAmount, "amount"),
-                updatedAt: now,
-              })
-              .where(eq(holdings.id, holdingIdNum));
+            ops.push(
+              db
+                .update(holdings)
+                .set({
+                  cost: roundForStorage(holding.cost - costReduce, "amount"),
+                  marketValue: roundForStorage(holding.marketValue - finalAmount, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum))
+            );
           }
         }
         if (affectCash) {
-          await tx
-            .update(accounts)
-            .set({
-              cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
-              updatedAt: now,
-            })
-            .where(eq(accounts.id, accountIdNum));
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
         }
         if (affectHolding) {
-          await tx
-            .update(accounts)
-            .set({
-              realizedPnl: sql`${accounts.realizedPnl} + ${realizedPnl}`,
-              updatedAt: now,
-            })
-            .where(eq(accounts.id, accountIdNum));
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                realizedPnl: sql`${accounts.realizedPnl} + ${realizedPnl}`,
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
         }
         break;
       }
 
       case "dividend": {
         if (affectCash) {
-          await tx
-            .update(accounts)
-            .set({
-              cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
-              updatedAt: now,
-            })
-            .where(eq(accounts.id, accountIdNum));
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
         }
         break;
       }
 
       case "deposit": {
         if (affectCash) {
-          await tx
-            .update(accounts)
-            .set({
-              cashBalance: roundForStorage(account.cashBalance + finalAmount, "amount"),
-              updatedAt: now,
-            })
-            .where(eq(accounts.id, accountIdNum));
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance + finalAmount, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
         }
         break;
       }
 
       case "withdraw": {
         if (affectCash) {
-          await tx
-            .update(accounts)
-            .set({
-              cashBalance: roundForStorage(account.cashBalance - finalAmount, "amount"),
-              updatedAt: now,
-            })
-            .where(eq(accounts.id, accountIdNum));
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance - finalAmount, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
         }
         break;
       }
     }
 
-    return created;
-  });
+    const batchResult = await db.batch(ops);
+    txRecord = batchResult[0][0];
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    txRecord = await db.transaction(async (tx: any) => {
+      // Create transaction record
+      // affectCash/affectHolding: persist as 0/1 across SQLite and PostgreSQL
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          accountId: accountIdNum,
+          holdingId: holdingIdNum || null,
+          type,
+          date,
+          amount: finalAmount,
+          realizedPnl,
+          shares: parsedTxShares,
+          price: parsedTxPrice,
+          fee: parsedFee,
+          affectCash: toDbBool(affectCash),
+          affectHolding: toDbBool(affectHolding),
+          note: note || null,
+        })
+        .returning();
+
+      switch (type) {
+        case "buy": {
+          if (affectHolding && holding) {
+            if (holding.valuationMode === "shares" && parsedTxShares != null) {
+              const newShares = roundForStorage(holding.shares + parsedTxShares, "shares");
+              const newPrice =
+                parsedTxPrice != null ? parsedTxPrice : roundForStorage(holding.price, "price");
+              // 加权平均成本法：newCost = (oldCost × oldShares + txPrice × txShares) / newShares
+              // cost 在 shares 模式下存储的是"平均每股成本"
+              const newCostRaw =
+                newShares > 0
+                  ? (holding.cost * holding.shares + newPrice * parsedTxShares) / newShares
+                  : newPrice;
+              const newCost = roundForStorage(newCostRaw, "price");
+              await tx
+                .update(holdings)
+                .set({
+                  cost: newCost,
+                  shares: newShares,
+                  price: newPrice,
+                  marketValue: roundForStorage(newShares * newPrice, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum));
+            } else {
+              // amount 模式：cost 累加总成本
+              await tx
+                .update(holdings)
+                .set({
+                  cost: roundForStorage(holding.cost + finalAmount, "amount"),
+                  marketValue: roundForStorage(holding.marketValue + finalAmount, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum));
+            }
+          }
+          if (affectCash) {
+            await tx
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance - finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          break;
+        }
+
+        case "sell": {
+          if (affectHolding && holding) {
+            if (holding.valuationMode === "shares" && parsedTxShares != null) {
+              // shares 模式卖出：cost（平均每股成本）不变，只减少份额
+              const newShares = roundForStorage(holding.shares - parsedTxShares, "shares");
+              const newPrice =
+                parsedTxPrice != null ? parsedTxPrice : roundForStorage(holding.price, "price");
+              await tx
+                .update(holdings)
+                .set({
+                  cost: roundForStorage(holding.cost, "price"), // 卖出不改变平均成本
+                  shares: newShares,
+                  price: newPrice,
+                  marketValue: roundForStorage(newShares * newPrice, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum));
+            } else {
+              // amount 模式卖出：按比例扣减成本
+              const costReduce =
+                holding.marketValue > 0 ? (finalAmount * holding.cost) / holding.marketValue : 0;
+              await tx
+                .update(holdings)
+                .set({
+                  cost: roundForStorage(holding.cost - costReduce, "amount"),
+                  marketValue: roundForStorage(holding.marketValue - finalAmount, "amount"),
+                  updatedAt: now,
+                })
+                .where(eq(holdings.id, holdingIdNum));
+            }
+          }
+          if (affectCash) {
+            await tx
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          if (affectHolding) {
+            await tx
+              .update(accounts)
+              .set({
+                realizedPnl: sql`${accounts.realizedPnl} + ${realizedPnl}`,
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          break;
+        }
+
+        case "dividend": {
+          if (affectCash) {
+            await tx
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          break;
+        }
+
+        case "deposit": {
+          if (affectCash) {
+            await tx
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance + finalAmount, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          break;
+        }
+
+        case "withdraw": {
+          if (affectCash) {
+            await tx
+              .update(accounts)
+              .set({
+                cashBalance: roundForStorage(account.cashBalance - finalAmount, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          break;
+        }
+      }
+
+      return created;
+    });
+  }
 
   return runMutationWithNetvalue(userId, async () =>
     NextResponse.json(

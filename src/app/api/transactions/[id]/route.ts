@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { db, isPostgres } from "@/db";
 import { accounts, holdings, transactions } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
@@ -77,19 +77,35 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   return runMutationWithNetvalue(userId, async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await db.transaction(async (tx: any) => {
-      await tx.delete(transactions).where(eq(transactions.id, numId));
+    if (isPostgres) {
+      const ops = [db.delete(transactions).where(eq(transactions.id, numId))];
       if (existing.realizedPnl !== 0) {
-        await tx
-          .update(accounts)
-          .set({
-            realizedPnl: sql`${accounts.realizedPnl} - ${existing.realizedPnl}`,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(accounts.id, existing.accountId));
+        ops.push(
+          db
+            .update(accounts)
+            .set({
+              realizedPnl: sql`${accounts.realizedPnl} - ${existing.realizedPnl}`,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(accounts.id, existing.accountId))
+        );
       }
-    });
+      await db.batch(ops);
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await db.transaction(async (tx: any) => {
+        await tx.delete(transactions).where(eq(transactions.id, numId));
+        if (existing.realizedPnl !== 0) {
+          await tx
+            .update(accounts)
+            .set({
+              realizedPnl: sql`${accounts.realizedPnl} - ${existing.realizedPnl}`,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(accounts.id, existing.accountId));
+        }
+      });
+    }
     return NextResponse.json({ success: true });
   });
 }
