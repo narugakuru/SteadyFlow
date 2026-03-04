@@ -62,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-04] OpenSpec：新增 `realized-pnl-tracking` 变更草案（proposal/design/specs/tasks），明确了结盈亏双层存储、交易新增/删除事务化、`affectHolding=false` 排除规则与 Dashboard 三项收益拆解展示口径。
 - [2026-03-03] 完成 `daily-cron-prequote-netvalue-batch` 实装：`/api/cron/netvalue` 升级为按用户“先价后值”宽松模式，新增 `quoteSyncStatus` 与失败摘要；接入批次大小/时间预算控制和 `cron.netvalue.cursor` 游标续跑；并将股价同步逻辑抽取为可复用服务供 cron 直接调用。
 - [2026-03-03] OpenSpec 补同步（无 change 提案）：将“新用户默认资产目标占比调整为 40/10/20/30”补充到 `asset-allocation` 主 spec。
 - [2026-03-03] OpenSpec 补同步（无 change 提案）：将“会话初始化阶段视为加载中，避免误报失败闪烁”补充到 `client-cache-layer` 主 spec。
