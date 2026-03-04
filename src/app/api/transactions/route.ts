@@ -199,6 +199,9 @@ export async function POST(request: Request) {
       realizedPnl = roundForStorage(finalAmount - costReduce - feeVal, "amount");
     }
   }
+  if (type === "dividend" && affectCash) {
+    realizedPnl = roundForStorage(finalAmount - feeVal, "amount");
+  }
 
   const now = new Date().toISOString();
   let txRecord;
@@ -341,6 +344,17 @@ export async function POST(request: Request) {
               .update(accounts)
               .set({
                 cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum))
+          );
+        }
+        if (realizedPnl !== 0) {
+          ops.push(
+            db
+              .update(accounts)
+              .set({
+                realizedPnl: sql`${accounts.realizedPnl} + ${realizedPnl}`,
                 updatedAt: now,
               })
               .where(eq(accounts.id, accountIdNum))
@@ -511,6 +525,15 @@ export async function POST(request: Request) {
               .update(accounts)
               .set({
                 cashBalance: roundForStorage(account.cashBalance + finalAmount - feeVal, "amount"),
+                updatedAt: now,
+              })
+              .where(eq(accounts.id, accountIdNum));
+          }
+          if (realizedPnl !== 0) {
+            await tx
+              .update(accounts)
+              .set({
+                realizedPnl: sql`${accounts.realizedPnl} + ${realizedPnl}`,
                 updatedAt: now,
               })
               .where(eq(accounts.id, accountIdNum));

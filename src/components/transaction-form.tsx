@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,24 +66,41 @@ export function TransactionForm({
   const [creatingSaving, setCreatingSaving] = useState(false);
   // Local holdings list that can be refreshed after inline create
   const [localHoldings, setLocalHoldings] = useState<Holding[]>(holdings);
+  const wasOpenRef = useRef(false);
   const mutation = useMutationJson<unknown, unknown>();
 
-  // Reset form when opened
+  const getAutoPriceForHolding = useCallback(
+    (nextHoldingId: string, sourceHoldings: Holding[] = localHoldings): string => {
+      if (!nextHoldingId || nextHoldingId === "none") return "";
+      const target = sourceHoldings.find((h) => h.id === Number(nextHoldingId));
+      if (!target || target.valuationMode !== "shares") return "";
+      const price = roundForStorage(target.price || 0, "price");
+      return price > 0 ? String(price) : "";
+    },
+    [localHoldings]
+  );
+
+  // Reset form only when dialog transitions closed -> open
   useEffect(() => {
-    if (open) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setType(defaultType || "buy");
-      setAccountId(
-        defaultAccountId
-          ? String(defaultAccountId)
-          : accounts.length > 0
-            ? String(accounts[0].id)
-            : ""
-      );
-      setHoldingId(defaultHoldingId ? String(defaultHoldingId) : "");
+    if (open && !wasOpenRef.current) {
+      const nextType = defaultType || "buy";
+      const nextAccountId = defaultAccountId
+        ? String(defaultAccountId)
+        : accounts.length > 0
+          ? String(accounts[0].id)
+          : "";
+      const nextHoldingId = defaultHoldingId ? String(defaultHoldingId) : "";
+      const nextTxPrice =
+        nextType === "buy" || nextType === "sell"
+          ? getAutoPriceForHolding(nextHoldingId, holdings)
+          : "";
+
+      setType(nextType);
+      setAccountId(nextAccountId);
+      setHoldingId(nextHoldingId);
       setAmount("");
       setTxShares("");
-      setTxPrice("");
+      setTxPrice(nextTxPrice);
       setFee("");
       setDate(new Date().toISOString().split("T")[0]);
       setNote("");
@@ -93,7 +110,31 @@ export function TransactionForm({
       setInlineCreateOpen(false);
       setLocalHoldings(holdings);
     }
-  }, [open, accounts, holdings, defaultType, defaultAccountId, defaultHoldingId]);
+    wasOpenRef.current = open;
+  }, [
+    open,
+    accounts,
+    holdings,
+    defaultType,
+    defaultAccountId,
+    defaultHoldingId,
+    getAutoPriceForHolding,
+  ]);
+
+  useEffect(() => {
+    setLocalHoldings(holdings);
+  }, [holdings]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!(type === "buy" || type === "sell")) return;
+    if (!holdingId || holdingId === "none") return;
+    if (txPrice) return;
+    const autoPrice = getAutoPriceForHolding(holdingId);
+    if (autoPrice) {
+      setTxPrice(autoPrice);
+    }
+  }, [open, type, holdingId, txPrice, localHoldings, getAutoPriceForHolding]);
 
   const needsHolding = type === "buy" || type === "sell";
   const optionalHolding = type === "dividend";
@@ -180,7 +221,6 @@ export function TransactionForm({
               value={type}
               onValueChange={(v) => {
                 setType(v);
-                setHoldingId("");
               }}
             >
               <SelectTrigger>
@@ -203,6 +243,7 @@ export function TransactionForm({
               onValueChange={(v) => {
                 setAccountId(v);
                 setHoldingId("");
+                setTxPrice("");
               }}
             >
               <SelectTrigger>
@@ -252,6 +293,9 @@ export function TransactionForm({
                     return;
                   }
                   setHoldingId(v);
+                  if (type === "buy" || type === "sell") {
+                    setTxPrice(getAutoPriceForHolding(v));
+                  }
                 }}
               >
                 <SelectTrigger>
@@ -373,6 +417,9 @@ export function TransactionForm({
                     if (onHoldingsRefresh) await onHoldingsRefresh();
                     // Auto-select the new holding
                     setHoldingId(String(created.id));
+                    if (type === "buy" || type === "sell") {
+                      setTxPrice(getAutoPriceForHolding(String(created.id), allHoldings));
+                    }
                     // Reset mini form
                     setNewHoldingName("");
                     setNewHoldingTicker("");

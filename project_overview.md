@@ -62,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-04] 修复交易弹窗与了结盈亏口径：交易表单在切换买入/卖出/股息时不再清空已选账户/持仓，买卖自动带出持仓价格；交易写入链路新增股息 `realizedPnl=amount-fee`（受 `affectCash` 控制）并增量计入账户累计。同步更新 `transaction-management` 与 `realized-pnl-ledger` 主 spec，并新增 change `fix-transaction-dialog-dividend-pnl` 工件。
 - [2026-03-04] 修复 `realized-pnl-tracking` 在 `DB_TYPE=postgres` 下的交易写入报错：针对 Neon HTTP 驱动不支持 `db.transaction` 的限制，将交易新增/删除链路改为 PG 使用 `db.batch` 原子批处理、SQLite 保持事务，避免卖出交易 500。
 - [2026-03-04] 完成 `realized-pnl-tracking` 实装：为账户与交易新增了结盈亏字段（原币种），交易新增/删除改为事务执行并按 `sell + affectHolding=true` 增量维护累计了结盈亏；Dashboard 总资产区新增“账户总盈亏 / 持仓盈亏 / 了结盈亏”三项展示。
 - [2026-03-04] OpenSpec：新增 `realized-pnl-tracking` 变更草案（proposal/design/specs/tasks），明确了结盈亏双层存储、交易新增/删除事务化、`affectHolding=false` 排除规则与 Dashboard 三项收益拆解展示口径。
