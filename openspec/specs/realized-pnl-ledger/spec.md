@@ -8,9 +8,19 @@
 
 系统 SHALL 在交易层与账户层同时存储了结盈亏，且金额单位为账户原币种。`transactions` MUST 存储 `realizedPnl` 字段（默认 `0`），`accounts` MUST 存储累计字段 `realizedPnl`（默认 `0`）。
 
-#### Scenario: 新交易默认值
+#### Scenario: 非卖出且非股息的新交易默认值
 
-- **WHEN** 系统创建任意非卖出且非股息交易，或 `affectHolding=false` 的卖出交易，或 `affectCash=false` 的股息交易
+- **WHEN** 系统创建任意非卖出且非股息交易
+- **THEN** 该交易的 `realizedPnl` 存储为 `0`
+
+#### Scenario: affectHolding=false 的卖出交易默认值
+
+- **WHEN** 系统创建一笔 `type=sell` 且 `affectHolding=false` 的交易
+- **THEN** 该交易的 `realizedPnl` 存储为 `0`
+
+#### Scenario: affectCash=false 的股息交易默认值
+
+- **WHEN** 系统创建一笔 `type=dividend` 且 `affectCash=false` 的交易
 - **THEN** 该交易的 `realizedPnl` 存储为 `0`
 
 #### Scenario: affectCash=true 的股息交易存储值
