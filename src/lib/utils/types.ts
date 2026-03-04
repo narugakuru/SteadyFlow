@@ -3,6 +3,7 @@ export interface Account {
   name: string;
   currency: "CNY" | "USD" | "HKD";
   cashBalance: number;
+  realizedPnl: number;
   holdingsPnl: number;
   createdAt: string;
   updatedAt: string;
@@ -56,6 +57,7 @@ export interface Transaction {
   type: "buy" | "sell" | "dividend" | "deposit" | "withdraw";
   date: string;
   amount: number;
+  realizedPnl: number;
   shares: number | null;
   price: number | null;
   fee: number;
@@ -116,6 +118,9 @@ export interface AllocationItem {
 
 export interface AllocationData {
   totalAssetCny: number;
+  realizedPnl: number;
+  unrealizedPnl: number;
+  totalPnl: number;
   allocation: AllocationItem[];
   rates: {
     rates: Record<string, number>;

@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, transactions } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
 import { fromDbBool } from "@/lib/utils/utils";
 import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
@@ -23,6 +23,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       type: transactions.type,
       date: transactions.date,
       amount: transactions.amount,
+      realizedPnl: transactions.realizedPnl,
       shares: transactions.shares,
       price: transactions.price,
       fee: transactions.fee,
@@ -61,7 +62,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const numId = Number(id);
 
   const [existing] = await db
-    .select({ id: transactions.id })
+    .select({
+      id: transactions.id,
+      accountId: transactions.accountId,
+      realizedPnl: transactions.realizedPnl,
+    })
     .from(transactions)
     .innerJoin(accounts, eq(transactions.accountId, accounts.id))
     .where(and(eq(transactions.id, numId), eq(accounts.userId, userId)))
@@ -72,7 +77,19 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   return runMutationWithNetvalue(userId, async () => {
-    await db.delete(transactions).where(eq(transactions.id, numId));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await db.transaction(async (tx: any) => {
+      await tx.delete(transactions).where(eq(transactions.id, numId));
+      if (existing.realizedPnl !== 0) {
+        await tx
+          .update(accounts)
+          .set({
+            realizedPnl: sql`${accounts.realizedPnl} - ${existing.realizedPnl}`,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(accounts.id, existing.accountId));
+      }
+    });
     return NextResponse.json({ success: true });
   });
 }

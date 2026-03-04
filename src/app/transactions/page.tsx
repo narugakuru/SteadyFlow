@@ -218,6 +218,11 @@ function TransactionsContent() {
                             不更新持仓
                           </Badge>
                         )}
+                        {tx.type === "sell" && !tx.affectHolding && (
+                          <Badge variant="outline" className="text-xs">
+                            不计入了结
+                          </Badge>
+                        )}
                       </div>
                     </td>
                     <td className="p-3 text-right whitespace-nowrap">
@@ -250,7 +255,7 @@ function TransactionsContent() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>确认删除</AlertDialogTitle>
                             <AlertDialogDescription>
-                              删除此交易记录？注意：删除不会回滚对持仓和账户的修改。
+                              删除此交易记录？注意：删除不会回滚对持仓和账户现金的修改；若该交易计入了结盈亏，会同步回退累计值。
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

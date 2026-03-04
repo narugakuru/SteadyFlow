@@ -98,17 +98,17 @@ src/
 
 ## 数据模型
 
-| 表名               | 用途           | 关键字段                                                                                                                                                              |
-| ------------------ | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| users              | 用户           | email(unique), password, role(admin/user), plan(free/pro), createdAt                                                                                                  |
-| authAccounts       | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken                                                                                                                  |
-| sessions           | 会话           | sessionToken, userId(FK), expires                                                                                                                                     |
-| verificationTokens | 验证令牌       | identifier, token, expires                                                                                                                                            |
-| accounts           | 投资账户       | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额)                                                                                              |
-| holdings           | 持仓明细       | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass, memo(持仓备注)                                               |
-| transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
-| assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                     |
-| exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                    |
-| netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                   |
-| disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                               |
-| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key` 等键）                                                    |
+| 表名               | 用途           | 关键字段                                                                                                                                                                                                     |
+| ------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| users              | 用户           | email(unique), password, role(admin/user), plan(free/pro), createdAt                                                                                                                                         |
+| authAccounts       | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken                                                                                                                                                         |
+| sessions           | 会话           | sessionToken, userId(FK), expires                                                                                                                                                                            |
+| verificationTokens | 验证令牌       | identifier, token, expires                                                                                                                                                                                   |
+| accounts           | 投资账户       | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额), realizedPnl(累计了结盈亏，账户原币种)                                                                                              |
+| holdings           | 持仓明细       | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass, memo(持仓备注)                                                                                      |
+| transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, realizedPnl(单笔了结盈亏，账户原币种), shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
+| assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                                                            |
+| exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                                                           |
+| netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                                                          |
+| disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                                                                      |
+| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key` 等键）                                                                                           |

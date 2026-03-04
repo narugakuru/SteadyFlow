@@ -290,7 +290,9 @@ export function TransactionForm({
             holdingId &&
             holdingId !== "none" &&
             !affectHolding && (
-              <p className="text-xs text-muted-foreground pl-1">不更新持仓数据（仅影响现金）</p>
+              <p className="text-xs text-muted-foreground pl-1">
+                不更新持仓数据（仅影响现金，不计入了结盈亏）
+              </p>
             )}
 
           {/* Inline holding creation mini-form */}

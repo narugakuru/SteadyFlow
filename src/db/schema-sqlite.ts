@@ -76,6 +76,7 @@ export const accounts = sqliteTable("accounts", {
   name: text("name").notNull(),
   currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
   cashBalance: real("cash_balance").notNull().default(0),
+  realizedPnl: real("realized_pnl").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
@@ -204,6 +205,7 @@ export const transactions = sqliteTable("transactions", {
   type: text("type", { enum: ["buy", "sell", "dividend", "deposit", "withdraw"] }).notNull(),
   date: text("date").notNull(),
   amount: real("amount").notNull(),
+  realizedPnl: real("realized_pnl").notNull().default(0),
   shares: real("shares"),
   price: real("price"),
   fee: real("fee").notNull().default(0),

@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 import { formatAmount, formatRate } from "@/lib/utils/format";
-import type { AllocationData } from "@/lib/utils/types";
+import { pnlColorClass, type AllocationData } from "@/lib/utils/types";
 
 export default function Dashboard() {
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
@@ -126,23 +126,51 @@ export default function Dashboard() {
           <CardTitle className="text-sm text-muted-foreground">总资产 (CNY)</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">¥{formatAmount(allocation.totalAssetCny)}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            汇率更新:{" "}
-            {allocation.rates.updatedAt === "default"
-              ? "使用默认汇率"
-              : new Date(allocation.rates.updatedAt).toLocaleString()}
-            {allocation.rates.source === "stale_cache" && " (缓存)"}
-            {allocation.rates.source === "default" && " ⚠️"}
-            {Object.entries(rates)
-              .map(([pair, rate]) => ` · ${pair}: ${formatRate(rate)}`)
-              .join("")}
-          </p>
-          <DataFreshness
-            updatedAt={allocationQuery.dataUpdatedAt}
-            isFetching={allocationQuery.isFetching}
-            className="mt-1"
-          />
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <p className="text-3xl font-bold">¥{formatAmount(allocation.totalAssetCny)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                汇率更新:{" "}
+                {allocation.rates.updatedAt === "default"
+                  ? "使用默认汇率"
+                  : new Date(allocation.rates.updatedAt).toLocaleString()}
+                {allocation.rates.source === "stale_cache" && " (缓存)"}
+                {allocation.rates.source === "default" && " ⚠️"}
+                {Object.entries(rates)
+                  .map(([pair, rate]) => ` · ${pair}: ${formatRate(rate)}`)
+                  .join("")}
+              </p>
+              <DataFreshness
+                updatedAt={allocationQuery.dataUpdatedAt}
+                isFetching={allocationQuery.isFetching}
+                className="mt-1"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-1 text-sm md:min-w-[220px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">账户总盈亏</span>
+                <span className={pnlColorClass(allocation.totalPnl, allocation.settings.colorMode)}>
+                  {allocation.totalPnl > 0 ? "+" : ""}¥{formatAmount(allocation.totalPnl)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">持仓盈亏</span>
+                <span
+                  className={pnlColorClass(allocation.unrealizedPnl, allocation.settings.colorMode)}
+                >
+                  {allocation.unrealizedPnl > 0 ? "+" : ""}¥{formatAmount(allocation.unrealizedPnl)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">了结盈亏</span>
+                <span
+                  className={pnlColorClass(allocation.realizedPnl, allocation.settings.colorMode)}
+                >
+                  {allocation.realizedPnl > 0 ? "+" : ""}¥{formatAmount(allocation.realizedPnl)}
+                </span>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

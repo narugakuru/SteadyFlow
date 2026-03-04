@@ -59,6 +59,9 @@ export async function GET() {
   }));
 
   const rates = ratesResult.rates;
+  const realizedPnl = allAccounts.reduce((sum: number, a: any) => {
+    return sum + convertToCNY(a.realizedPnl || 0, a.currency, rates);
+  }, 0);
 
   // Read global thresholds from settings
   const [warnRow] = await db
@@ -240,8 +243,16 @@ export async function GET() {
     };
   });
 
+  const unrealizedPnl = allocation
+    .filter((item: any) => item.name !== "现金")
+    .reduce((sum: number, item: any) => sum + item.totalPnl, 0);
+  const totalPnl = realizedPnl + unrealizedPnl;
+
   return NextResponse.json({
     totalAssetCny: roundForStorage(totalAssetCny, "amount"),
+    realizedPnl: roundForStorage(realizedPnl, "amount"),
+    unrealizedPnl: roundForStorage(unrealizedPnl, "amount"),
+    totalPnl: roundForStorage(totalPnl, "amount"),
     allocation,
     rates: ratesResult,
     settings: { warningThreshold, dangerThreshold, colorMode, netvalueTimezone },

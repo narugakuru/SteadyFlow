@@ -18,6 +18,7 @@ export async function GET() {
       name: accounts.name,
       currency: accounts.currency,
       cashBalance: accounts.cashBalance,
+      realizedPnl: accounts.realizedPnl,
       createdAt: accounts.createdAt,
       updatedAt: accounts.updatedAt,
       holdingsValue: sql<number>`coalesce(sum(${holdings.marketValue}), 0)`,

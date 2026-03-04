@@ -79,6 +79,7 @@ export const accounts = pgTable("accounts", {
   name: text("name").notNull(),
   currency: varchar("currency", { length: 3 }).notNull(),
   cashBalance: doublePrecision("cash_balance").notNull().default(0),
+  realizedPnl: doublePrecision("realized_pnl").notNull().default(0),
   createdAt: text("created_at")
     .notNull()
     .default(sql`now()`),
@@ -205,6 +206,7 @@ export const transactions = pgTable("transactions", {
   type: varchar("type", { length: 20 }).notNull(),
   date: text("date").notNull(),
   amount: doublePrecision("amount").notNull(),
+  realizedPnl: doublePrecision("realized_pnl").notNull().default(0),
   shares: doublePrecision("shares"),
   price: doublePrecision("price"),
   fee: doublePrecision("fee").notNull().default(0),
