@@ -29,7 +29,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
-import { Account, CURRENCY_SYMBOLS, Holding, Transaction } from "@/lib/utils/types";
+import {
+  Account,
+  CURRENCY_SYMBOLS,
+  Holding,
+  Settings,
+  Transaction,
+  pnlColorClass,
+} from "@/lib/utils/types";
 import { formatAmount, formatPrice, formatShares } from "@/lib/utils/format";
 
 const TX_TYPE_LABELS: Record<string, string> = {
@@ -91,17 +98,24 @@ function TransactionsContent() {
     path: "/api/holdings",
   });
 
+  const settingsQuery = useUserScopedQuery<Settings>({
+    name: "settings",
+    path: "/api/settings",
+  });
+
   const deleteTxMutation = useMutationJson<never, unknown>();
 
   const loading =
     txQuery.sessionStatus === "loading" ||
     (txQuery.isLoading && !txQuery.data) ||
     (accountsQuery.isLoading && !accountsQuery.data) ||
-    (holdingsQuery.isLoading && !holdingsQuery.data);
+    (holdingsQuery.isLoading && !holdingsQuery.data) ||
+    (settingsQuery.isLoading && !settingsQuery.data);
 
   const transactions = txQuery.data ?? [];
   const accounts = accountsQuery.data ?? [];
   const holdings = holdingsQuery.data ?? [];
+  const colorMode = settingsQuery.data?.colorMode ?? "cn";
 
   const refreshAll = async () => {
     await Promise.all([txQuery.refetch(), accountsQuery.refetch(), holdingsQuery.refetch()]);
@@ -176,6 +190,7 @@ function TransactionsContent() {
                 <th className="text-right p-3 font-medium whitespace-nowrap">股价</th>
                 <th className="text-right p-3 font-medium whitespace-nowrap">金额</th>
                 <th className="text-right p-3 font-medium whitespace-nowrap">手续费</th>
+                <th className="text-right p-3 font-medium whitespace-nowrap">盈亏</th>
                 <th className="text-left p-3 font-medium whitespace-nowrap">日期</th>
                 <th className="text-center p-3 font-medium w-16 whitespace-nowrap">操作</th>
               </tr>
@@ -183,6 +198,7 @@ function TransactionsContent() {
             <tbody>
               {transactions.map((tx) => {
                 const sym = tx.accountCurrency ? CURRENCY_SYMBOLS[tx.accountCurrency] : "¥";
+                const hasRealizedPnl = tx.type === "sell" && tx.affectHolding;
                 return (
                   <tr key={tx.id} className="border-t hover:bg-accent/30 transition-colors">
                     <td className="p-3 whitespace-nowrap">{tx.accountName}</td>
@@ -237,6 +253,17 @@ function TransactionsContent() {
                     </td>
                     <td className="p-3 text-right whitespace-nowrap">
                       {tx.fee > 0 ? `${sym}${formatAmount(tx.fee)}` : "--"}
+                    </td>
+                    <td
+                      className={`p-3 text-right whitespace-nowrap ${
+                        hasRealizedPnl
+                          ? pnlColorClass(tx.realizedPnl, colorMode)
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {hasRealizedPnl
+                        ? `${tx.realizedPnl > 0 ? "+" : ""}${sym}${formatAmount(tx.realizedPnl)}`
+                        : "--"}
                     </td>
                     <td className="p-3 whitespace-nowrap">{tx.date}</td>
                     <td className="p-3 text-center">

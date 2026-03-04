@@ -10,6 +10,7 @@ export type CacheQueryName =
   | "accounts"
   | "holdings"
   | "transactions"
+  | "settings"
   | "netvalue"
   | "market"
   | "admin-stats"
@@ -42,6 +43,7 @@ export const QUERY_POLICIES: Record<CacheQueryName, QueryPolicy> = {
   accounts: BASE_POLICY,
   holdings: BASE_POLICY,
   transactions: BASE_POLICY,
+  settings: BASE_POLICY,
   netvalue: BASE_POLICY,
   market: BASE_POLICY,
   "admin-stats": BASE_POLICY,
