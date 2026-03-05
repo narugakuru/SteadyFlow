@@ -62,6 +62,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-05] 完成 `optimize-allocation-mobile-layout-and-dnd` 实装：资产配置纪律展开明细默认隐藏金额为 0 的标的并按“0 金额末位”规则排序；移动端资产类别卡片重排为三行堆叠（标题+进度、核心金额、盈亏/状态+调仓）；修复移动端持仓拖拽释放回弹，改为本地即时落序、保存失败自动回滚并提示。同步更新 `asset-allocation`、`mobile-responsive`、`discipline-overview-sorting` 主 spec，并新增回归脚本测试（`scripts/tests/*.test.mjs`）。
 - [2026-03-04] 交易记录页新增“盈亏”列（位于手续费后）：读取每笔卖出交易的 `realizedPnl` 展示，按全局 `colorMode`（A股正红负绿 / 美股正绿负红）着色；无盈亏口径的交易显示 `--`。同步更新 `transaction-management` 主 spec。
 - [2026-03-04] 修复交易弹窗与了结盈亏口径：交易表单在切换买入/卖出/股息时不再清空已选账户/持仓，买卖自动带出持仓价格；交易写入链路新增股息 `realizedPnl=amount-fee`（受 `affectCash` 控制）并增量计入账户累计。同步更新 `transaction-management` 与 `realized-pnl-ledger` 主 spec，并新增 change `fix-transaction-dialog-dividend-pnl` 工件。
 - [2026-03-04] 修复 `realized-pnl-tracking` 在 `DB_TYPE=postgres` 下的交易写入报错：针对 Neon HTTP 驱动不支持 `db.transaction` 的限制，将交易新增/删除链路改为 PG 使用 `db.batch` 原子批处理、SQLite 保持事务，避免卖出交易 500。

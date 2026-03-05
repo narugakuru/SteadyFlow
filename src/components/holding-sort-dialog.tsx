@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Holding } from "@/lib/utils/types";
+import {
+  reorderHoldingSortItemsById,
+  rollbackHoldingSortItems,
+} from "@/lib/services/holding-sort-state";
 import {
   DndContext,
   PointerSensor,
@@ -14,12 +18,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 interface HoldingSortDialogProps {
@@ -92,43 +91,62 @@ export function HoldingSortDialog({
   onSaved,
 }: HoldingSortDialogProps) {
   const [items, setItems] = useState<HoldingSortItem[]>([]);
+  const [confirmedItems, setConfirmedItems] = useState<HoldingSortItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
+  const wasOpenRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
   );
 
-  useEffect(() => {
-    if (!open) return;
+  const initialItems = useMemo(() => {
     const sorted = [...holdings].sort((a, b) => {
       const left = scope === "discipline" ? a.disciplineSortOrder : a.accountSortOrder;
       const right = scope === "discipline" ? b.disciplineSortOrder : b.accountSortOrder;
       return left - right || a.id - b.id;
     });
-    setItems(
-      sorted.map((h) => ({
-        id: h.id,
-        name: h.name,
-        ticker: h.ticker,
-        accountName: accountNameById.get(h.accountId) || `账户#${h.accountId}`,
-      }))
-    );
+    return sorted.map((h) => ({
+      id: h.id,
+      name: h.name,
+      ticker: h.ticker,
+      accountName: accountNameById.get(h.accountId) || `账户#${h.accountId}`,
+    }));
+  }, [holdings, accountNameById, scope]);
+
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      setItems(initialItems);
+      setConfirmedItems(initialItems);
+      setDirty(false);
+      setError("");
+    }
+    if (!open) {
+      setSaving(false);
+    }
+    wasOpenRef.current = open;
+  }, [open, initialItems]);
+
+  useEffect(() => {
+    if (!open) return;
     setDirty(false);
     setError("");
-  }, [open, holdings, accountNameById, scope]);
+  }, [open, scope]);
 
   const itemIds = useMemo(() => items.map((item) => item.id), [items]);
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
-    const oldIndex = items.findIndex((item) => item.id === Number(active.id));
-    const newIndex = items.findIndex((item) => item.id === Number(over.id));
-    if (oldIndex < 0 || newIndex < 0) return;
-    setItems((prev) => arrayMove(prev, oldIndex, newIndex));
-    setDirty(true);
+    const activeId = Number(active.id);
+    const overId = Number(over.id);
+    if (!Number.isFinite(activeId) || !Number.isFinite(overId)) return;
+    setItems((prev) => {
+      const next = reorderHoldingSortItemsById(prev, activeId, overId);
+      if (next !== prev) setDirty(true);
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -138,6 +156,7 @@ export function HoldingSortDialog({
     }
     setSaving(true);
     setError("");
+    const previousConfirmed = confirmedItems;
     try {
       const res = await fetch("/api/holdings/reorder", {
         method: "POST",
@@ -153,10 +172,15 @@ export function HoldingSortDialog({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "保存排序失败");
       }
+      setConfirmedItems(items);
+      setDirty(false);
       onOpenChange(false);
       onSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存排序失败");
+      const message = e instanceof Error ? e.message : "保存排序失败";
+      setItems(rollbackHoldingSortItems(previousConfirmed));
+      setDirty(false);
+      setError(`${message}，顺序已回滚到上次保存结果`);
     } finally {
       setSaving(false);
     }

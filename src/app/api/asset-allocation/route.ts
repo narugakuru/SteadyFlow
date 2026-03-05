@@ -8,6 +8,10 @@ import { requireUser } from "@/lib/auth/auth-utils";
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { roundForStorage } from "@/lib/utils/format";
 import { normalizeNetvalueTimeZone } from "@/lib/utils/timezone";
+import {
+  filterVisibleDisciplineHoldings,
+  sortDisciplineHoldingsWithZeroLast,
+} from "@/lib/services/discipline-holdings";
 
 function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: number; id?: number }>(
   items: T[]
@@ -167,7 +171,7 @@ export async function GET() {
     }
 
     // Build holdings list for this class
-    const holdingsList = isCash
+    const rawHoldingsList = isCash
       ? accountCash.map((ac) => ({
           id: -ac.accountId,
           name: `${ac.accountName} 现金`,
@@ -180,6 +184,7 @@ export async function GET() {
           returnRate: null as number | null,
           pnlAmount: 0,
           pnlAmountCny: 0,
+          disciplineSortOrder: null,
           pctOfTotal:
             totalAssetCny > 0 ? roundForStorage((ac.cashCny / totalAssetCny) * 100, "percent") : 0,
         }))
@@ -213,15 +218,22 @@ export async function GET() {
             returnRate,
             pnlAmount: roundForStorage(pnlAmount, "amount"),
             pnlAmountCny: roundForStorage(pnlAmountCny, "amount"),
+            disciplineSortOrder: h.disciplineSortOrder,
             pctOfTotal:
               totalAssetCny > 0 ? roundForStorage((valueCny / totalAssetCny) * 100, "percent") : 0,
           };
         });
 
+    const sortedHoldingsList = sortDisciplineHoldingsWithZeroLast(rawHoldingsList);
+    const holdingsList = filterVisibleDisciplineHoldings(sortedHoldingsList);
+
     // Category-level cost, P&L, and rebalance adjustment
     const totalCost = isCash
       ? 0
-      : holdingsList.reduce((s: number, h: any) => s + convertToCNY(h.cost, h.currency, rates), 0);
+      : rawHoldingsList.reduce(
+          (s: number, h: any) => s + convertToCNY(h.cost, h.currency, rates),
+          0
+        );
     const totalPnl = isCash ? 0 : roundForStorage(actualValue - totalCost, "amount");
     const adjustAmount = roundForStorage(
       (cls.targetPct / 100) * totalAssetCny - actualValue,

@@ -279,75 +279,81 @@ export function DisciplineTable({
                 className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
                 onClick={() => toggleExpand(item.id)}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{item.name}</span>
-                  <span className="text-muted-foreground text-sm">{isExpanded ? "▼" : "▶"}</span>
-                </div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="relative flex-1 h-3 bg-muted rounded overflow-hidden mr-3">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded"
-                      style={{
-                        width: `${Math.min(item.actualPct, 100)}%`,
-                        backgroundColor:
-                          item.status === "danger"
-                            ? "#ef4444"
-                            : item.status === "warning"
-                              ? "#eab308"
-                              : "#22c55e",
-                        opacity: 0.6,
-                      }}
-                    />
-                    <div
-                      className="absolute inset-y-0 w-0.5 bg-foreground/70"
-                      style={{ left: `${Math.min(item.targetPct, 100)}%` }}
-                    />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium truncate">{item.name}</span>
+                    <span className="text-muted-foreground text-sm">{isExpanded ? "▼" : "▶"}</span>
                   </div>
-                  <span className="text-xs tabular-nums whitespace-nowrap min-w-[80px] text-right">
+                  <span className="text-xs tabular-nums whitespace-nowrap text-right">
                     {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>¥{formatAmount(item.actualValue)}</span>
-                  <div className="flex items-center gap-2">
+                <div className="relative mt-2 h-2.5 bg-muted rounded overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded"
+                    style={{
+                      width: `${Math.min(item.actualPct, 100)}%`,
+                      backgroundColor:
+                        item.status === "danger"
+                          ? "#ef4444"
+                          : item.status === "warning"
+                            ? "#eab308"
+                            : "#22c55e",
+                      opacity: 0.6,
+                    }}
+                  />
+                  <div
+                    className="absolute inset-y-0 w-0.5 bg-foreground/70"
+                    style={{ left: `${Math.min(item.targetPct, 100)}%` }}
+                  />
+                </div>
+                <div className="mt-3">
+                  <p className="text-2xl font-semibold leading-tight tabular-nums break-all">
+                    ¥{formatAmount(item.actualValue)}
+                  </p>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex items-center gap-2">
                     {item.name === "现金" ? (
-                      <span className="text-muted-foreground text-xs">--</span>
+                      <span className="text-muted-foreground text-xs whitespace-nowrap">--</span>
                     ) : (
-                      <span className={`text-xs ${pnlColorClass(item.totalPnl, colorMode)}`}>
+                      <span
+                        className={`text-xs tabular-nums whitespace-nowrap ${pnlColorClass(item.totalPnl, colorMode)}`}
+                      >
                         {item.totalPnl > 0 ? "+" : ""}
                         {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
                       </span>
                     )}
-                    {/* 移动端也同步固定宽度，但稍微窄一点点 */}
                     <Badge
                       variant="secondary"
                       className={cn(
-                        "w-28 justify-center text-[10px] py-0.5 font-normal",
+                        "max-w-[11rem] justify-start gap-1 text-[10px] py-0.5 font-normal overflow-hidden",
                         getStatusStyle(item.status)
                       )}
                     >
-                      {getDeviationLabel(item.deviation)}
+                      <span className="flex-shrink-0">{getStatusIcon(item.status)}</span>
+                      <span className="truncate">{getDeviationLabel(item.deviation)}</span>
                     </Badge>
-                    {item.name !== "现金" ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSortHoldingFor({
-                            assetClass: item.name,
-                            title: `排序持仓 - ${item.name}`,
-                          });
-                        }}
-                      >
-                        <ArrowUpDown className="h-3.5 w-3.5" />
-                      </Button>
-                    ) : (
-                      <div className="h-6 w-6" />
-                    )}
                   </div>
+                  {item.name !== "现金" ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground flex-shrink-0"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSortHoldingFor({
+                          assetClass: item.name,
+                          title: `排序持仓 - ${item.name}`,
+                        });
+                      }}
+                    >
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <div className="h-7 w-7 flex-shrink-0" />
+                  )}
                 </div>
               </div>
               {isExpanded && (

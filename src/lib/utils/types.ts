@@ -99,6 +99,7 @@ export interface AllocationHolding {
   returnRate: number | null;
   pnlAmount: number;
   pnlAmountCny: number;
+  disciplineSortOrder?: number | null;
   pctOfTotal: number;
 }
 
