@@ -44,7 +44,7 @@ function SortableAssetClassRow({ id, name }: { id: number; name: string }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`grid grid-cols-[1fr_auto] items-center gap-2 rounded-md border px-3 py-2 ${
+      className={`grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-2 rounded-md border px-3 py-2 ${
         isDragging ? "bg-accent/40 shadow-sm" : "bg-background"
       }`}
     >
@@ -52,12 +52,13 @@ function SortableAssetClassRow({ id, name }: { id: number; name: string }) {
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="inline-flex h-8 w-8 items-center justify-center rounded border text-muted-foreground hover:bg-accent"
+        className="inline-flex h-8 w-full touch-manipulation items-center justify-center gap-1 rounded border text-muted-foreground hover:bg-accent"
         aria-label={`拖拽排序 ${name}`}
         {...attributes}
         {...listeners}
       >
         <GripVertical className="h-4 w-4" />
+        <span className="text-[11px] leading-none">拖拽</span>
       </button>
     </div>
   );
@@ -99,7 +100,7 @@ export function AssetClassSortDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="md:max-w-md">
+      <DialogContent className="w-[min(96vw,28rem)] md:max-w-md">
         <DialogHeader>
           <DialogTitle>排序资产类别</DialogTitle>
         </DialogHeader>

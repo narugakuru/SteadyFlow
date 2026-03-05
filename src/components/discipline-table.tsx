@@ -16,7 +16,7 @@ import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
-import { cn } from "@/lib/utils/utils"; // 确保你有这个工具函数，没有的话可以手动写类名
+import { cn } from "@/lib/utils/utils";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 
 interface DisciplineTableProps {
@@ -307,34 +307,34 @@ export function DisciplineTable({
                     style={{ left: `${Math.min(item.targetPct, 100)}%` }}
                   />
                 </div>
-                <div className="mt-3">
+                <div className="mt-3 flex items-end justify-between gap-3">
                   <p className="text-2xl font-semibold leading-tight tabular-nums break-all">
                     ¥{formatAmount(item.actualValue)}
                   </p>
-                </div>
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <div className="min-w-0 flex items-center gap-2">
-                    {item.name === "现金" ? (
-                      <span className="text-muted-foreground text-xs whitespace-nowrap">--</span>
-                    ) : (
-                      <span
-                        className={`text-xs tabular-nums whitespace-nowrap ${pnlColorClass(item.totalPnl, colorMode)}`}
-                      >
-                        {item.totalPnl > 0 ? "+" : ""}
-                        {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
-                      </span>
-                    )}
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "max-w-[11rem] justify-start gap-1 text-[10px] py-0.5 font-normal overflow-hidden",
-                        getStatusStyle(item.status)
-                      )}
+                  {item.name === "现金" ? (
+                    <span className="text-muted-foreground text-xs tabular-nums whitespace-nowrap">
+                      --
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-xs tabular-nums whitespace-nowrap ${pnlColorClass(item.totalPnl, colorMode)}`}
                     >
-                      <span className="flex-shrink-0">{getStatusIcon(item.status)}</span>
-                      <span className="truncate">{getDeviationLabel(item.deviation)}</span>
-                    </Badge>
-                  </div>
+                      {item.totalPnl > 0 ? "+" : ""}
+                      {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center justify-end gap-2">
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "max-w-[11rem] justify-start gap-1 text-[10px] py-0.5 font-normal overflow-hidden",
+                      getStatusStyle(item.status)
+                    )}
+                  >
+                    <span className="flex-shrink-0">{getStatusIcon(item.status)}</span>
+                    <span className="truncate">{getDeviationLabel(item.deviation)}</span>
+                  </Badge>
                   {item.name !== "现金" ? (
                     <Button
                       type="button"
