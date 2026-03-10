@@ -2,7 +2,7 @@
 
 ### Requirement: 自动获取持仓报价 API
 
-系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户所有 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。  
+系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户所有 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。请求 MUST 支持显式触发来源语义，用于区分 `manual`、`silent-client` 与 `cron` 等模式；不同模式 MUST 复用同一报价同步核心逻辑，并使用统一口径写入报价同步元数据。  
 报价分发规则 MUST 为：
 
 - `.US` / `.JP` 使用 Stooq（保留原有实现）
@@ -17,8 +17,7 @@
 - `.BJ` -> `bj` + 6 位代码
 - `.HK` -> `hk` + 5 位代码（不足 5 位前补零）
 
-系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。
-系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。
+系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
 
 #### Scenario: 成功更新美股持仓价格（Stooq）
 
@@ -80,6 +79,16 @@
 - **WHEN** 自动报价完成
 - **THEN** API 返回 JSON `{ updated: [{id, name, ticker, oldPrice, newPrice, provider, source}], failed: [{id, name, ticker, error}], skipped: [{id, name, ticker, reason}] }`，且 `provider` 至少可区分 `tencent`、`eodhd`、`twelve-data`
 
+#### Scenario: 静默模式不改变接口语义
+
+- **WHEN** 页面以 `silent-client` 触发一次报价同步
+- **THEN** 系统仍返回兼容的 `updated`、`failed`、`skipped` 结构，并按静默来源记录报价同步元数据
+
+#### Scenario: Cron 模式记录来源
+
+- **WHEN** 每日后台链路以 `cron` 触发一次报价同步
+- **THEN** 系统使用与手动模式一致的报价同步逻辑，并将触发来源记录为 `cron`
+
 #### Scenario: 未登录用户
 
 - **WHEN** 未登录用户请求 `POST /api/holdings/fetch-prices`
@@ -98,6 +107,20 @@
 
 - **WHEN** 自动报价返回 updated 项
 - **THEN** 弹窗中该标的行显示最新股价与来源信息（provider + source）
+
+### Requirement: 每日后台报价保底刷新
+
+系统 SHALL 复用现有 `POST /api/cron/netvalue` 每日链路作为后台报价保底刷新入口。该链路在为用户记录当日净值前 MUST 先执行一次报价同步，并使用 `cron` 触发来源记录报价同步元数据。
+
+#### Scenario: 每日 Cron 先同步报价再记录净值
+
+- **WHEN** 每日 `POST /api/cron/netvalue` 链路开始处理某个用户
+- **THEN** 系统先执行一次 `cron` 来源的报价同步，随后再记录该用户当日净值
+
+#### Scenario: 后台报价失败仍保留净值链路宽松模式
+
+- **WHEN** 每日 Cron 为某个用户执行报价同步失败或部分失败
+- **THEN** 系统仍按现有宽松模式继续记录净值，同时写入该次报价同步的失败状态与摘要元数据
 
 ### Requirement: 批量更新页面自动报价按钮
 

@@ -19,6 +19,7 @@ InvestManage 目标是提供一个轻量、可自托管、可多用户的投资�
 - 交易系统：买入/卖出/分红/出入金，支持副作用开关
 - 资产配置：目标比例、当前比例、偏离度可视化
 - 净值历史：按日记录总资产净值并展示趋势（资产变动自动刷新 + 每日自动记录）
+- 数据导出：Dashboard 一键导出完整投资组合 JSON 快照（`/api/export/portfolio`）
 - 市场概览：主要指数行情 + TradingView 图表
 - 用户系统：邮箱密码登录、GitHub OAuth、管理员后台
 
@@ -127,6 +128,7 @@ GITHUB_SECRET=your-github-client-secret
 - 云端（Vercel）：根目录 `vercel.json` 已配置每天触发一次 `POST /api/cron/netvalue`（兼容 Hobby 免费计划）。
 - 调度逻辑：Cron 对每个用户执行“先更新股价、后写入当日净值”，并以 `(userId + date)` 幂等 upsert。
 - 宽松模式：股价同步结果无论是 `ok` / `partial` / `failed`，都继续写入净值；响应中包含每用户 `quoteSyncStatus` 与失败摘要，便于排障。
+- 日内兜底：Dashboard 在检测到股价同步超过阈值时会静默触发一次后台补刷，不弹出明细弹窗；总资产卡片会显示最近一次股价同步时间。
 - 分批与预算：支持按批处理用户并基于时间预算提前停止，避免函数被平台强杀。可通过环境变量调优：
   - `CRON_NETVALUE_BATCH_SIZE`（默认 `25`）
   - `CRON_NETVALUE_TIME_BUDGET_MS`（默认 `50000`）

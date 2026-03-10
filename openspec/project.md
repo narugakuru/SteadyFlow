@@ -36,8 +36,9 @@ src/
 │       ├── exchange-rates/         # 汇率
 │       ├── market/                 # 市场指数行情（Yahoo Finance）
 │       ├── discipline-notes/       # 纪律笔记 CRUD
+│       ├── export/portfolio/       # 投资组合 JSON 快照导出
 │       ├── netvalue/               # 净值
-│       └── cron/netvalue/          # 净值定时任务入口（CRON_SECRET 鉴权）
+│       └── cron/netvalue/          # 每日“先价后值”定时任务入口（CRON_SECRET 鉴权）
 ├── proxy.ts                       # 路由守卫（JWT + 管理员权限）
 ├── components/
 │   ├── ui/                         # shadcn 基础组件（含 loading-spinner）
@@ -70,12 +71,17 @@ src/
 │   │   └── auth-utils.ts           # Session 获取与 401 封装
 │   ├── services/                   # 业务服务层
 │   │   ├── user-seed.ts            # 用户级默认数据初始化
+│   │   ├── settings-service.ts     # settings 读写与公开设置提取
+│   │   ├── quote-sync-metadata-service.ts # quote_sync.* 元数据读写与标准化
+│   │   ├── holding-price-sync-service.ts # 持仓报价同步（manual/silent-client/cron）
+│   │   ├── portfolio-snapshot-service.ts # 资产配置与导出快照聚合
 │   │   ├── netvalue-service.ts     # 净值计算与写入服务（时区 + upsert）
 │   │   └── mutation-with-netvalue.ts # 写操作后自动触发净值刷新封装
 │   ├── utils/                      # 通用工具、类型与 hooks
 │   │   ├── utils.ts                # 工具函数
 │   │   ├── format.ts               # 数值精度配置与统一格式化/截断函数
 │   │   ├── types.ts                # 类型定义
+│   │   ├── quote-sync.ts           # 报价同步状态/阈值判断
 │   │   ├── hooks.ts                # 自定义 Hooks
 │   │   ├── asset-class.ts          # 资产类别标准化与默认顺序
 │   │   └── timezone.ts             # IANA 时区校验与本地日期/时间计算
@@ -111,4 +117,4 @@ src/
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                                                           |
 | netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                                                          |
 | disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                                                                      |
-| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key` 等键）                                                                                           |
+| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key`、`quote_sync.*`、`cron.netvalue.cursor` 等键）                                                   |

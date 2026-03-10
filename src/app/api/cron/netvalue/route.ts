@@ -217,7 +217,7 @@ export async function POST(request: Request) {
       };
 
       try {
-        const quoteResult = await syncHoldingPricesForUser(user.id);
+        const quoteResult = await syncHoldingPricesForUser(user.id, { trigger: "cron" });
         quoteSyncStatus = quoteResult.quoteSyncStatus;
         quoteFailureSummary = quoteResult.quoteFailureSummary;
         quoteStats.updated = quoteResult.stats.updated;

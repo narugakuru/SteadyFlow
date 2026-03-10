@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { accounts, holdings, settings } from "@/db/schema";
+import { accounts, holdings } from "@/db/schema";
 import { fetchEodhdQuote } from "@/lib/data-source/eodhd";
 import { fetchStooqQuote } from "@/lib/data-source/stooq";
 import {
@@ -9,7 +9,13 @@ import {
   toTencentSimpleQuoteSymbol,
 } from "@/lib/data-source/tencent-quote";
 import { fetchTwelveDataQuotesInBatches } from "@/lib/data-source/twelve-data";
+import {
+  markQuoteSyncFinished,
+  markQuoteSyncStarted,
+} from "@/lib/services/quote-sync-metadata-service";
+import { readUserSettingsMap, SETTING_KEYS } from "@/lib/services/settings-service";
 import { roundForStorage } from "@/lib/utils/format";
+import type { QuoteSyncTriggerSource } from "@/lib/utils/quote-sync";
 
 const TWELVE_BATCH_SIZE = 8;
 const TENCENT_BATCH_SIZE = 30;
@@ -165,6 +171,10 @@ export interface UserQuoteSyncResult {
   };
 }
 
+interface SyncHoldingPriceOptions {
+  trigger?: QuoteSyncTriggerSource;
+}
+
 function formatErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
@@ -191,6 +201,20 @@ function summarizeFailureReasons(failed: FailedItem[]): string | null {
     .slice(0, 3)
     .map(([reason, count]) => (count > 1 ? `${reason} x${count}` : reason))
     .join(" | ");
+}
+
+function buildQuoteSyncSummary(result: Pick<UserQuoteSyncResult, "stats" | "quoteFailureSummary">) {
+  const parts = [
+    `成功 ${result.stats.updated} 个`,
+    `失败 ${result.stats.failed} 个`,
+    `跳过 ${result.stats.skipped} 个`,
+  ];
+
+  if (result.quoteFailureSummary) {
+    parts.push(`摘要：${result.quoteFailureSummary}`);
+  }
+
+  return parts.join("，");
 }
 
 async function applyQuoteToHolding(
@@ -225,223 +249,166 @@ async function applyQuoteToHolding(
   });
 }
 
-export async function syncHoldingPricesForUser(userId: string): Promise<UserQuoteSyncResult> {
-  const userAccounts = await db
-    .select({ id: accounts.id })
-    .from(accounts)
-    .where(eq(accounts.userId, userId));
+export async function syncHoldingPricesForUser(
+  userId: string,
+  options: SyncHoldingPriceOptions = {}
+): Promise<UserQuoteSyncResult> {
+  const trigger = options.trigger ?? "manual";
+  await markQuoteSyncStarted(userId, trigger);
 
-  const accountIds = userAccounts.map((account: { id: number }) => account.id);
-  if (accountIds.length === 0) {
-    return {
-      updated: [],
-      failed: [],
-      skipped: [],
-      quoteSyncStatus: "ok",
-      quoteFailureSummary: null,
-      stats: { updated: 0, failed: 0, skipped: 0, total: 0 },
-    };
-  }
+  try {
+    const userAccounts = await db
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(eq(accounts.userId, userId));
 
-  const allHoldings = await db
-    .select()
-    .from(holdings)
-    .where(inArray(holdings.accountId, accountIds));
-
-  const holdingRows = allHoldings as HoldingForPrice[];
-  const updated: UpdatedItem[] = [];
-  const failed: FailedItem[] = [];
-  const skipped: SkippedItem[] = [];
-
-  const stooqHoldings: {
-    holding: HoldingForPrice;
-    stooqSymbol: string;
-    normalizedTicker: string;
-  }[] = [];
-  const asiaHoldings: { holding: HoldingForPrice; profile: AsiaTickerProfile }[] = [];
-
-  for (const holding of holdingRows) {
-    if (holding.valuationMode !== "shares") {
-      skipped.push({
-        id: holding.id,
-        name: holding.name,
-        ticker: holding.ticker,
-        reason: "amount 模式",
+    const accountIds = userAccounts.map((account: { id: number }) => account.id);
+    if (accountIds.length === 0) {
+      const result: UserQuoteSyncResult = {
+        updated: [],
+        failed: [],
+        skipped: [],
+        quoteSyncStatus: "ok",
+        quoteFailureSummary: null,
+        stats: { updated: 0, failed: 0, skipped: 0, total: 0 },
+      };
+      await markQuoteSyncFinished(userId, {
+        trigger,
+        status: result.quoteSyncStatus,
+        summary: buildQuoteSyncSummary(result),
+        hadSuccessfulUpdate: false,
       });
-      continue;
-    }
-    if (!holding.ticker) {
-      skipped.push({
-        id: holding.id,
-        name: holding.name,
-        ticker: null,
-        reason: "无股票代码",
-      });
-      continue;
+      return result;
     }
 
-    const normalizedTicker = normalizeTicker(holding.ticker);
-    const source = getTickerSource(normalizedTicker);
-    if (source === "stooq") {
-      stooqHoldings.push({
-        holding,
-        stooqSymbol: toStooqSymbol(normalizedTicker),
-        normalizedTicker,
-      });
-      continue;
-    }
+    const allHoldings = await db
+      .select()
+      .from(holdings)
+      .where(inArray(holdings.accountId, accountIds));
 
-    if (source === "asia") {
-      const profile = parseAsiaTicker(normalizedTicker);
-      if (!profile) {
+    const holdingRows = allHoldings as HoldingForPrice[];
+    const updated: UpdatedItem[] = [];
+    const failed: FailedItem[] = [];
+    const skipped: SkippedItem[] = [];
+
+    const stooqHoldings: {
+      holding: HoldingForPrice;
+      stooqSymbol: string;
+      normalizedTicker: string;
+    }[] = [];
+    const asiaHoldings: { holding: HoldingForPrice; profile: AsiaTickerProfile }[] = [];
+
+    for (const holding of holdingRows) {
+      if (holding.valuationMode !== "shares") {
         skipped.push({
           id: holding.id,
           name: holding.name,
           ticker: holding.ticker,
-          reason: "代码格式无法识别",
+          reason: "amount 模式",
         });
         continue;
       }
-      asiaHoldings.push({ holding, profile });
-      continue;
+      if (!holding.ticker) {
+        skipped.push({
+          id: holding.id,
+          name: holding.name,
+          ticker: null,
+          reason: "无股票代码",
+        });
+        continue;
+      }
+
+      const normalizedTicker = normalizeTicker(holding.ticker);
+      const source = getTickerSource(normalizedTicker);
+      if (source === "stooq") {
+        stooqHoldings.push({
+          holding,
+          stooqSymbol: toStooqSymbol(normalizedTicker),
+          normalizedTicker,
+        });
+        continue;
+      }
+
+      if (source === "asia") {
+        const profile = parseAsiaTicker(normalizedTicker);
+        if (!profile) {
+          skipped.push({
+            id: holding.id,
+            name: holding.name,
+            ticker: holding.ticker,
+            reason: "代码格式无法识别",
+          });
+          continue;
+        }
+        asiaHoldings.push({ holding, profile });
+        continue;
+      }
+
+      skipped.push({
+        id: holding.id,
+        name: holding.name,
+        ticker: holding.ticker,
+        reason: "不支持的代码格式",
+      });
     }
 
-    skipped.push({
-      id: holding.id,
-      name: holding.name,
-      ticker: holding.ticker,
-      reason: "不支持的代码格式",
-    });
-  }
-
-  for (const item of stooqHoldings) {
-    try {
-      const quote = await fetchStooqQuote(item.stooqSymbol);
-      if (quote && quote.close > 0) {
-        await applyQuoteToHolding(
-          item.holding,
-          item.normalizedTicker,
-          quote.close,
-          "stooq",
-          "realtime",
-          updated
-        );
-      } else {
+    for (const item of stooqHoldings) {
+      try {
+        const quote = await fetchStooqQuote(item.stooqSymbol);
+        if (quote && quote.close > 0) {
+          await applyQuoteToHolding(
+            item.holding,
+            item.normalizedTicker,
+            quote.close,
+            "stooq",
+            "realtime",
+            updated
+          );
+        } else {
+          failed.push({
+            id: item.holding.id,
+            name: item.holding.name,
+            ticker: item.normalizedTicker,
+            error: "Stooq 无数据",
+          });
+        }
+      } catch (error) {
         failed.push({
           id: item.holding.id,
           name: item.holding.name,
           ticker: item.normalizedTicker,
-          error: "Stooq 无数据",
+          error: formatErrorMessage(error, "Stooq 请求失败"),
         });
       }
-    } catch (error) {
-      failed.push({
-        id: item.holding.id,
-        name: item.holding.name,
-        ticker: item.normalizedTicker,
-        error: formatErrorMessage(error, "Stooq 请求失败"),
-      });
-    }
-  }
-
-  if (asiaHoldings.length > 0) {
-    const userSettingsRows = await db
-      .select({ key: settings.key, value: settings.value })
-      .from(settings)
-      .where(eq(settings.userId, userId));
-    const userSettings = new Map<string, string>(
-      userSettingsRows.map((row: { key: string; value: string }) => [row.key, row.value])
-    );
-
-    const twelveApiKey = (userSettings.get("quote_api.twelvedata_key") ?? "").trim();
-    const eodhdApiKey = (userSettings.get("quote_api.eodhd_key") ?? "").trim();
-
-    const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
-    const tencentErrorById = new Map<number, string>();
-    const eodhdErrorById = new Map<number, string>();
-    const twelveErrorById = new Map<number, string>();
-
-    try {
-      const tencentResults = await fetchTencentQuotesInBatches(
-        asiaHoldings.map(({ holding, profile }) => ({
-          requestId: String(holding.id),
-          symbol: profile.tencentSymbol,
-        })),
-        { batchSize: TENCENT_BATCH_SIZE, maxRetries: TENCENT_MAX_RETRIES }
-      );
-
-      for (const result of tencentResults) {
-        const holdingId = Number.parseInt(result.requestId, 10);
-        const item = unresolvedById.get(holdingId);
-        if (!item) continue;
-
-        if (!result.quote) {
-          if (result.error) {
-            tencentErrorById.set(holdingId, result.error);
-          }
-          continue;
-        }
-
-        await applyQuoteToHolding(
-          item.holding,
-          item.profile.normalizedTicker,
-          result.quote.price,
-          "tencent",
-          result.quote.source,
-          updated
-        );
-        unresolvedById.delete(holdingId);
-      }
-    } catch (error) {
-      const reason = formatErrorMessage(error, "腾讯行情请求失败");
-      for (const item of unresolvedById.values()) {
-        tencentErrorById.set(item.holding.id, reason);
-      }
     }
 
-    if (unresolvedById.size > 0 && eodhdApiKey) {
-      for (const [holdingId, item] of unresolvedById.entries()) {
-        try {
-          const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
-          if (!quote) {
-            eodhdErrorById.set(holdingId, "无可用价格");
-            continue;
-          }
+    if (asiaHoldings.length > 0) {
+      const userSettings = await readUserSettingsMap(userId);
+      const twelveApiKey = (userSettings.get(SETTING_KEYS.twelveDataApiKey) ?? "").trim();
+      const eodhdApiKey = (userSettings.get(SETTING_KEYS.eodhdApiKey) ?? "").trim();
 
-          await applyQuoteToHolding(
-            item.holding,
-            item.profile.normalizedTicker,
-            quote.price,
-            "eodhd",
-            quote.source,
-            updated
-          );
-          unresolvedById.delete(holdingId);
-        } catch (error) {
-          eodhdErrorById.set(holdingId, formatErrorMessage(error, "EODHD 请求失败"));
-        }
-      }
-    }
+      const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
+      const tencentErrorById = new Map<number, string>();
+      const eodhdErrorById = new Map<number, string>();
+      const twelveErrorById = new Map<number, string>();
 
-    if (unresolvedById.size > 0 && twelveApiKey) {
       try {
-        const twelveResults = await fetchTwelveDataQuotesInBatches(
-          twelveApiKey,
-          [...unresolvedById.values()].map(({ holding, profile }) => ({
+        const tencentResults = await fetchTencentQuotesInBatches(
+          asiaHoldings.map(({ holding, profile }) => ({
             requestId: String(holding.id),
-            candidates: profile.twelveCandidates,
+            symbol: profile.tencentSymbol,
           })),
-          { batchSize: TWELVE_BATCH_SIZE }
+          { batchSize: TENCENT_BATCH_SIZE, maxRetries: TENCENT_MAX_RETRIES }
         );
 
-        for (const result of twelveResults) {
+        for (const result of tencentResults) {
           const holdingId = Number.parseInt(result.requestId, 10);
           const item = unresolvedById.get(holdingId);
           if (!item) continue;
 
           if (!result.quote) {
             if (result.error) {
-              twelveErrorById.set(holdingId, result.error);
+              tencentErrorById.set(holdingId, result.error);
             }
             continue;
           }
@@ -450,56 +417,136 @@ export async function syncHoldingPricesForUser(userId: string): Promise<UserQuot
             item.holding,
             item.profile.normalizedTicker,
             result.quote.price,
-            "twelve-data",
+            "tencent",
             result.quote.source,
             updated
           );
           unresolvedById.delete(holdingId);
         }
       } catch (error) {
-        const reason = formatErrorMessage(error, "Twelve Data 请求失败");
+        const reason = formatErrorMessage(error, "腾讯行情请求失败");
         for (const item of unresolvedById.values()) {
-          twelveErrorById.set(item.holding.id, reason);
+          tencentErrorById.set(item.holding.id, reason);
         }
+      }
+
+      if (unresolvedById.size > 0 && eodhdApiKey) {
+        for (const [holdingId, item] of unresolvedById.entries()) {
+          try {
+            const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
+            if (!quote) {
+              eodhdErrorById.set(holdingId, "无可用价格");
+              continue;
+            }
+
+            await applyQuoteToHolding(
+              item.holding,
+              item.profile.normalizedTicker,
+              quote.price,
+              "eodhd",
+              quote.source,
+              updated
+            );
+            unresolvedById.delete(holdingId);
+          } catch (error) {
+            eodhdErrorById.set(holdingId, formatErrorMessage(error, "EODHD 请求失败"));
+          }
+        }
+      }
+
+      if (unresolvedById.size > 0 && twelveApiKey) {
+        try {
+          const twelveResults = await fetchTwelveDataQuotesInBatches(
+            twelveApiKey,
+            [...unresolvedById.values()].map(({ holding, profile }) => ({
+              requestId: String(holding.id),
+              candidates: profile.twelveCandidates,
+            })),
+            { batchSize: TWELVE_BATCH_SIZE }
+          );
+
+          for (const result of twelveResults) {
+            const holdingId = Number.parseInt(result.requestId, 10);
+            const item = unresolvedById.get(holdingId);
+            if (!item) continue;
+
+            if (!result.quote) {
+              if (result.error) {
+                twelveErrorById.set(holdingId, result.error);
+              }
+              continue;
+            }
+
+            await applyQuoteToHolding(
+              item.holding,
+              item.profile.normalizedTicker,
+              result.quote.price,
+              "twelve-data",
+              result.quote.source,
+              updated
+            );
+            unresolvedById.delete(holdingId);
+          }
+        } catch (error) {
+          const reason = formatErrorMessage(error, "Twelve Data 请求失败");
+          for (const item of unresolvedById.values()) {
+            twelveErrorById.set(item.holding.id, reason);
+          }
+        }
+      }
+
+      for (const item of unresolvedById.values()) {
+        const holdingId = item.holding.id;
+        const reasons: string[] = [];
+        reasons.push(`Tencent: ${tencentErrorById.get(holdingId) ?? "无可用价格"}`);
+        reasons.push(
+          eodhdApiKey
+            ? `EODHD: ${eodhdErrorById.get(holdingId) ?? "无可用价格"}`
+            : "EODHD: 未配置 API Key"
+        );
+        reasons.push(
+          twelveApiKey
+            ? `Twelve Data: ${twelveErrorById.get(holdingId) ?? "无可用价格"}`
+            : "Twelve Data: 未配置 API Key"
+        );
+
+        failed.push({
+          id: holdingId,
+          name: item.holding.name,
+          ticker: item.profile.normalizedTicker,
+          error: reasons.join("；"),
+        });
       }
     }
 
-    for (const item of unresolvedById.values()) {
-      const holdingId = item.holding.id;
-      const reasons: string[] = [];
-      reasons.push(`Tencent: ${tencentErrorById.get(holdingId) ?? "无可用价格"}`);
-      reasons.push(
-        eodhdApiKey
-          ? `EODHD: ${eodhdErrorById.get(holdingId) ?? "无可用价格"}`
-          : "EODHD: 未配置 API Key"
-      );
-      reasons.push(
-        twelveApiKey
-          ? `Twelve Data: ${twelveErrorById.get(holdingId) ?? "无可用价格"}`
-          : "Twelve Data: 未配置 API Key"
-      );
-
-      failed.push({
-        id: holdingId,
-        name: item.holding.name,
-        ticker: item.profile.normalizedTicker,
-        error: reasons.join("；"),
-      });
-    }
+    const quoteSyncStatus = resolveQuoteSyncStatus(updated.length, failed.length);
+    const result: UserQuoteSyncResult = {
+      updated,
+      failed,
+      skipped,
+      quoteSyncStatus,
+      quoteFailureSummary: summarizeFailureReasons(failed),
+      stats: {
+        updated: updated.length,
+        failed: failed.length,
+        skipped: skipped.length,
+        total: updated.length + failed.length + skipped.length,
+      },
+    };
+    await markQuoteSyncFinished(userId, {
+      trigger,
+      status: result.quoteSyncStatus,
+      summary: buildQuoteSyncSummary(result),
+      hadSuccessfulUpdate: result.stats.updated > 0,
+    });
+    return result;
+  } catch (error) {
+    await markQuoteSyncFinished(userId, {
+      trigger,
+      status: "failed",
+      summary: `报价同步异常：${formatErrorMessage(error, "未知错误")}`,
+      hadSuccessfulUpdate: false,
+    });
+    throw error;
   }
-
-  const quoteSyncStatus = resolveQuoteSyncStatus(updated.length, failed.length);
-  return {
-    updated,
-    failed,
-    skipped,
-    quoteSyncStatus,
-    quoteFailureSummary: summarizeFailureReasons(failed),
-    stats: {
-      updated: updated.length,
-      failed: failed.length,
-      skipped: skipped.length,
-      total: updated.length + failed.length + skipped.length,
-    },
-  };
 }

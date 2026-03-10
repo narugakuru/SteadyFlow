@@ -1,3 +1,5 @@
+import type { QuoteSyncMetadata } from "@/lib/utils/quote-sync";
+
 export interface Account {
   id: number;
   name: string;
@@ -129,6 +131,7 @@ export interface AllocationData {
     source: string;
   };
   settings: Settings;
+  quoteSync: QuoteSyncMetadata;
 }
 
 export interface NetvalueRecord {

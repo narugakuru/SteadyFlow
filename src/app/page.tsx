@@ -16,13 +16,42 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { shouldTriggerSilentQuoteRefresh } from "@/lib/utils/quote-sync";
 import { formatAmount, formatRate } from "@/lib/utils/format";
 import { pnlColorClass, type AllocationData } from "@/lib/utils/types";
+
+function formatRelativeTime(isoString: string) {
+  const deltaMs = Math.max(0, Date.now() - Date.parse(isoString));
+  const seconds = Math.floor(deltaMs / 1000);
+  if (seconds < 60) return `${seconds}秒前`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}分钟前`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时前`;
+
+  const days = Math.floor(hours / 24);
+  return `${days}天前`;
+}
+
+function getQuoteSyncHint(allocation: AllocationData) {
+  if (allocation.quoteSync.isRunning) {
+    return "股价更新：后台同步中...";
+  }
+
+  if (!allocation.quoteSync.lastSuccessAt) {
+    return "股价更新：暂未成功同步";
+  }
+
+  return `股价更新：${formatRelativeTime(allocation.quoteSync.lastSuccessAt)}`;
+}
 
 export default function Dashboard() {
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
   const netvalueTriggeredRef = useRef(false);
+  const silentQuoteTriggeredRef = useRef(false);
 
   const allocationQuery = useUserScopedQuery<AllocationData>({
     name: "asset-allocation",
@@ -43,27 +72,54 @@ export default function Dashboard() {
     void fetch("/api/netvalue", { method: "POST" });
   }, [allocation]);
 
-  const handleFetchPrices = async () => {
-    try {
-      const data = await priceMutation.mutateAsync({
-        path: "/api/holdings/fetch-prices",
+  useEffect(() => {
+    if (!allocation || silentQuoteTriggeredRef.current || fetchingPrices) return;
+    if (!shouldTriggerSilentQuoteRefresh(allocation.quoteSync)) return;
+
+    silentQuoteTriggeredRef.current = true;
+    void priceMutation
+      .mutateAsync({
+        path: "/api/holdings/fetch-prices?trigger=silent-client",
         method: "POST",
         mutationName: "fetch-prices-write",
-      });
+      })
+      .then(async () => {
+        await allocationQuery.refetch();
+      })
+      .catch(() => undefined);
+  }, [allocation, allocationQuery, fetchingPrices, priceMutation]);
 
-      const safeData = data as {
-        updated?: PriceUpdateResult["updated"];
-        failed?: PriceUpdateResult["failed"];
-        skipped?: PriceUpdateResult["skipped"];
-      };
+  const runPriceSync = async (trigger: "manual" | "silent-client", showDialog: boolean) => {
+    const data = await priceMutation.mutateAsync({
+      path:
+        trigger === "manual"
+          ? "/api/holdings/fetch-prices"
+          : "/api/holdings/fetch-prices?trigger=silent-client",
+      method: "POST",
+      mutationName: "fetch-prices-write",
+    });
 
+    const safeData = data as {
+      updated?: PriceUpdateResult["updated"];
+      failed?: PriceUpdateResult["failed"];
+      skipped?: PriceUpdateResult["skipped"];
+    };
+
+    if (showDialog) {
       setPriceResult({
         updated: Array.isArray(safeData.updated) ? safeData.updated : [],
         failed: Array.isArray(safeData.failed) ? safeData.failed : [],
         skipped: Array.isArray(safeData.skipped) ? safeData.skipped : [],
       });
       setResultOpen(true);
-      await allocationQuery.refetch();
+    }
+
+    await allocationQuery.refetch();
+  };
+
+  const handleFetchPrices = async () => {
+    try {
+      await runPriceSync("manual", true);
     } catch {
       setPriceResult({
         updated: [],
@@ -72,6 +128,10 @@ export default function Dashboard() {
       });
       setResultOpen(true);
     }
+  };
+
+  const handleExport = () => {
+    window.location.assign("/api/export/portfolio?download=1");
   };
 
   if (loading) {
@@ -103,6 +163,9 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            导出
+          </Button>
           <Button
             variant="default"
             size="sm"
@@ -145,6 +208,9 @@ export default function Dashboard() {
                 isFetching={allocationQuery.isFetching}
                 className="mt-1"
               />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {getQuoteSyncHint(allocation)}
+              </p>
             </div>
             <div className="grid grid-cols-1 gap-1 text-sm md:min-w-[220px]">
               <div className="flex items-center justify-between gap-3">
