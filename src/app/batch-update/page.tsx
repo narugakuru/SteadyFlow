@@ -160,13 +160,7 @@ export default function BatchUpdatePage() {
         <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
         <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap md:justify-end">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleFetchPrices}
-              disabled={fetchingPrices}
-              className="bg-black hover:bg-stone-900 text-white font-bold shadow-md transition-all px-4 active:scale-95"
-            >
+            <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
               {fetchingPrices ? (
                 <span className="flex items-center gap-1">
                   <LoadingSpinner className="w-3 h-3 text-white" />

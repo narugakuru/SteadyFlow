@@ -19,7 +19,7 @@
 
 ## 技术栈（摘要）
 
-- 前端：Next.js 16 (App Router)、React 19、TypeScript、Tailwind CSS 4、shadcn/ui
+- 前端：Next.js 16 (App Router)、React 19、TypeScript、Tailwind CSS 4、shadcn/ui（主按钮默认样式由共享 Button 组件 + 全局 CSS 变量统一维护，基准为 Dashboard“更新股价”按钮）
 - 客户端数据层：TanStack Query + Persist Client + Async Storage Persister + IndexedDB (`idb-keyval`)
 - 后端：Next.js Route Handlers、Drizzle ORM
 - 数据库：SQLite (`better-sqlite3`) / PostgreSQL (Neon serverless)
@@ -64,6 +64,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-10] 统一全局主按钮配色到 Dashboard“更新股价”样式：共享 `Button` 默认主按钮改为黑底白字、深灰 hover、轻微阴影与按压反馈；Dashboard/账户页/批量更新页的“更新股价”入口统一复用该来源。同步更新 `navigation-layout` 主 spec 与 `openspec/project.md`。
 - [2026-03-10] 完成 `add-portfolio-export-and-silent-quote-refresh` 实装：新增 `GET /api/export/portfolio` 完整 JSON 快照导出与 Dashboard 导出按钮；股价同步链路新增 `quote_sync.*` 元数据、支持 `manual/silent-client/cron` 触发来源；首页总资产卡增加最近股价更新时间，并在数据过期时静默兜底刷新。同步更新 `portfolio-export`、`quote-sync-metadata`、`auto-quote-fetch`、`dashboard` 主 spec。
 - [2026-03-10] 导出能力微调：`/api/export/portfolio` 改为通过 `detail=full|decision` 切换详细度；完整导出入口移动到设置面板并更名“导出全部数据”；Dashboard 资产配置纪律区新增“仅导出持仓”按钮；两种导出都过滤零市值持仓。同步更新 `portfolio-export` 与 `dashboard` 主 spec。
 - [2026-03-05] 资产配置纪律移动端视图微调：将“持仓盈亏”移动到金额行右侧（小字号），将状态条固定到第三行右对齐；同时加宽移动端/桌面端排序弹窗的拖拽命中区域（持仓排序与资产类别排序），并约束句柄不越界。同步更新 `mobile-responsive`、`discipline-overview-sorting`、`asset-allocation` 主 spec。

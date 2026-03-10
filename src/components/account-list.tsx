@@ -427,7 +427,7 @@ export function AccountList({
         <h2 className="text-lg font-semibold">账户列表</h2>
         <div className="flex items-center gap-2">
           {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
-          <Button variant="outline" size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
+          <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
             {fetchingPrices ? "更新中..." : "📡 更新股价"}
           </Button>
           <Button size="sm" onClick={() => setCreateOpen(true)}>

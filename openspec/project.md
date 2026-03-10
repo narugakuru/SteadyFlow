@@ -1,7 +1,7 @@
 ## 技术栈
 
 - 框架：Next.js 16 (App Router) + React 19 + TypeScript
-- 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)
+- 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)，主按钮默认配色由共享 `Button` 组件与 `src/app/globals.css` 的 CSS 变量统一维护，基准为 Dashboard“更新股价”按钮
 - 数据库：SQLite (better-sqlite3) / PostgreSQL (Neon serverless) + Drizzle ORM（通过 DB_TYPE 环境变量切换）
 - 图标：lucide-react
 - Markdown 渲染：react-markdown（禁用原始 HTML 直出）
@@ -41,7 +41,7 @@ src/
 │       └── cron/netvalue/          # 每日“先价后值”定时任务入口（CRON_SECRET 鉴权）
 ├── proxy.ts                       # 路由守卫（JWT + 管理员权限）
 ├── components/
-│   ├── ui/                         # shadcn 基础组件（含 loading-spinner）
+│   ├── ui/                         # shadcn 基础组件（含 loading-spinner；主按钮统一入口为 ui/button.tsx）
 │   ├── navbar.tsx                  # 全局导航栏
 │   ├── session-provider.tsx        # SessionProvider 包装
 │   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域（支持当前值高亮）
