@@ -6,12 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Holding } from "@/lib/utils/types";
 import {
+  SORTABLE_DRAG_HANDLE_CLASS_NAME,
+  SORTABLE_MOUSE_ACTIVATION_DISTANCE,
+  SORTABLE_TOUCH_ACTIVATION_DELAY,
+  SORTABLE_TOUCH_ACTIVATION_TOLERANCE,
+  restrictToVerticalDrag,
+} from "@/lib/services/mobile-sort-dnd";
+import {
   reorderHoldingSortItemsById,
   rollbackHoldingSortItems,
 } from "@/lib/services/holding-sort-state";
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   closestCenter,
   useSensor,
@@ -68,7 +75,7 @@ function SortableHoldingRow({ item }: { item: HoldingSortItem }) {
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="inline-flex h-8 w-full touch-manipulation items-center justify-center gap-1 rounded border text-muted-foreground hover:bg-accent"
+        className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded border text-muted-foreground hover:bg-accent ${SORTABLE_DRAG_HANDLE_CLASS_NAME}`}
         aria-label="拖拽排序"
         {...attributes}
         {...listeners}
@@ -99,8 +106,15 @@ export function HoldingSortDialog({
   const wasOpenRef = useRef(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: SORTABLE_MOUSE_ACTIVATION_DISTANCE },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: SORTABLE_TOUCH_ACTIVATION_DELAY,
+        tolerance: SORTABLE_TOUCH_ACTIVATION_TOLERANCE,
+      },
+    })
   );
 
   const initialItems = useMemo(() => {
@@ -194,7 +208,7 @@ export function HoldingSortDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          拖拽右侧句柄调整顺序。点击保存后一次性生效；取消不会写入数据库。
+          按住右侧句柄上下拖拽调整顺序。点击保存后一次性生效；取消不会写入数据库。
         </p>
         <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_5.25rem] gap-2 px-1 text-xs text-muted-foreground">
           <span>标的名称</span>
@@ -202,10 +216,11 @@ export function HoldingSortDialog({
           <span>账户归属</span>
           <span className="text-right">拖拽</span>
         </div>
-        <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-[60vh] space-y-2 overflow-y-auto overscroll-contain pr-1">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalDrag]}
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>

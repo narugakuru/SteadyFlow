@@ -4,10 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  SORTABLE_DRAG_HANDLE_CLASS_NAME,
+  SORTABLE_MOUSE_ACTIVATION_DISTANCE,
+  SORTABLE_TOUCH_ACTIVATION_DELAY,
+  SORTABLE_TOUCH_ACTIVATION_TOLERANCE,
+  restrictToVerticalDrag,
+} from "@/lib/services/mobile-sort-dnd";
 import { AssetClass } from "@/lib/utils/types";
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   closestCenter,
   useSensor,
@@ -52,7 +59,7 @@ function SortableAssetClassRow({ id, name }: { id: number; name: string }) {
       <button
         type="button"
         ref={setActivatorNodeRef}
-        className="inline-flex h-8 w-full touch-manipulation items-center justify-center gap-1 rounded border text-muted-foreground hover:bg-accent"
+        className={`inline-flex h-8 w-full items-center justify-center gap-1 rounded border text-muted-foreground hover:bg-accent ${SORTABLE_DRAG_HANDLE_CLASS_NAME}`}
         aria-label={`拖拽排序 ${name}`}
         {...attributes}
         {...listeners}
@@ -73,8 +80,15 @@ export function AssetClassSortDialog({
   const [items, setItems] = useState<AssetClass[]>([]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: SORTABLE_MOUSE_ACTIVATION_DISTANCE },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: SORTABLE_TOUCH_ACTIVATION_DELAY,
+        tolerance: SORTABLE_TOUCH_ACTIVATION_TOLERANCE,
+      },
+    })
   );
 
   useEffect(() => {
@@ -105,12 +119,13 @@ export function AssetClassSortDialog({
           <DialogTitle>排序资产类别</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          拖拽右侧句柄调整资产类别顺序，点击保存后将应用到当前设置。
+          按住右侧句柄上下拖拽调整资产类别顺序，点击保存后将应用到当前设置。
         </p>
-        <div className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-[60vh] space-y-2 overflow-y-auto overscroll-contain pr-1">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalDrag]}
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
