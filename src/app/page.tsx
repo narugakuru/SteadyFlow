@@ -236,8 +236,8 @@ export default function Dashboard() {
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">资产配置纪律</h2>
-          <Button variant="outline" size="sm" onClick={handleDecisionExport}>
-            仅导出持仓
+          <Button size="sm" onClick={handleDecisionExport}>
+            导出持仓
           </Button>
         </div>
         <DisciplineTable

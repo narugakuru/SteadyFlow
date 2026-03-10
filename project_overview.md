@@ -64,6 +64,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-10] Dashboard 资产配置纪律区导出按钮改为主按钮样式并更名为“导出持仓”，与“更新股价”保持同一黑底白字配色。同步更新 `dashboard` 主 spec。
 - [2026-03-10] 统一全局主按钮配色到 Dashboard“更新股价”样式：共享 `Button` 默认主按钮改为黑底白字、深灰 hover、轻微阴影与按压反馈；Dashboard/账户页/批量更新页的“更新股价”入口统一复用该来源。同步更新 `navigation-layout` 主 spec 与 `openspec/project.md`。
 - [2026-03-10] 完成 `add-portfolio-export-and-silent-quote-refresh` 实装：新增 `GET /api/export/portfolio` 完整 JSON 快照导出与 Dashboard 导出按钮；股价同步链路新增 `quote_sync.*` 元数据、支持 `manual/silent-client/cron` 触发来源；首页总资产卡增加最近股价更新时间，并在数据过期时静默兜底刷新。同步更新 `portfolio-export`、`quote-sync-metadata`、`auto-quote-fetch`、`dashboard` 主 spec。
 - [2026-03-10] 导出能力微调：`/api/export/portfolio` 改为通过 `detail=full|decision` 切换详细度；完整导出入口移动到设置面板并更名“导出全部数据”；Dashboard 资产配置纪律区新增“仅导出持仓”按钮；两种导出都过滤零市值持仓。同步更新 `portfolio-export` 与 `dashboard` 主 spec。
