@@ -13,7 +13,7 @@
 - 核心页面已稳定：总览、账户、交易、净值、股价更新、市场、登录/注册、管理后台。
 - 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，按 `staleTime=60s` 条件后台刷新，`persist=3d`）。
 - 自动报价路由已升级：港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份。
-- 已提供完整投资组合 JSON 导出接口（`/api/export/portfolio`）与 Dashboard 导出按钮，可手动下载快照供 agent/人工校验。
+- 已提供参数化投资组合 JSON 导出接口（`/api/export/portfolio?detail=full|decision`）：设置面板可导出全部数据，Dashboard 资产配置纪律区可导出精简决策快照。
 - 已落地“每日 Cron 保底 + Dashboard 静默兜底”的股价刷新策略，并在总资产卡片显示最近股价同步时间。
 - OpenSpec 流程在用：变更通过 `openspec/changes` 管理，归档后同步到 `openspec/specs`。
 
@@ -56,7 +56,7 @@ openspec/       # 需求规格与变更流程
 - P2：历史收益率追踪，交易将持仓盈亏转为了结盈亏
 - P2：外部 agent 认证（个人 token / 签名链接）与更细粒度导出授权
 - P3：净值历史增强、可设置主要币种
-- P3：CSV 导出与可选导出范围筛选
+- P3：CSV 导出与更多导出视图/字段筛选
 
 ---
 
@@ -65,6 +65,7 @@ openspec/       # 需求规格与变更流程
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
 - [2026-03-10] 完成 `add-portfolio-export-and-silent-quote-refresh` 实装：新增 `GET /api/export/portfolio` 完整 JSON 快照导出与 Dashboard 导出按钮；股价同步链路新增 `quote_sync.*` 元数据、支持 `manual/silent-client/cron` 触发来源；首页总资产卡增加最近股价更新时间，并在数据过期时静默兜底刷新。同步更新 `portfolio-export`、`quote-sync-metadata`、`auto-quote-fetch`、`dashboard` 主 spec。
+- [2026-03-10] 导出能力微调：`/api/export/portfolio` 改为通过 `detail=full|decision` 切换详细度；完整导出入口移动到设置面板并更名“导出全部数据”；Dashboard 资产配置纪律区新增“仅导出持仓”按钮；两种导出都过滤零市值持仓。同步更新 `portfolio-export` 与 `dashboard` 主 spec。
 - [2026-03-05] 资产配置纪律移动端视图微调：将“持仓盈亏”移动到金额行右侧（小字号），将状态条固定到第三行右对齐；同时加宽移动端/桌面端排序弹窗的拖拽命中区域（持仓排序与资产类别排序），并约束句柄不越界。同步更新 `mobile-responsive`、`discipline-overview-sorting`、`asset-allocation` 主 spec。
 - [2026-03-05] 完成 `optimize-allocation-mobile-layout-and-dnd` 实装：资产配置纪律展开明细默认隐藏金额为 0 的标的并按“0 金额末位”规则排序；移动端资产类别卡片重排为三行堆叠（标题+进度、核心金额、盈亏/状态+调仓）；修复移动端持仓拖拽释放回弹，改为本地即时落序、保存失败自动回滚并提示。同步更新 `asset-allocation`、`mobile-responsive`、`discipline-overview-sorting` 主 spec，并新增回归脚本测试（`scripts/tests/*.test.mjs`）。
 - [2026-03-04] 交易记录页新增“盈亏”列（位于手续费后）：读取每笔卖出交易的 `realizedPnl` 展示，按全局 `colorMode`（A股正红负绿 / 美股正绿负红）着色；无盈亏口径的交易显示 `--`。同步更新 `transaction-management` 主 spec。

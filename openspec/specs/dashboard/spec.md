@@ -142,22 +142,17 @@ Dashboard 页面 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代
 
 ### Requirement: Dashboard 导航
 
-系统 SHALL 在 Dashboard header 区域保留标题，并在右侧提供「更新股价」与「导出」两个按钮；系统 MUST 不显示「记录净值」手动按钮。点击「更新股价」后调用 `POST /api/holdings/fetch-prices` 的手动模式，显示加载状态，完成后展示逐条结果明细弹窗并刷新页面数据。点击「导出」后 MUST 触发当前用户投资组合 JSON 快照下载。
+系统 SHALL 在 Dashboard header 区域保留标题，并在右侧提供「更新股价」按钮；系统 MUST 不显示「记录净值」手动按钮。点击「更新股价」后调用 `POST /api/holdings/fetch-prices` 的手动模式，显示加载状态，完成后展示逐条结果明细弹窗并刷新页面数据。完整数据导出入口 MUST 放置在设置面板中，而不是 Dashboard header。
 
 #### Scenario: Dashboard header 布局
 
 - **WHEN** 用户打开 Dashboard
-- **THEN** header 区域显示标题、「更新股价」按钮和「导出」按钮，不显示「记录净值」按钮
+- **THEN** header 区域显示标题和「更新股价」按钮，不显示「记录净值」按钮，也不显示完整数据导出按钮
 
 #### Scenario: 点击手动更新股价
 
 - **WHEN** 用户在 Dashboard 点击「更新股价」按钮
 - **THEN** 按钮显示加载状态，调用手动模式报价同步接口，完成后弹出逐条明细结果并刷新页面资产数据
-
-#### Scenario: 点击导出
-
-- **WHEN** 用户在 Dashboard 点击「导出」按钮
-- **THEN** 系统下载当前用户的投资组合 JSON 快照文件
 
 ### Requirement: Dashboard 股价更新时间提示
 
@@ -191,3 +186,17 @@ Dashboard 在数据加载完成后 SHALL 判断股价数据是否超过陈旧阈
 
 - **WHEN** 用户打开 Dashboard 时系统判断已有进行中的报价同步
 - **THEN** 页面不再重复发起第二次静默报价刷新
+
+### Requirement: Dashboard 持仓精简导出按钮
+
+系统 SHALL 在 Dashboard 的“资产配置纪律”标题区域提供“仅导出持仓”按钮。点击后 MUST 下载精简决策快照，仅包含总资产盈亏摘要、各类资产占比和非零市值标的持仓。
+
+#### Scenario: 资产配置纪律区域显示按钮
+
+- **WHEN** 用户打开 Dashboard
+- **THEN** “资产配置纪律”标题区域显示“仅导出持仓”按钮
+
+#### Scenario: 点击仅导出持仓
+
+- **WHEN** 用户点击“仅导出持仓”按钮
+- **THEN** 系统下载精简决策快照，不包含 `raw` 与 `accountBreakdown`

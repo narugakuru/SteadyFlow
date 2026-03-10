@@ -36,7 +36,7 @@ src/
 │       ├── exchange-rates/         # 汇率
 │       ├── market/                 # 市场指数行情（Yahoo Finance）
 │       ├── discipline-notes/       # 纪律笔记 CRUD
-│       ├── export/portfolio/       # 投资组合 JSON 快照导出
+│       ├── export/portfolio/       # 投资组合 JSON 导出（detail=full|decision）
 │       ├── netvalue/               # 净值
 │       └── cron/netvalue/          # 每日“先价后值”定时任务入口（CRON_SECRET 鉴权）
 ├── proxy.ts                       # 路由守卫（JWT + 管理员权限）

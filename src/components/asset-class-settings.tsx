@@ -132,6 +132,10 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
     setError("");
   };
 
+  const handleExportAll = () => {
+    window.location.assign("/api/export/portfolio?download=1&detail=full");
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="md:max-w-lg">
@@ -140,15 +144,20 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setSortDialogOpen(true)}
-              disabled={classes.length <= 1}
-            >
-              ↕ 排序资产类别
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={handleExportAll}>
+                导出全部数据
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSortDialogOpen(true)}
+                disabled={classes.length <= 1}
+              >
+                ↕ 排序资产类别
+              </Button>
+            </div>
           </div>
           {/* Per-class target percentages */}
           {classes.map((cls) => (

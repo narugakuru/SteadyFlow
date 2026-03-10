@@ -19,7 +19,7 @@ InvestManage 目标是提供一个轻量、可自托管、可多用户的投资�
 - 交易系统：买入/卖出/分红/出入金，支持副作用开关
 - 资产配置：目标比例、当前比例、偏离度可视化
 - 净值历史：按日记录总资产净值并展示趋势（资产变动自动刷新 + 每日自动记录）
-- 数据导出：Dashboard 一键导出完整投资组合 JSON 快照（`/api/export/portfolio`）
+- 数据导出：设置面板导出完整 JSON 快照，Dashboard 资产配置纪律区导出精简决策 JSON（`/api/export/portfolio?detail=full|decision`）
 - 市场概览：主要指数行情 + TradingView 图表
 - 用户系统：邮箱密码登录、GitHub OAuth、管理员后台
 

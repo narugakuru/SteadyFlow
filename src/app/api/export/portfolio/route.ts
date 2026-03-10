@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 
 import { requireUser } from "@/lib/auth/auth-utils";
-import { buildPortfolioSnapshot } from "@/lib/services/portfolio-snapshot-service";
+import {
+  buildPortfolioDecisionSnapshot,
+  buildPortfolioSnapshot,
+} from "@/lib/services/portfolio-snapshot-service";
 
-function buildDownloadFilename(isoString: string) {
-  return `portfolio-export-${isoString.replace(/[:]/g, "-")}.json`;
+type ExportDetail = "full" | "decision";
+
+function normalizeDetail(raw: string | null): ExportDetail {
+  if (raw === "decision") return "decision";
+  return "full";
+}
+
+function buildDownloadFilename(isoString: string, detail: ExportDetail) {
+  const prefix = detail === "decision" ? "portfolio-decision-export" : "portfolio-export";
+  return `${prefix}-${isoString.replace(/[:]/g, "-")}.json`;
 }
 
 export async function GET(request: Request) {
@@ -19,7 +30,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "仅支持 json 导出格式" }, { status: 400 });
   }
 
-  const snapshot = await buildPortfolioSnapshot(userId);
+  const detail = normalizeDetail(searchParams.get("detail"));
+  const snapshot =
+    detail === "decision"
+      ? await buildPortfolioDecisionSnapshot(userId)
+      : await buildPortfolioSnapshot(userId);
   if (searchParams.get("download") !== "1") {
     return NextResponse.json(snapshot);
   }
@@ -27,7 +42,10 @@ export async function GET(request: Request) {
   return new NextResponse(JSON.stringify(snapshot, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${buildDownloadFilename(snapshot.meta.generatedAt)}"`,
+      "Content-Disposition": `attachment; filename="${buildDownloadFilename(
+        snapshot.meta.generatedAt,
+        detail
+      )}"`,
     },
   });
 }

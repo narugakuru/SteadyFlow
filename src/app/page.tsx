@@ -130,8 +130,8 @@ export default function Dashboard() {
     }
   };
 
-  const handleExport = () => {
-    window.location.assign("/api/export/portfolio?download=1");
+  const handleDecisionExport = () => {
+    window.location.assign("/api/export/portfolio?download=1&detail=decision");
   };
 
   if (loading) {
@@ -163,9 +163,6 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            导出
-          </Button>
           <Button
             variant="default"
             size="sm"
@@ -243,7 +240,12 @@ export default function Dashboard() {
       <PortfolioChart allocation={allocation.allocation} />
 
       <div>
-        <h2 className="text-lg font-semibold mb-3">资产配置纪律</h2>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">资产配置纪律</h2>
+          <Button variant="outline" size="sm" onClick={handleDecisionExport}>
+            仅导出持仓
+          </Button>
+        </div>
         <DisciplineTable
           allocation={allocation.allocation}
           totalAssetCny={allocation.totalAssetCny}

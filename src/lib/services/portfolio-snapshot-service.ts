@@ -63,6 +63,17 @@ export interface PortfolioExportSnapshot {
   };
 }
 
+export interface PortfolioDecisionSnapshot {
+  meta: {
+    schemaVersion: string;
+    generatedAt: string;
+    quoteSync: QuoteSyncMetadata;
+    detail: "decision";
+  };
+  summary: PortfolioExportSnapshot["summary"];
+  allocation: AllocationData["allocation"];
+}
+
 function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: number; id?: number }>(
   items: T[]
 ) {
@@ -108,6 +119,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
     ...holding,
     assetClass: normalizeAssetClassName(holding.assetClass),
   }));
+  const exportableHoldings = normalizedHoldings.filter((holding: any) => holding.marketValue !== 0);
 
   const publicSettings = getPublicUserSettingsFromMap(settingMap);
   const quoteSync = getQuoteSyncMetadataFromMap(settingMap);
@@ -359,7 +371,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
         createdAt: account.createdAt,
         updatedAt: account.updatedAt,
       })),
-      holdings: normalizedHoldings,
+      holdings: exportableHoldings,
       assetClasses: sortByDefaultAssetClassOrder(
         allClasses.map((assetClassRow: any) => ({
           id: assetClassRow.id,
@@ -390,5 +402,22 @@ export async function buildAllocationData(userId: string): Promise<AllocationDat
     rates: snapshot.raw.exchangeRates,
     settings: snapshot.raw.settings,
     quoteSync: snapshot.meta.quoteSync,
+  };
+}
+
+export async function buildPortfolioDecisionSnapshot(
+  userId: string
+): Promise<PortfolioDecisionSnapshot> {
+  const snapshot = await buildPortfolioSnapshot(userId);
+
+  return {
+    meta: {
+      schemaVersion: snapshot.meta.schemaVersion,
+      generatedAt: snapshot.meta.generatedAt,
+      quoteSync: snapshot.meta.quoteSync,
+      detail: "decision",
+    },
+    summary: snapshot.summary,
+    allocation: snapshot.derived.allocation,
   };
 }
