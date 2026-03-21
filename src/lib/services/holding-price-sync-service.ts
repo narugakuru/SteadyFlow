@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
+import { getExchangeRates } from "@/lib/data-source/exchange-rate";
 import { fetchEodhdQuote } from "@/lib/data-source/eodhd";
 import { fetchStooqQuote } from "@/lib/data-source/stooq";
 import {
@@ -161,6 +162,10 @@ export interface UserQuoteSyncResult {
   updated: UpdatedItem[];
   failed: FailedItem[];
   skipped: SkippedItem[];
+  exchangeRates: {
+    updatedAt: string;
+    source: "cache" | "api" | "stale_cache" | "default";
+  };
   quoteSyncStatus: QuoteSyncStatus;
   quoteFailureSummary: string | null;
   stats: {
@@ -257,6 +262,7 @@ export async function syncHoldingPricesForUser(
   await markQuoteSyncStarted(userId, trigger);
 
   try {
+    const exchangeRates = await getExchangeRates();
     const userAccounts = await db
       .select({ id: accounts.id })
       .from(accounts)
@@ -268,6 +274,10 @@ export async function syncHoldingPricesForUser(
         updated: [],
         failed: [],
         skipped: [],
+        exchangeRates: {
+          updatedAt: exchangeRates.updatedAt,
+          source: exchangeRates.source,
+        },
         quoteSyncStatus: "ok",
         quoteFailureSummary: null,
         stats: { updated: 0, failed: 0, skipped: 0, total: 0 },
@@ -524,6 +534,10 @@ export async function syncHoldingPricesForUser(
       updated,
       failed,
       skipped,
+      exchangeRates: {
+        updatedAt: exchangeRates.updatedAt,
+        source: exchangeRates.source,
+      },
       quoteSyncStatus,
       quoteFailureSummary: summarizeFailureReasons(failed),
       stats: {

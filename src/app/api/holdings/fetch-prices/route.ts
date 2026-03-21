@@ -25,7 +25,9 @@ export async function POST(request: Request) {
   };
 
   const resultResponse = NextResponse.json(responsePayload);
-  if (result.updated.length === 0) {
+  const shouldRefreshNetvalue = result.updated.length > 0 || result.exchangeRates.source === "api";
+
+  if (!shouldRefreshNetvalue) {
     return resultResponse;
   }
 

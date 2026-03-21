@@ -65,6 +65,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-21] 完成 `fix-note-dialog-and-quote-fx-sync` 实装：全局投资笔记弹窗改为桌面固定大尺寸/移动端全屏布局，正文与便签列表各自内部滚动，移除显式保存按钮并改为失焦自动保存；`POST /api/holdings/fetch-prices` 及其静默/Cron 复用链路显式联动汇率刷新，并在汇率实际更新时补记当日净值。同步更新 `discipline-notes`、`auto-quote-fetch`、`exchange-rate` 主 spec，并新增草稿/汇率缓存回归脚本。
 - [2026-03-21] OpenSpec：新增 `refresh-market-page-vix-and-index-data` 变更工件（proposal/design/specs/tasks），明确市场页移除内嵌 TradingView 图表、改用 Stooq + Tencent 聚合指数数据、顶部 VIX 免费图表与简化说明，以及 VIX 下方的历史高点回撤列表。
 - [2026-03-21] OpenSpec：新增 `fix-note-dialog-and-quote-fx-sync` 变更工件（proposal/design/specs/tasks），明确投资笔记弹窗在阅读/编辑模式下保持统一大尺寸、正文内部滚动、失焦自动保存，以及手动/静默/Cron 股价同步联动汇率刷新。
 - [2026-03-10] 修复纪律排序弹窗移动端触摸拖拽：持仓排序与资产类别排序统一改为句柄级 `touch-action` 接管、鼠标/触屏分离传感器与纵向拖拽约束，避免与底部弹窗滚动冲突；同步补充 `discipline-overview-sorting`、`mobile-responsive` 主 spec 与回归测试。
