@@ -57,6 +57,7 @@ openspec/       # 需求规格与变更流程
 - P2：外部 agent 认证（个人 token / 签名链接）与更细粒度导出授权
 - P3：净值历史增强、可设置主要币种
 - P3：CSV 导出与更多导出视图/字段筛选
+- PO：新增信息：单只标的的历史最高净值，距离历史最高回撤了多少/目前创新高。
 
 ---
 
@@ -64,6 +65,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-21] OpenSpec：新增 `fix-note-dialog-and-quote-fx-sync` 变更工件（proposal/design/specs/tasks），明确投资笔记弹窗在阅读/编辑模式下保持统一大尺寸、正文内部滚动、失焦自动保存，以及手动/静默/Cron 股价同步联动汇率刷新。
 - [2026-03-10] 修复纪律排序弹窗移动端触摸拖拽：持仓排序与资产类别排序统一改为句柄级 `touch-action` 接管、鼠标/触屏分离传感器与纵向拖拽约束，避免与底部弹窗滚动冲突；同步补充 `discipline-overview-sorting`、`mobile-responsive` 主 spec 与回归测试。
 - [2026-03-10] Dashboard 资产配置纪律区导出按钮改为主按钮样式并更名为“导出持仓”，与“更新股价”保持同一黑底白字配色。同步更新 `dashboard` 主 spec。
 - [2026-03-10] 统一全局主按钮配色到 Dashboard“更新股价”样式：共享 `Button` 默认主按钮改为黑底白字、深灰 hover、轻微阴影与按压反馈；Dashboard/账户页/批量更新页的“更新股价”入口统一复用该来源。同步更新 `navigation-layout` 主 spec 与 `openspec/project.md`。
