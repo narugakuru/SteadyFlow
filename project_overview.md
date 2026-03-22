@@ -11,10 +11,12 @@
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
 - 核心页面已稳定：总览、账户、交易、净值、股价更新、市场、登录/注册、管理后台。
-- 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，按 `staleTime=60s` 条件后台刷新，`persist=3d`）。
+- 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`30d/90d -> day`，`1y -> week`，`3y/all -> month`）。
+- 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）。
 - 自动报价路由已升级：港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份。
 - 已提供参数化投资组合 JSON 导出接口（`/api/export/portfolio?detail=full|decision`）：设置面板可导出全部数据，Dashboard 资产配置纪律区可导出精简决策快照。
 - 已落地“每日 Cron 保底 + Dashboard 静默兜底”的股价刷新策略，并在总资产卡片显示最近股价同步时间。
+- 净值快照持久化已瘦身：新写入 `netvalue.dataJson` 仅保留 `allocation + rates`；历史旧记录通过运行时维护与脚本回填兼容清理，SQLite 与 PostgreSQL 双模式均覆盖。
 - OpenSpec 流程在用：变更通过 `openspec/changes` 管理，归档后同步到 `openspec/specs`。
 
 ## 技术栈（摘要）
@@ -66,6 +68,7 @@ openspec/       # 需求规格与变更流程
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
 - [2026-03-22] 统一全站业务页面与顶部导航的桌面容器宽度：新增共享 `PageContainer`（`max-w-5xl`），总览/市场/账户/交易/净值/股价更新/管理页统一复用，消除市场页与其他页面宽度不一致。同步更新 `navigation-layout` 主 spec 与 `openspec/project.md`。
+- [2026-03-22] 完成 `optimize-netvalue-page-query-and-storage` 实装：净值页拆为 `/api/netvalue/list` 分页接口与 `/api/netvalue/chart` 固定区间聚合接口，历史清单默认每页 30 条；净值客户端缓存拆为 `netvalue-list/netvalue-chart` 且 staleTime 统一提升到 60 分钟；新写入 `netvalue.dataJson` 精简为 `allocation + rates`，并补充 SQLite/PG 双库运行时回填、手动回填脚本与 Vercel 部署期 PostgreSQL 自动迁移/回填说明。同步更新 `daily-netvalue`、`visualization-charts`、`client-cache-layer` 主 spec 与运维文档。
 - [2026-03-22] OpenSpec：新增 `optimize-netvalue-page-query-and-storage` 变更工件（proposal/design/specs/tasks），明确净值页列表分页默认 30 条、图表改为独立 `range + grain` 聚合接口、净值本地缓存拆分为 list/chart 且 staleTime 提升到 60 分钟，以及 `netvalue.dataJson` 精简与历史回填方案。
 - [2026-03-22] 完成 `refresh-market-page-vix-and-index-data` 实装：市场页移除内嵌 TradingView 图表，改为顶部 VIX 日线图（CBOE 历史 CSV）+ 单态区间说明；指数表数据源切换为 Stooq/Tencent 聚合；新增全球资产历史高点回撤列表。同步更新 `market-overview`、`market-chart-widget`、`market-ath-drawdown` 主 spec 与 `openspec/project.md`，并补充市场数据计算测试。
 - [2026-03-21] 完成 `fix-note-dialog-and-quote-fx-sync` 实装：全局投资笔记弹窗改为桌面固定大尺寸/移动端全屏布局，正文与便签列表各自内部滚动，移除显式保存按钮并改为失焦自动保存；`POST /api/holdings/fetch-prices` 及其静默/Cron 复用链路显式联动汇率刷新，并在汇率实际更新时补记当日净值。同步更新 `discipline-notes`、`auto-quote-fetch`、`exchange-rate` 主 spec，并新增草稿/汇率缓存回归脚本。

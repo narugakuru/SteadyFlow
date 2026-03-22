@@ -19,7 +19,7 @@ src/
 │   ├── layout.tsx                  # 根布局（含全局导航栏）
 │   ├── accounts/page.tsx           # 账户管理页
 │   ├── transactions/page.tsx       # 交易记录页
-│   ├── netvalue/page.tsx            # 净值历史页
+│   ├── netvalue/page.tsx           # 净值历史页（图表 range+grain + 列表分页）
 │   ├── batch-update/page.tsx       # 股价更新页
 │   ├── market/page.tsx             # 市场概览页（VIX 图 + ATH 回撤 + 全球指数表）
 │   ├── login/page.tsx              # 登录页
@@ -39,7 +39,7 @@ src/
 │       ├── market/                 # 市场聚合行情（Stooq/Tencent/CBOE）
 │       ├── discipline-notes/       # 纪律笔记 CRUD
 │       ├── export/portfolio/       # 投资组合 JSON 导出（detail=full|decision）
-│       ├── netvalue/               # 净值
+│       ├── netvalue/               # 净值（POST 当日 upsert；GET 兼容旧全量读取；子路由含 list/chart）
 │       └── cron/netvalue/          # 每日“先价后值”定时任务入口（CRON_SECRET 鉴权）
 ├── proxy.ts                       # 路由守卫（JWT + 管理员权限）
 ├── components/
@@ -67,7 +67,8 @@ src/
 │   ├── schema.ts                   # 统一 schema 导出入口（根据 DB_TYPE 切换）
 │   ├── schema-sqlite.ts            # SQLite 方言 schema 定义
 │   ├── schema-pg.ts                # PostgreSQL 方言 schema 定义
-│   ├── index.ts                    # 数据库连接（动态选择 SQLite/PostgreSQL）
+│   ├── index.ts                    # 数据库连接（动态选择 SQLite/PostgreSQL，启动自动 migrate + seed + runtime maintenance）
+│   ├── runtime-maintenance.ts      # 运行时维护任务（历史 netvalue.dataJson 瘦身回填等）
 │   └── seed.ts                     # 种子数据（async，兼容双数据库）
 ├── lib/
 │   ├── auth/                       # 认证相关
@@ -79,7 +80,9 @@ src/
 │   │   ├── quote-sync-metadata-service.ts # quote_sync.* 元数据读写与标准化
 │   │   ├── holding-price-sync-service.ts # 持仓报价同步（manual/silent-client/cron）
 │   │   ├── portfolio-snapshot-service.ts # 资产配置与导出快照聚合
-│   │   ├── netvalue-service.ts     # 净值计算与写入服务（时区 + upsert）
+│   │   ├── netvalue-service.ts     # 净值计算与写入服务（时区 + upsert；新快照仅写 allocation + rates）
+│   │   ├── netvalue-history-service.ts # 净值历史读取/聚合/回填服务（分页、chart range+grain、历史瘦身）
+│   │   ├── netvalue-history-helpers.ts # 净值历史分页、聚合与 dataJson 标准化辅助函数
 │   │   └── mutation-with-netvalue.ts # 写操作后自动触发净值刷新封装
 │   ├── utils/                      # 通用工具、类型与 hooks
 │   │   ├── utils.ts                # 工具函数
@@ -121,6 +124,6 @@ src/
 | transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, realizedPnl(单笔了结盈亏，账户原币种), shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
 | assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                                                            |
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                                                           |
-| netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson                                                                                                                                                          |
+| netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson（新结构仅保留 `allocation + rates`；旧结构允许带 `accounts`，由读取兼容层与回填任务清理）                                                                |
 | disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                                                                      |
 | settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key`、`quote_sync.*`、`cron.netvalue.cursor` 等键）                                                   |

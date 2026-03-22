@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs";
+import { runRuntimeMaintenance } from "./runtime-maintenance";
 
 const dbType = process.env.DB_TYPE || "sqlite";
 let pgMigratePromise: Promise<void> | null = null;
@@ -143,16 +144,19 @@ export const isPostgres = dbType === "postgres";
 
 // Run seed (async-safe)
 import { seed } from "./seed";
-if (dbType === "postgres") {
-  if (pgMigratePromise) {
-    (pgMigratePromise as Promise<void>)
-      .then(() => seed(db))
-      .catch((error: unknown) => {
-        console.error("Postgres startup init failed:", error);
-      });
-  } else {
-    seed(db);
-  }
+async function initializeDatabase() {
+  await seed(db);
+  await runRuntimeMaintenance(db);
+}
+
+if (dbType === "postgres" && pgMigratePromise) {
+  (pgMigratePromise as Promise<void>)
+    .then(() => initializeDatabase())
+    .catch((error: unknown) => {
+      console.error("Postgres startup init failed:", error);
+    });
 } else {
-  seed(db);
+  initializeDatabase().catch((error: unknown) => {
+    console.error("Database startup init failed:", error);
+  });
 }

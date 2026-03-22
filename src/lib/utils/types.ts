@@ -134,15 +134,45 @@ export interface AllocationData {
   quoteSync: QuoteSyncMetadata;
 }
 
+export interface NetvalueAllocationSnapshot {
+  name: string;
+  actualValue: number;
+  actualPct: number;
+}
+
+export interface NetvalueSnapshotData {
+  allocation: NetvalueAllocationSnapshot[];
+  rates: Record<string, number>;
+}
+
 export interface NetvalueRecord {
   id: number;
   date: string;
   totalAssetCny: number;
-  dataJson: {
-    allocation: { name: string; actualValue: number; actualPct: number }[];
-    accounts: { name: string; currency: string; totalCny: number; cashCny: number }[];
-    rates: Record<string, number>;
-  };
+  dataJson: NetvalueSnapshotData;
+}
+
+export interface NetvalueListResponse {
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+  records: NetvalueRecord[];
+}
+
+export type NetvalueChartRange = "30d" | "90d" | "1y" | "3y" | "all";
+export type NetvalueChartGrain = "day" | "week" | "month";
+
+export interface NetvalueChartPoint {
+  date: string;
+  totalAssetCny: number;
+  allocation: NetvalueAllocationSnapshot[];
+}
+
+export interface NetvalueChartResponse {
+  range: NetvalueChartRange;
+  grain: NetvalueChartGrain;
+  points: NetvalueChartPoint[];
 }
 
 export const CURRENCY_SYMBOLS: Record<string, string> = {

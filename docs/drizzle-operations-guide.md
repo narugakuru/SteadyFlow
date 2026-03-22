@@ -18,6 +18,8 @@
   - PostgreSQL 启动时会自动创建 `drizzle.__drizzle_migrations`
   - PostgreSQL 检测到“业务表空但迁移记录存在”会自动清空迁移记录并重跑
   - migrate 之后会执行 seed（当前仅汇率）
+  - seed 之后会执行 runtime maintenance：自动回填历史 `netvalue.dataJson`，移除旧结构里的 `accounts` 快照
+  - runtime maintenance 同时覆盖 SQLite 与 PostgreSQL，可重复执行
 
 ## 2. 常用命令速查
 
@@ -25,13 +27,13 @@
 
 ```bash
 # 生成迁移（SQLite）
-npx drizzle-kit generate --config=drizzle.config.ts --name=<change_name>
+npm run db:generate:sqlite
 
 # 手动执行迁移（通常不需要，启动会自动跑）
-npx drizzle-kit migrate --config=drizzle.config.ts
+npm run db:migrate:sqlite
 
 # 校验迁移元数据
-npx drizzle-kit check --config=drizzle.config.ts
+npm run db:check:sqlite
 ```
 
 ## PostgreSQL
@@ -44,7 +46,10 @@ npm run db:generate:pg
 npm run db:migrate:pg
 
 # 校验迁移元数据
-npx drizzle-kit check --config=drizzle.config.pg.ts
+npm run db:check:pg
+
+# 手动回填历史 netvalue.dataJson
+npm run db:backfill:netvalue
 ```
 
 ## 3. 场景化操作流程
@@ -57,9 +62,9 @@ npx drizzle-kit check --config=drizzle.config.pg.ts
    - `npx drizzle-kit generate --config=drizzle.config.ts --name=<change_name>`
 4. 启动应用：
    - `npm run dev`
-5. 启动时自动 migrate + seed，无需额外手工执行。
+5. 启动时自动 migrate + seed + `netvalue.dataJson` 历史瘦身回填，无需额外手工执行。
 6. 提交前执行：
-   - `npx drizzle-kit check --config=drizzle.config.ts`
+   - `npm run db:check:sqlite`
 
 ### 场景 B：本地或测试环境联调 PostgreSQL
 
@@ -71,10 +76,11 @@ npx drizzle-kit check --config=drizzle.config.pg.ts
    - `npm run db:generate:pg`
 4. 手动迁移（可选）：
    - `npm run db:migrate:pg`
+   - 如需提前清理历史净值冗余字段，再执行 `npm run db:backfill:netvalue`
 5. 启动应用：
-   - `npm run dev`（启动仍会做自动迁移兜底）
+   - `npm run dev`（启动仍会做自动迁移 + 回填兜底）
 6. 提交前执行：
-   - `npx drizzle-kit check --config=drizzle.config.pg.ts`
+   - `npm run db:check:pg`
 
 ### 场景 C：生产部署（Vercel + Neon）
 
@@ -82,10 +88,15 @@ npx drizzle-kit check --config=drizzle.config.pg.ts
    - `DB_TYPE=postgres`
    - `DATABASE_URL`
    - 认证相关变量（`AUTH_SECRET` 等）
-2. 推荐先在 CI 或部署前手动执行一次：
+2. Vercel 构建阶段会自动执行：
    - `npm run db:migrate:pg`
-3. 线上启动时自动迁移仅作为兜底，不建议长期依赖“首次请求触发迁移”。
-4. 破坏性迁移（重命名/删列/类型变更）前先备份数据库。
+   - `npm run db:backfill:netvalue`
+3. 线上启动时自动迁移与历史净值回填仍作为兜底，不建议长期只依赖“首次请求触发迁移”。
+4. 如果要在部署前显式验证，可在 CI 或本地先执行：
+   - `npm run db:check:pg`
+   - `npm run db:migrate:pg`
+   - `npm run db:backfill:netvalue`
+5. 破坏性迁移（重命名/删列/类型变更）前先备份数据库。
 
 ### 场景 D：新增一个 schema 变更（推荐标准流程）
 
@@ -95,8 +106,9 @@ npx drizzle-kit check --config=drizzle.config.pg.ts
 2. 生成 SQLite 迁移并检查 SQL。
 3. 生成 PG 迁移并检查 SQL。
 4. 本地分别用 SQLite / PG 启动验证。
-5. 检查 `drizzle*/meta/_journal.json` 与 `*_snapshot.json` 是否一致。
-6. 提交迁移 SQL + meta 文件，不要只提 SQL 不提 meta。
+5. 如变更涉及历史数据兼容或回填，补充对应脚本/运行时维护逻辑（例如 `netvalue.dataJson` 瘦身回填）。
+6. 检查 `drizzle*/meta/_journal.json` 与 `*_snapshot.json` 是否一致。
+7. 提交迁移 SQL + meta 文件，不要只提 SQL 不提 meta。
 
 ## 4. meta/snapshot/journal 是什么
 
@@ -137,8 +149,9 @@ npx drizzle-kit check --config=drizzle.config.pg.ts
 
 ## 7. 发布前检查清单
 
-- `npx drizzle-kit check --config=drizzle.config.ts`
-- `npx drizzle-kit check --config=drizzle.config.pg.ts`
+- `npm run db:check:sqlite`
+- `npm run db:check:pg`
 - SQLite 与 PG 都能本地启动并自动 migrate
+- 若涉及净值历史瘦身，确认 `npm run db:backfill:netvalue` 在目标环境可执行且可重复运行
 - 新增迁移是否同时覆盖 `drizzle/` 与 `drizzle-pg/`
 - 破坏性变更是否有备份和回滚方案

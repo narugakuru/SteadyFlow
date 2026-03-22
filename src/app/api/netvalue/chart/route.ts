@@ -1,0 +1,23 @@
+import { NextResponse } from "next/server";
+
+import { db } from "@/db";
+import { requireUser } from "@/lib/auth/auth-utils";
+import { getNetvalueChart } from "@/lib/services/netvalue-history-service";
+import { isNetvalueChartRange } from "@/lib/services/netvalue-history-helpers";
+import type { NetvalueChartRange } from "@/lib/utils/types";
+
+const DEFAULT_RANGE: NetvalueChartRange = "90d";
+
+export async function GET(request: Request) {
+  const { userId, response } = await requireUser();
+  if (!userId) {
+    return response;
+  }
+
+  const { searchParams } = new URL(request.url);
+  const rangeParam = searchParams.get("range");
+  const range = isNetvalueChartRange(rangeParam) ? rangeParam : DEFAULT_RANGE;
+
+  const result = await getNetvalueChart(db, userId, range);
+  return NextResponse.json(result);
+}

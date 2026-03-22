@@ -4,12 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/run-build-migrations.js && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "db:generate:sqlite": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate:sqlite": "drizzle-kit migrate --config=drizzle.config.ts",
+    "db:check:sqlite": "drizzle-kit check --config=drizzle.config.ts",
     "db:generate:pg": "drizzle-kit generate --config=drizzle.config.pg.ts",
     "db:migrate:pg": "drizzle-kit migrate --config=drizzle.config.pg.ts",
+    "db:check:pg": "drizzle-kit check --config=drizzle.config.pg.ts",
+    "db:backfill:netvalue": "node scripts/migrate-netvalue-datajson.js",
     "prepare": "husky"
   },
   "lint-staged": {

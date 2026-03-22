@@ -18,7 +18,7 @@ InvestManage 目标是提供一个轻量、可自托管、可多用户的投资�
 - 账户管理：现金余额、持仓列表、账户维度盈亏
 - 交易系统：买入/卖出/分红/出入金，支持副作用开关
 - 资产配置：目标比例、当前比例、偏离度可视化
-- 净值历史：按日记录总资产净值并展示趋势（资产变动自动刷新 + 每日自动记录）
+- 净值历史：按日记录总资产净值并展示趋势（资产变动自动刷新 + 每日自动记录）；历史清单默认每页 `30` 条，图表按固定 `range -> grain` 走服务端聚合
 - 数据导出：设置面板导出完整 JSON 快照，Dashboard 资产配置纪律区导出精简决策 JSON（`/api/export/portfolio?detail=full|decision`）
 - 市场概览：主要指数行情 + TradingView 图表
 - 用户系统：邮箱密码登录、GitHub OAuth、管理员后台
@@ -77,7 +77,7 @@ npm run dev
 
 说明：
 
-- 应用启动时会自动执行 Drizzle migrate（`drizzle/`）并初始化基础汇率数据。
+- 应用启动时会自动执行 SQLite Drizzle migrate（`drizzle/`）、seed，并顺带回填历史 `netvalue.dataJson` 中遗留的 `accounts` 字段瘦身任务。
 - 首次可通过 `/register` 注册用户后登录使用。
 
 ## 部署指南
@@ -120,8 +120,9 @@ GITHUB_SECRET=your-github-client-secret
 
 说明：
 
-- 运行时会自动尝试执行 PostgreSQL 迁移（`drizzle-pg/`）并做 seed 兜底。
-- 生产环境建议在发布前手动执行一次 `npm run db:migrate:pg` 做显式迁移控制。
+- Vercel `npm run build` 会在 `next build` 前自动执行 `npm run db:migrate:pg` 与 `npm run db:backfill:netvalue`，用于 PostgreSQL deploy 期迁移与历史净值瘦身。
+- 应用运行时仍会自动尝试执行 PostgreSQL 迁移、seed 与净值历史回填，作为部署后的兜底机制。
+- 生产环境若要在部署前显式检查，可先手动执行 `npm run db:check:pg && npm run db:migrate:pg && npm run db:backfill:netvalue`。
 
 ### 净值自动记录定时任务
 
@@ -179,11 +180,23 @@ npm run start
 常用命令：
 
 ```bash
+# SQLite 生成迁移
+npm run db:generate:sqlite
+
+# SQLite 校验迁移元数据
+npm run db:check:sqlite
+
 # PostgreSQL 生成迁移
 npm run db:generate:pg
 
 # PostgreSQL 执行迁移
 npm run db:migrate:pg
+
+# PostgreSQL 校验迁移元数据
+npm run db:check:pg
+
+# 手动回填历史 netvalue.dataJson，移除旧 accounts 快照
+npm run db:backfill:netvalue
 
 # 类型检查
 npm run typecheck

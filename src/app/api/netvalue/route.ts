@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
+
 import { db } from "@/db";
-import { netvalue } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
-import { normalizeAllocationSnapshot, recordTodayNetvalue } from "@/lib/services/netvalue-service";
+import { getAllNetvalueRecords } from "@/lib/services/netvalue-history-service";
+import { recordTodayNetvalue } from "@/lib/services/netvalue-service";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -12,25 +11,8 @@ export async function GET() {
     return response;
   }
 
-  const rows = await db
-    .select()
-    .from(netvalue)
-    .where(eq(netvalue.userId, userId))
-    .orderBy(desc(netvalue.date));
-
-  return NextResponse.json(
-    rows.map((r: any) => ({
-      ...r,
-      dataJson: (() => {
-        const parsed = JSON.parse(r.dataJson);
-        if (!Array.isArray(parsed?.allocation)) return parsed;
-        return {
-          ...parsed,
-          allocation: normalizeAllocationSnapshot(parsed.allocation),
-        };
-      })(),
-    }))
-  );
+  const records = await getAllNetvalueRecords(db, userId);
+  return NextResponse.json(records);
 }
 
 export async function POST() {

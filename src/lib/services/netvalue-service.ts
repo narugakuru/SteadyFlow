@@ -26,31 +26,6 @@ function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: numb
   });
 }
 
-export function normalizeAllocationSnapshot(
-  rows: { name: string; actualValue: number; actualPct: number }[]
-) {
-  const merged = new Map<string, { name: string; actualValue: number; actualPct: number }>();
-
-  for (const row of rows) {
-    const normalizedName = normalizeAssetClassName(row.name);
-    const existing = merged.get(normalizedName);
-    if (!existing) {
-      merged.set(normalizedName, { ...row, name: normalizedName });
-      continue;
-    }
-    existing.actualValue = roundForStorage(existing.actualValue + row.actualValue, "amount");
-    existing.actualPct = roundForStorage(existing.actualPct + row.actualPct, "percent");
-  }
-
-  return sortByDefaultAssetClassOrder(
-    Array.from(merged.values()).map((item, index) => ({
-      ...item,
-      sortOrder: getDefaultAssetClassOrderIndex(item.name),
-      id: index,
-    }))
-  ).map(({ name, actualValue, actualPct }) => ({ name, actualValue, actualPct }));
-}
-
 export async function getUserNetvalueTimeZone(userId: string): Promise<string> {
   const [row] = await db
     .select({ value: settings.value })
@@ -93,67 +68,65 @@ export async function recordTodayNetvalue(
         .where(inArray(holdings.accountId, accountIds))
         .orderBy(asc(holdings.accountId), asc(holdings.accountSortOrder), asc(holdings.id))
     : [];
-  const allHoldings = rawHoldings.map((h: any) => ({
-    ...h,
-    assetClass: normalizeAssetClassName(h.assetClass),
+  const allHoldings = rawHoldings.map((holding: any) => ({
+    ...holding,
+    assetClass: normalizeAssetClassName(holding.assetClass),
   }));
 
   const rates = ratesResult.rates;
-  const accountMap: Map<number, any> = new Map(allAccounts.map((a: any) => [a.id, a]));
+  const accountMap: Map<number, any> = new Map(
+    allAccounts.map((account: any) => [account.id, account])
+  );
 
   const accountHoldingsValue: Record<number, number> = {};
-  for (const h of allHoldings) {
-    accountHoldingsValue[h.accountId] = (accountHoldingsValue[h.accountId] || 0) + h.marketValue;
+  for (const holding of allHoldings) {
+    accountHoldingsValue[holding.accountId] =
+      (accountHoldingsValue[holding.accountId] || 0) + holding.marketValue;
   }
 
-  const totalAssetCny = allAccounts.reduce((sum: number, a: any) => {
-    const accountValue = a.cashBalance + (accountHoldingsValue[a.id] || 0);
-    return sum + convertToCNY(accountValue, a.currency, rates);
+  const totalAssetCny = allAccounts.reduce((sum: number, account: any) => {
+    const accountValue = account.cashBalance + (accountHoldingsValue[account.id] || 0);
+    return sum + convertToCNY(accountValue, account.currency, rates);
   }, 0);
 
   const classValues: Record<string, number> = {};
-  for (const h of allHoldings) {
-    const account = accountMap.get(h.accountId);
+  for (const holding of allHoldings) {
+    const account = accountMap.get(holding.accountId);
     if (!account) continue;
-    const valueCny = convertToCNY(h.marketValue, account.currency, rates);
-    classValues[h.assetClass] = (classValues[h.assetClass] || 0) + valueCny;
+    const valueCny = convertToCNY(holding.marketValue, account.currency, rates);
+    classValues[holding.assetClass] = (classValues[holding.assetClass] || 0) + valueCny;
   }
 
-  const totalCashCny = allAccounts.reduce((sum: number, a: any) => {
-    return sum + convertToCNY(a.cashBalance, a.currency, rates);
+  const totalCashCny = allAccounts.reduce((sum: number, account: any) => {
+    return sum + convertToCNY(account.cashBalance, account.currency, rates);
   }, 0);
 
   const mergedClasses = new Map<string, any>();
-  for (const cls of allClasses) {
-    const normalizedName = normalizeAssetClassName(cls.name);
+  for (const assetClass of allClasses) {
+    const normalizedName = normalizeAssetClassName(assetClass.name);
     const existing = mergedClasses.get(normalizedName);
     if (!existing) {
       mergedClasses.set(normalizedName, {
-        ...cls,
+        ...assetClass,
         name: normalizedName,
       });
     } else {
-      existing.targetPct = roundForStorage(existing.targetPct + cls.targetPct, "percent");
+      existing.targetPct = roundForStorage(existing.targetPct + assetClass.targetPct, "percent");
     }
   }
 
   const classesForSnapshot = sortByDefaultAssetClassOrder(Array.from(mergedClasses.values()));
 
   const data = {
-    allocation: classesForSnapshot.map((cls: any) => {
-      const actualValue = cls.name === "现金" ? totalCashCny : classValues[cls.name] || 0;
+    allocation: classesForSnapshot.map((assetClass: any) => {
+      const actualValue =
+        assetClass.name === "现金" ? totalCashCny : classValues[assetClass.name] || 0;
       const actualPct =
         totalAssetCny > 0 ? roundForStorage((actualValue / totalAssetCny) * 100, "percent") : 0;
-      return { name: cls.name, actualValue: roundForStorage(actualValue, "amount"), actualPct };
-    }),
-    accounts: allAccounts.map((a: any) => {
-      const holdingsVal = accountHoldingsValue[a.id] || 0;
-      const accountValue = a.cashBalance + holdingsVal;
       return {
-        name: a.name,
-        currency: a.currency,
-        totalCny: roundForStorage(convertToCNY(accountValue, a.currency, rates), "amount"),
-        cashCny: roundForStorage(convertToCNY(a.cashBalance, a.currency, rates), "amount"),
+        name: assetClass.name,
+        actualValue: roundForStorage(actualValue, "amount"),
+        actualPct,
       };
     }),
     rates: ratesResult.rates,

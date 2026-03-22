@@ -11,7 +11,8 @@ export type CacheQueryName =
   | "holdings"
   | "transactions"
   | "settings"
-  | "netvalue"
+  | "netvalue-list"
+  | "netvalue-chart"
   | "market"
   | "admin-stats"
   | "asset-classes";
@@ -38,24 +39,56 @@ const BASE_POLICY: QueryPolicy = {
   refetchOnReconnect: true,
 };
 
+const LONG_HISTORY_POLICY: QueryPolicy = {
+  ...BASE_POLICY,
+  staleTimeMs: 60 * 60 * 1000,
+};
+
 export const QUERY_POLICIES: Record<CacheQueryName, QueryPolicy> = {
   "asset-allocation": BASE_POLICY,
   accounts: BASE_POLICY,
   holdings: BASE_POLICY,
   transactions: BASE_POLICY,
   settings: BASE_POLICY,
-  netvalue: BASE_POLICY,
+  "netvalue-list": LONG_HISTORY_POLICY,
+  "netvalue-chart": LONG_HISTORY_POLICY,
   market: BASE_POLICY,
   "admin-stats": BASE_POLICY,
   "asset-classes": BASE_POLICY,
 };
 
 export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> = {
-  "accounts-write": ["accounts", "asset-allocation", "netvalue"],
-  "holdings-write": ["holdings", "accounts", "asset-allocation", "netvalue", "transactions"],
-  "transactions-write": ["transactions", "holdings", "accounts", "asset-allocation", "netvalue"],
-  "batch-update-write": ["holdings", "accounts", "asset-allocation", "netvalue"],
-  "fetch-prices-write": ["holdings", "accounts", "asset-allocation", "netvalue"],
+  "accounts-write": ["accounts", "asset-allocation", "netvalue-list", "netvalue-chart"],
+  "holdings-write": [
+    "holdings",
+    "accounts",
+    "asset-allocation",
+    "netvalue-list",
+    "netvalue-chart",
+    "transactions",
+  ],
+  "transactions-write": [
+    "transactions",
+    "holdings",
+    "accounts",
+    "asset-allocation",
+    "netvalue-list",
+    "netvalue-chart",
+  ],
+  "batch-update-write": [
+    "holdings",
+    "accounts",
+    "asset-allocation",
+    "netvalue-list",
+    "netvalue-chart",
+  ],
+  "fetch-prices-write": [
+    "holdings",
+    "accounts",
+    "asset-allocation",
+    "netvalue-list",
+    "netvalue-chart",
+  ],
   "settings-write": ["asset-allocation"],
 };
 
