@@ -65,6 +65,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-22] OpenSpec：新增 `optimize-netvalue-page-query-and-storage` 变更工件（proposal/design/specs/tasks），明确净值页列表分页默认 30 条、图表改为独立 `range + grain` 聚合接口、净值本地缓存拆分为 list/chart 且 staleTime 提升到 60 分钟，以及 `netvalue.dataJson` 精简与历史回填方案。
 - [2026-03-22] 完成 `refresh-market-page-vix-and-index-data` 实装：市场页移除内嵌 TradingView 图表，改为顶部 VIX 日线图（CBOE 历史 CSV）+ 单态区间说明；指数表数据源切换为 Stooq/Tencent 聚合；新增全球资产历史高点回撤列表。同步更新 `market-overview`、`market-chart-widget`、`market-ath-drawdown` 主 spec 与 `openspec/project.md`，并补充市场数据计算测试。
 - [2026-03-21] 完成 `fix-note-dialog-and-quote-fx-sync` 实装：全局投资笔记弹窗改为桌面固定大尺寸/移动端全屏布局，正文与便签列表各自内部滚动，移除显式保存按钮并改为失焦自动保存；`POST /api/holdings/fetch-prices` 及其静默/Cron 复用链路显式联动汇率刷新，并在汇率实际更新时补记当日净值。同步更新 `discipline-notes`、`auto-quote-fetch`、`exchange-rate` 主 spec，并新增草稿/汇率缓存回归脚本。
 - [2026-03-21] OpenSpec：新增 `refresh-market-page-vix-and-index-data` 变更工件（proposal/design/specs/tasks），明确市场页移除内嵌 TradingView 图表、改用 Stooq + Tencent 聚合指数数据、顶部 VIX 免费图表与简化说明，以及 VIX 下方的历史高点回撤列表。
