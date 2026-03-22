@@ -247,7 +247,7 @@ export default function Dashboard() {
           colorMode={allocation.settings.colorMode}
           onDataChange={() => void allocationQuery.refetch()}
         />
-        <DeviationChart allocation={allocation.allocation} />
+        {/* <DeviationChart allocation={allocation.allocation} /> 暂时隐藏*/}
       </div>
 
       <RebalancePanel
