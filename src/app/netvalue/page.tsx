@@ -2,6 +2,7 @@
 
 import { DataFreshness } from "@/components/data-freshness";
 import { NetvalueCharts } from "@/components/netvalue-charts";
+import { PageContainer } from "@/components/page-container";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
@@ -29,7 +30,7 @@ export default function NetvaluePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
+    <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">📸 净值历史</h1>
       </div>
@@ -84,6 +85,6 @@ export default function NetvaluePage() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

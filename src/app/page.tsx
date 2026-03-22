@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 
 import { DataFreshness } from "@/components/data-freshness";
-import { DeviationChart } from "@/components/deviation-chart";
 import { DisciplineTable } from "@/components/discipline-table";
+import { PageContainer } from "@/components/page-container";
 import { PortfolioChart } from "@/components/portfolio-chart";
 import {
   PriceUpdateResult,
@@ -159,7 +159,7 @@ export default function Dashboard() {
   const rates = allocation.rates.rates;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
+    <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
@@ -261,6 +261,6 @@ export default function Dashboard() {
         onOpenChange={setResultOpen}
         result={priceResult}
       />
-    </div>
+    </PageContainer>
   );
 }

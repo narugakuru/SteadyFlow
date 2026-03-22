@@ -7,6 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import { MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AssetClassSettings } from "@/components/asset-class-settings";
+import { PageContainer } from "@/components/page-container";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { clearCurrentUserClientCache } from "@/lib/cache/provider";
 
@@ -40,7 +41,7 @@ export function Navbar() {
   return (
     <>
       <nav className="border-b bg-background">
-        <div className="max-w-4xl mx-auto px-4 md:px-6 flex items-center justify-between h-12">
+        <PageContainer className="flex h-12 items-center justify-between">
           {/* Logo */}
           <span className="font-semibold shrink-0">📊 SteadyFlow</span>
 
@@ -102,7 +103,7 @@ export function Navbar() {
               <MenuIcon className="h-5 w-5" />
             </Button>
           </div>
-        </div>
+        </PageContainer>
       </nav>
 
       {/* Mobile Sheet Menu */}

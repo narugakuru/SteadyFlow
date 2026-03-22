@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { DataFreshness } from "@/components/data-freshness";
+import { PageContainer } from "@/components/page-container";
 import {
   PriceUpdateResult,
   PriceUpdateResultDialog,
@@ -155,7 +156,7 @@ export default function BatchUpdatePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6 text-foreground">
+    <PageContainer className="space-y-6 py-4 md:py-6 text-foreground">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="text-xl md:text-2xl font-bold">✏️ 批量更新</h1>
         <div className="space-y-2 md:space-y-0 md:flex md:items-center md:gap-2">
@@ -326,6 +327,6 @@ export default function BatchUpdatePage() {
         onOpenChange={setResultOpen}
         result={priceResult}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DataFreshness } from "@/components/data-freshness";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -38,7 +39,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
+    <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">管理面板</h1>
         <Link href="/admin/users">
@@ -84,6 +85,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -79,7 +80,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-6">
+    <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">用户管理</h1>
         <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
@@ -90,64 +91,72 @@ export default function AdminUsersPage() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>用户名</TableHead>
-            <TableHead>邮箱</TableHead>
-            <TableHead>角色</TableHead>
-            <TableHead>计划</TableHead>
-            <TableHead>注册时间</TableHead>
-            <TableHead>登录方式</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => {
-            const isSelf = currentUserId === user.id;
-            return (
-              <TableRow key={user.id}>
-                <TableCell>{user.name || "-"}</TableCell>
-                <TableCell>{user.email || "-"}</TableCell>
-                <TableCell>
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={user.role}
-                    disabled={isSelf || savingId === user.id}
-                    onChange={(event) => updateUser(user.id, { role: event.target.value as AdminUser["role"] })}
-                  >
-                    {ROLE_OPTIONS.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </TableCell>
-                <TableCell>
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={user.plan}
-                    disabled={savingId === user.id}
-                    onChange={(event) => updateUser(user.id, { plan: event.target.value as AdminUser["plan"] })}
-                  >
-                    {PLAN_OPTIONS.map((plan) => (
-                      <option key={plan} value={plan}>
-                        {plan}
-                      </option>
-                    ))}
-                  </select>
-                </TableCell>
-                <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleString() : "-"}</TableCell>
-                <TableCell>
-                  {user.loginMethods.length > 0
-                    ? user.loginMethods.map((method) => (method === "password" ? "密码" : "GitHub")).join(" / ")
-                    : "-"}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>用户名</TableHead>
+              <TableHead>邮箱</TableHead>
+              <TableHead>角色</TableHead>
+              <TableHead>计划</TableHead>
+              <TableHead>注册时间</TableHead>
+              <TableHead>登录方式</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => {
+              const isSelf = currentUserId === user.id;
+              return (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name || "-"}</TableCell>
+                  <TableCell>{user.email || "-"}</TableCell>
+                  <TableCell>
+                    <select
+                      className="border rounded px-2 py-1 text-sm"
+                      value={user.role}
+                      disabled={isSelf || savingId === user.id}
+                      onChange={(event) =>
+                        updateUser(user.id, { role: event.target.value as AdminUser["role"] })
+                      }
+                    >
+                      {ROLE_OPTIONS.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </TableCell>
+                  <TableCell>
+                    <select
+                      className="border rounded px-2 py-1 text-sm"
+                      value={user.plan}
+                      disabled={savingId === user.id}
+                      onChange={(event) =>
+                        updateUser(user.id, { plan: event.target.value as AdminUser["plan"] })
+                      }
+                    >
+                      {PLAN_OPTIONS.map((plan) => (
+                        <option key={plan} value={plan}>
+                          {plan}
+                        </option>
+                      ))}
+                    </select>
+                  </TableCell>
+                  <TableCell>
+                    {user.createdAt ? new Date(user.createdAt).toLocaleString() : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {user.loginMethods.length > 0
+                      ? user.loginMethods
+                          .map((method) => (method === "password" ? "密码" : "GitHub"))
+                          .join(" / ")
+                      : "-"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -6,6 +6,7 @@ import { AlertCircle } from "lucide-react";
 
 import { AccountList } from "@/components/account-list";
 import { DataFreshness } from "@/components/data-freshness";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
@@ -64,7 +65,7 @@ function AccountsContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6">
+    <PageContainer className="py-4 md:py-6">
       <DataFreshness
         updatedAt={Math.max(accountsQuery.dataUpdatedAt || 0, allocationQuery.dataUpdatedAt || 0)}
         isFetching={accountsQuery.isFetching || allocationQuery.isFetching}
@@ -78,7 +79,7 @@ function AccountsContent() {
         defaultExpandId={defaultExpandId}
         onRefresh={() => void refreshAll()}
       />
-    </div>
+    </PageContainer>
   );
 }
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { DataFreshness } from "@/components/data-freshness";
+import { PageContainer } from "@/components/page-container";
+import { Button } from "@/components/ui/button";
 import { VixChartCard } from "@/components/vix-chart-card";
 import { VixSentiment } from "@/components/vix-sentiment";
-import { DataFreshness } from "@/components/data-freshness";
-import { Button } from "@/components/ui/button";
 import {
   MARKET_GROUPS,
   MARKET_INDEX_CONFIG,
@@ -86,7 +87,7 @@ export default function MarketPage() {
   const athDrawdowns = data?.athDrawdowns ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-4 md:px-6 md:py-6">
+    <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">📊 市场概览</h1>
         <Button
@@ -248,6 +249,6 @@ export default function MarketPage() {
           </section>
         );
       })}
-    </div>
+    </PageContainer>
   );
 }

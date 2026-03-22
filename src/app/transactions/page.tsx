@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
 import { DataFreshness } from "@/components/data-freshness";
+import { PageContainer } from "@/components/page-container";
 import { TransactionForm } from "@/components/transaction-form";
 import {
   AlertDialog,
@@ -131,7 +132,7 @@ function TransactionsContent() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-4">
+    <PageContainer className="space-y-4 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">交易记录</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -309,6 +310,6 @@ function TransactionsContent() {
         accounts={accounts}
         holdings={holdings}
       />
-    </div>
+    </PageContainer>
   );
 }

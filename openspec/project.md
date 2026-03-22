@@ -45,6 +45,7 @@ src/
 ├── components/
 │   ├── ui/                         # shadcn 基础组件（含 loading-spinner；主按钮统一入口为 ui/button.tsx）
 │   ├── navbar.tsx                  # 全局导航栏
+│   ├── page-container.tsx          # 共享页面/导航内容容器（max-w-5xl）
 │   ├── session-provider.tsx        # SessionProvider 包装
 │   ├── vix-chart-card.tsx          # 市场页顶部 VIX 图表卡片
 │   ├── vix-sentiment.tsx           # VIX 单态区间说明组件
