@@ -2,11 +2,13 @@
 
 - 框架：Next.js 16 (App Router) + React 19 + TypeScript
 - 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)，主按钮默认配色由共享 `Button` 组件与 `src/app/globals.css` 的 CSS 变量统一维护，基准为 Dashboard“更新股价”按钮
+- 图表：Recharts（净值图与市场页 VIX 图）
 - 数据库：SQLite (better-sqlite3) / PostgreSQL (Neon serverless) + Drizzle ORM（通过 DB_TYPE 环境变量切换）
 - 图标：lucide-react
 - Markdown 渲染：react-markdown（禁用原始 HTML 直出）
 - 认证：Auth.js v5 (next-auth@beta) + bcrypt
 - 数据存储：SQLite 模式 `data/invest.db`，PostgreSQL 模式通过 DATABASE_URL 连接
+- 外部市场数据：Stooq、腾讯简易行情、CBOE VIX 历史 CSV
 
 ## 目录结构
 
@@ -19,7 +21,7 @@ src/
 │   ├── transactions/page.tsx       # 交易记录页
 │   ├── netvalue/page.tsx            # 净值历史页
 │   ├── batch-update/page.tsx       # 股价更新页
-│   ├── market/page.tsx             # 市场概览页（TradingView Widget）
+│   ├── market/page.tsx             # 市场概览页（VIX 图 + ATH 回撤 + 全球指数表）
 │   ├── login/page.tsx              # 登录页
 │   ├── register/page.tsx           # 注册页
 │   ├── admin/page.tsx              # 管理后台入口
@@ -34,7 +36,7 @@ src/
 │       ├── asset-allocation/       # 资产配置
 │       ├── asset-classes/          # 资产类别
 │       ├── exchange-rates/         # 汇率
-│       ├── market/                 # 市场指数行情（Yahoo Finance）
+│       ├── market/                 # 市场聚合行情（Stooq/Tencent/CBOE）
 │       ├── discipline-notes/       # 纪律笔记 CRUD
 │       ├── export/portfolio/       # 投资组合 JSON 导出（detail=full|decision）
 │       ├── netvalue/               # 净值
@@ -44,8 +46,9 @@ src/
 │   ├── ui/                         # shadcn 基础组件（含 loading-spinner；主按钮统一入口为 ui/button.tsx）
 │   ├── navbar.tsx                  # 全局导航栏
 │   ├── session-provider.tsx        # SessionProvider 包装
-│   ├── vix-sentiment.tsx           # VIX 情绪阈值参考区域（支持当前值高亮）
-│   ├── tradingview-chart.tsx       # TradingView Advanced Chart Widget 嵌入组件
+│   ├── vix-chart-card.tsx          # 市场页顶部 VIX 图表卡片
+│   ├── vix-sentiment.tsx           # VIX 单态区间说明组件
+│   ├── tradingview-chart.tsx       # TradingView Advanced Chart Widget 嵌入组件（保留，市场页未引用）
 │   ├── account-list.tsx            # 账户列表（含持仓盈亏）
 │   ├── holdings-panel.tsx          # 持仓面板（已废弃，不再被引用）
 │   ├── holding-edit-dialog.tsx     # 持仓编辑弹窗（三字段联动，共享组件）
@@ -91,11 +94,13 @@ src/
 │   │   └── asset-class-colors.ts   # 资产类别标签配色
 │   ├── data-source/                # 数据源适配层（行情/汇率）
 │   │   ├── exchange-rate.ts        # 汇率获取逻辑
-│   │   ├── market-config.ts        # 市场指数配置
-│   │   ├── market-data.ts          # 市场指数数据聚合（Stooq/Yahoo）
-│   │   ├── stooq.ts                # Stooq 行情
+│   │   ├── market-config.ts        # 市场页指数 / VIX / ATH 配置
+│   │   ├── market-helpers.ts       # 市场页快照与 ATH 计算辅助函数
+│   │   ├── market-data.ts          # 市场聚合数据（指数快照 + VIX + ATH）
+│   │   ├── stooq.ts                # Stooq 行情与历史数据
+│   │   ├── cboe-vix.ts             # CBOE VIX 历史 CSV 适配
 │   │   ├── yahoo.ts                # Yahoo Finance 行情
-│   │   ├── tencent-quote.ts        # 腾讯简易行情（A/H/BJ）
+│   │   ├── tencent-quote.ts        # 腾讯简易行情（持仓 + 市场指数）
 │   │   ├── twelve-data.ts          # Twelve Data 行情
 │   │   └── eodhd.ts                # EODHD 行情
 └── types/

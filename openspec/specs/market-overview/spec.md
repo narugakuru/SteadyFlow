@@ -2,80 +2,43 @@
 
 ### Requirement: 指数行情表格展示
 
-系统 SHALL 在市场页上方以静态骨架模式展示全球主要指数表格，按市场分组（美股、A股、港股、日股、波动率）。表格结构（指数名称、TradingView 跳转链接）始终显示，不依赖 API 数据。价格、涨跌、涨跌幅列通过双数据源动态填充，API 失败或指数不支持时显示 `--`。
+系统 SHALL 在市场页的 VIX 区域下方展示全球主要指数表格，按市场分组（美股、A股、港股、日股）。表格结构（指数名称、外部查看链接）始终显示，不依赖 API 数据。价格、涨跌、涨跌幅和更新时间通过市场聚合接口动态填充；任一指数快照缺失时，该行显示 `--` 兜底。VIX 不再作为表格中的独立“波动率”分组展示。
 
 #### Scenario: 正常数据展示
 
-- **WHEN** 用户打开市场页且双数据源均返回成功
-- **THEN** 所有有数据源的指数显示名称、最新价、涨跌、涨跌幅、更新时间；无数据源的指数（东证指数）显示 `--`；每行末尾有 TradingView 跳转链接图标
+- **WHEN** 用户打开市场页且市场聚合接口成功返回指数快照
+- **THEN** 已成功获取的指数显示名称、最新价、涨跌、涨跌幅、更新时间和外部查看链接，且页面只展示美股、A股、港股、日股四个分组
 
-#### Scenario: API 全部失败时的兜底展示
+#### Scenario: 部分指数失败时的兜底展示
 
-- **WHEN** 用户打开市场页且所有 API 请求失败
-- **THEN** 表格仍显示所有指数名称和 TradingView 跳转链接，价格/涨跌/涨跌幅列显示 `--`，更新时间列显示 `-`
+- **WHEN** 用户打开市场页且只有部分指数快照获取成功
+- **THEN** 成功的指数正常显示数据，失败的指数行保留名称和外部查看链接，其余字段显示 `--`
 
 #### Scenario: 加载中状态
 
-- **WHEN** 用户打开市场页且数据正在加载
-- **THEN** 表格骨架正常显示，价格列显示加载占位符动画
+- **WHEN** 用户打开市场页且市场聚合接口仍在加载
+- **THEN** 指数表格骨架正常显示，价格相关列显示加载占位符动画
 
-### Requirement: 按市场分 Tab 图表展示
+### Requirement: 市场页聚合接口
 
-系统 SHALL 在市场页下方提供按市场分组的 Tab 图表区域，包含 A股、美股、港股、日股、波动率五个 Tab，每个 Tab 嵌入 TradingView Advanced Chart Widget 展示该市场的主要指数图表。
+系统 SHALL 提供统一的市场聚合接口，一次返回指数表格快照、VIX 数据和 ATH 回撤摘要。指数快照 MUST 主要使用 Stooq 与 Tencent 作为数据源：Tencent 负责 A 股与港股核心指数快照，Stooq 负责美股、日股及全球资产历史数据；VIX 日线图表 MAY 使用专门的免费官方数据源，但 MUST 与指数快照一并在同一接口中返回。
 
-#### Scenario: Tab 默认展示
+#### Scenario: 正常获取数据
 
-- **WHEN** 用户打开市场页
-- **THEN** 图表区域默认显示第一个 Tab（A股），嵌入 TradingView Advanced Chart Widget 展示上证指数（SSE:000001）
+- **WHEN** API 路由收到市场数据请求且可用数据源正常返回
+- **THEN** 系统返回包含 `indices`、`vix`、`athDrawdowns` 和 `updatedAt` 的完整响应对象
 
-#### Scenario: 切换市场 Tab
+#### Scenario: Stooq 失败但 Tencent 正常
 
-- **WHEN** 用户点击不同的市场 Tab（如"美股"）
-- **THEN** 图表区域切换为该市场的 TradingView Advanced Chart Widget，默认展示该市场最重要的指数
+- **WHEN** Stooq 请求超时或返回空数据，但 Tencent 正常返回
+- **THEN** 依赖 Stooq 的指数与历史摘要显示 `--` 或空序列，A 股与港股快照仍正常返回
 
-### Requirement: Tab 内指数切换
+#### Scenario: Tencent 失败但 Stooq 正常
 
-系统 SHALL 在每个市场 Tab 内提供指数切换功能，允许用户在同一市场的多个指数间切换图表。
+- **WHEN** Tencent 请求失败，但 Stooq 正常返回
+- **THEN** 依赖 Tencent 的 A 股与港股指数显示 `--`，Stooq 覆盖的指数和历史摘要仍正常返回
 
-#### Scenario: 切换同市场指数
+#### Scenario: 单项历史摘要失败
 
-- **WHEN** 用户在 A股 Tab 内点击"沪深300"
-- **THEN** 图表切换为沪深300（SSE:000300）的 TradingView Advanced Chart
-
-#### Scenario: 单指数市场无切换
-
-- **WHEN** 用户查看波动率 Tab
-- **THEN** 仅展示 VIX（CBOE:VIX）图表，无指数切换按钮
-
-### Requirement: VIX 情绪阈值提示
-
-系统 SHALL 在波动率 Tab 的图表下方展示基于固定阈值的情绪参考区域，包含表情、文字和颜色编码。
-
-#### Scenario: 情绪级别展示
-
-- **WHEN** 用户切换到波动率 Tab
-- **THEN** 图表下方显示 VIX 情绪阈值参考：VIX < 15 为 😌 市场平静（绿色）、15-20 为 😐 正常波动（蓝色）、20-30 为 😟 波动加剧（橙色）、30-40 为 😨 市场恐慌（红色）、> 40 为 🔥 极度恐慌（深红），当前 VIX 值对应的级别高亮
-
-### Requirement: 数据获取使用双数据源（Stooq + Yahoo）
-
-系统 SHALL 使用 Stooq 免费 CSV API 和 yahoo-finance2 作为市场指数数据的双数据源。每个指数在配置中标记数据源（`stooq` / `yahoo` / `null`），系统根据标记分别调用对应 API。Stooq 覆盖美股/日股/VIX/HSI，Yahoo 覆盖 A 股/恒生科技。任一数据源请求失败时 SHALL 不影响其他数据源的结果，失败的指数显示 `--` 兜底。
-
-#### Scenario: 正常获取数据（双源）
-
-- **WHEN** API 路由收到市场数据请求
-- **THEN** 系统按指数配置的 source 字段分组，Stooq 源的指数通过 Stooq CSV API 获取，Yahoo 源的指数通过 yahoo-finance2 的 quote 方法获取，合并结果返回
-
-#### Scenario: Stooq 请求失败但 Yahoo 正常
-
-- **WHEN** Stooq API 请求超时，但 Yahoo API 正常返回
-- **THEN** Stooq 源的指数（美股/日股/VIX/HSI）显示 `--`，Yahoo 源的指数（A 股/恒生科技）正常显示价格
-
-#### Scenario: Yahoo 请求失败但 Stooq 正常
-
-- **WHEN** Yahoo API 请求失败，但 Stooq API 正常返回
-- **THEN** Yahoo 源的指数显示 `--`，Stooq 源的指数正常显示价格
-
-#### Scenario: 无数据源的指数
-
-- **WHEN** 指数配置中 source 为 null（如东证指数）
-- **THEN** 该指数在返回数据中 price=0、change=0、changePercent=0、updatedAt=""，前端显示 `--`
+- **WHEN** 某个 ATH 跟踪项的历史源暂时无法返回有效序列
+- **THEN** API 仍返回该项的名称和顺序信息，并将历史高点日期与回撤字段置为空值供前端显示 `--`

@@ -21,7 +21,7 @@
 
 ### Requirement: 数据获取使用双数据源（Stooq + Tencent）
 
-系统 SHALL 使用 Stooq 和 Tencent 作为市场页数据聚合的双数据源。每个指数或资产配置 MUST 显式声明快照源和历史源；其中 Tencent 用于 A 股与港股核心指数快照，Stooq 用于美股、日股、VIX 及可用的全球基准历史数据。`/api/market` SHALL 一次返回指数表格快照、VIX 数据和 ATH 回撤摘要；任一源请求失败时 MUST NOT 影响其他源的结果。
+系统 SHALL 使用 Stooq 和 Tencent 作为市场页主要指数数据源。每个指数或资产配置 MUST 显式声明快照源和历史源；其中 Tencent 用于 A 股与港股核心指数快照，Stooq 用于美股、日股及可用的全球基准历史数据。VIX 图表 MAY 使用专门的免费官方历史数据源，但 `/api/market` SHALL 仍一次返回指数表格快照、VIX 数据和 ATH 回撤摘要；任一源请求失败时 MUST NOT 影响其他源的结果。
 
 #### Scenario: 正常获取数据（双源）
 

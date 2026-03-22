@@ -1,56 +1,29 @@
 ## Requirements
 
-### Requirement: 按市场分 Tab 图表展示
+### Requirement: 免费 VIX 图表组件渲染
 
-系统 SHALL 在市场页下方提供按市场分组的 Tab 图表区域，包含 A股、美股、港股、日股、波动率五个 Tab，每个 Tab 嵌入 TradingView Advanced Chart Widget 展示该市场的主要指数图表。
+系统 SHALL 在市场页最上方使用项目内嵌的免费图表组件展示 VIX 日线走势，不再依赖 TradingView 嵌入脚本。图表 MUST 使用市场聚合接口返回的标准化时间序列渲染，并提供加载中与无数据兜底状态。
 
-#### Scenario: Tab 默认展示
+#### Scenario: VIX 图表正常渲染
 
-- **WHEN** 用户打开市场页
-- **THEN** 图表区域默认显示第一个 Tab（A股），嵌入 TradingView Advanced Chart Widget 展示上证指数（SSE:000001）
+- **WHEN** 用户打开市场页且 VIX 时间序列返回成功
+- **THEN** 页面顶部显示 VIX 图表，并使用接口返回的日期与收盘值渲染折线或面积走势
 
-#### Scenario: 切换市场 Tab
+#### Scenario: VIX 图表无数据兜底
 
-- **WHEN** 用户点击不同的市场 Tab（如"美股"）
-- **THEN** 图表区域切换为该市场的 TradingView Advanced Chart Widget，默认展示该市场最重要的指数（美股默认 FOREXCOM:SPXUSD）
-
-### Requirement: Tab 内指数切换
-
-系统 SHALL 在每个市场 Tab 内提供指数切换功能，允许用户在同一市场的多个指数间切换图表。
-
-#### Scenario: 切换同市场指数
-
-- **WHEN** 用户在 A股 Tab 内点击"沪深300"
-- **THEN** 图表切换为沪深300（SSE:000300）的 TradingView Advanced Chart
-
-#### Scenario: 单指数市场无切换
-
-- **WHEN** 用户查看波动率 Tab
-- **THEN** 仅展示 VIX（CBOE:VIX）图表，无指数切换按钮
-
-### Requirement: TradingView Widget 不可用时的兜底
-
-系统 SHALL 在 TradingView Widget 无法加载特定指数时，显示提示信息和跳转链接。
-
-#### Scenario: Widget 加载失败兜底
-
-- **WHEN** TradingView Widget 无法展示某个指数（如 symbol 不支持）
-- **THEN** 显示"该指数暂不支持图表展示"提示，并提供"在 TradingView 查看"的跳转链接
-
-### Requirement: 深色主题配置
-
-系统 SHALL 将所有 TradingView Widget 配置为深色主题（colorTheme: "dark"）。
-
-#### Scenario: Widget 主题
-
-- **WHEN** 市场页加载 TradingView Advanced Chart Widget
-- **THEN** Widget 使用深色主题渲染
+- **WHEN** 用户打开市场页但 VIX 时间序列为空
+- **THEN** 页面顶部仍保留 VIX 区域，并显示“暂无可用 VIX 数据”之类的占位提示，而不是加载第三方图表容器
 
 ### Requirement: VIX 情绪参考与图表整合
 
-系统 SHALL 在波动率 Tab 的图表下方展示 VIX 情绪阈值参考组件。
+系统 SHALL 在市场页最上方将 VIX 图表与情绪参考整合为同一区域展示。情绪参考 MUST 沿用现有 5 档阈值口径（`<15`、`15-20`、`20-30`、`30-40`、`>40`），但界面仅显示当前 VIX 数值所在区间对应的一条简洁说明，不再同时展开全部区间卡片。
 
-#### Scenario: 波动率 Tab 展示情绪参考
+#### Scenario: 当前区间说明展示
 
-- **WHEN** 用户切换到波动率 Tab
-- **THEN** 图表下方显示 VIX 情绪阈值参考（5 级情绪：市场平静/正常波动/波动加剧/市场恐慌/极度恐慌），当前 VIX 值对应的级别高亮
+- **WHEN** 用户打开市场页且存在最新可用的 VIX 数值
+- **THEN** 页面在 VIX 图表下方显示当前区间名称、数值范围和对应说明，并高亮该区间的情绪状态
+
+#### Scenario: 缺少当前 VIX 数值时的说明兜底
+
+- **WHEN** 用户打开市场页但无法获取最新可用的 VIX 数值
+- **THEN** 页面仍显示 VIX 说明组件，并提示当前区间暂不可判定，而不是渲染全部 5 档说明卡片

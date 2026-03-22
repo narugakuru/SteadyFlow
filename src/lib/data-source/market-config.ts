@@ -1,122 +1,185 @@
-// 市场指数静态配置（客户端/服务端共用，无 Node.js 依赖）
+// 市场页静态配置（客户端/服务端共用，无 Node.js 依赖）
 
-export interface MarketIndex {
+export const MARKET_GROUPS = ["🇺🇸 美股", "🇨🇳 A股", "🇭🇰 港股", "🇯🇵 日股"] as const;
+
+export type MarketGroup = (typeof MARKET_GROUPS)[number];
+export type MarketSnapshotProvider = "stooq-history" | "tencent";
+export type MarketHistoryProvider = "stooq";
+
+export interface MarketIndexSnapshot {
+  id: string;
   symbol: string;
   name: string;
   price: number;
   change: number;
   changePercent: number;
   updatedAt: string;
-  tradingViewSymbol: string;
-  tradingViewUrl: string;
-  group: string;
+  group: MarketGroup;
+  source: "stooq" | "tencent";
+  externalUrl: string;
 }
 
-/**
- * 数据源类型：
- * - "stooq": Stooq CSV API（美股/日股/VIX/HSI）
- * - "yahoo": yahoo-finance2（A 股/港股/恒生科技）
- * - null: 无可用数据源
- */
-export type DataSource = "stooq" | "yahoo" | null;
+export interface MarketVixPoint {
+  date: string;
+  close: number;
+}
 
-export interface IndexConfigItem {
-  source: DataSource;
-  sourceSymbol: string | null;
+export interface MarketVixData {
+  latest: number | null;
+  latestAt: string | null;
+  series: MarketVixPoint[];
+}
+
+export interface MarketAthDrawdown {
+  id: string;
   name: string;
-  tradingView: string;
-  group: string;
+  lastAllTimeHighDate: string | null;
+  drawdownPercent: number | null;
+  statusEmoji: string | null;
 }
 
-// 指数配置：source + sourceSymbol 标记数据源和对应符号
-export const INDEX_CONFIG: IndexConfigItem[] = [
-  // 美股（Stooq）
+export interface MarketApiResponse {
+  indices: MarketIndexSnapshot[];
+  vix: MarketVixData;
+  athDrawdowns: MarketAthDrawdown[];
+  updatedAt: string;
+}
+
+export interface MarketIndexConfigItem {
+  id: string;
+  symbol: string;
+  name: string;
+  group: MarketGroup;
+  provider: MarketSnapshotProvider;
+  sourceSymbol: string;
+  externalUrl: string;
+}
+
+export interface MarketAthConfigItem {
+  id: string;
+  name: string;
+  provider: MarketHistoryProvider;
+  sourceSymbol: string;
+}
+
+export const MARKET_INDEX_CONFIG: MarketIndexConfigItem[] = [
   {
-    source: "stooq",
-    sourceSymbol: "^spx",
+    id: "sp500",
+    symbol: "^spx",
     name: "S&P 500",
-    tradingView: "FOREXCOM:SPXUSD",
     group: "🇺🇸 美股",
+    provider: "stooq-history",
+    sourceSymbol: "^spx",
+    externalUrl: "https://stooq.com/q/?s=%5Espx",
   },
   {
-    source: "stooq",
-    sourceSymbol: "^ndq",
+    id: "nasdaq100",
+    symbol: "^ndq",
     name: "纳斯达克100",
-    tradingView: "NASDAQ:NDX",
     group: "🇺🇸 美股",
+    provider: "stooq-history",
+    sourceSymbol: "^ndq",
+    externalUrl: "https://stooq.com/q/?s=%5Endq",
   },
   {
-    source: "stooq",
-    sourceSymbol: "^dji",
+    id: "dow-jones",
+    symbol: "^dji",
     name: "道琼斯",
-    tradingView: "DJ:DJI",
     group: "🇺🇸 美股",
+    provider: "stooq-history",
+    sourceSymbol: "^dji",
+    externalUrl: "https://stooq.com/q/?s=%5Edji",
   },
-  // A股（Yahoo）
   {
-    source: "yahoo",
-    sourceSymbol: "000300.SS",
+    id: "csi300",
+    symbol: "000300.SS",
     name: "沪深300",
-    tradingView: "SSE:000300",
     group: "🇨🇳 A股",
+    provider: "tencent",
+    sourceSymbol: "s_sh000300",
+    externalUrl: "https://gu.qq.com/sh000300/zs",
   },
   {
-    source: "yahoo",
-    sourceSymbol: "000001.SS",
+    id: "shanghai-composite",
+    symbol: "000001.SS",
     name: "上证指数",
-    tradingView: "SSE:000001",
     group: "🇨🇳 A股",
+    provider: "tencent",
+    sourceSymbol: "s_sh000001",
+    externalUrl: "https://gu.qq.com/sh000001/zs",
   },
   {
-    source: "yahoo",
-    sourceSymbol: "399006.SZ",
+    id: "chinext",
+    symbol: "399006.SZ",
     name: "创业板指",
-    tradingView: "SZSE:399006",
     group: "🇨🇳 A股",
+    provider: "tencent",
+    sourceSymbol: "s_sz399006",
+    externalUrl: "https://gu.qq.com/sz399006/zs",
   },
   {
-    source: "yahoo",
-    sourceSymbol: "000905.SS",
+    id: "csi500",
+    symbol: "000905.SS",
     name: "中证500",
-    tradingView: "SSE:000905",
     group: "🇨🇳 A股",
+    provider: "tencent",
+    sourceSymbol: "s_sh000905",
+    externalUrl: "https://gu.qq.com/sh000905/zs",
   },
-  // 港股
   {
-    source: "stooq",
-    sourceSymbol: "^hsi",
+    id: "hang-seng",
+    symbol: "HSI",
     name: "恒生指数",
-    tradingView: "HSI:HSI",
     group: "🇭🇰 港股",
+    provider: "tencent",
+    sourceSymbol: "s_hkHSI",
+    externalUrl: "https://gu.qq.com/hkHSI/zs",
   },
   {
-    source: "yahoo",
-    sourceSymbol: "^HSTECH",
+    id: "hang-seng-tech",
+    symbol: "HSTECH",
     name: "恒生科技",
-    tradingView: "TVC:HSTECH",
     group: "🇭🇰 港股",
+    provider: "tencent",
+    sourceSymbol: "s_hkHSTECH",
+    externalUrl: "https://gu.qq.com/hkHSTECH/zs",
   },
-  // 日股
   {
-    source: "stooq",
-    sourceSymbol: "^nkx",
+    id: "nikkei225",
+    symbol: "^nkx",
     name: "日经225",
-    tradingView: "TVC:NI225",
     group: "🇯🇵 日股",
+    provider: "stooq-history",
+    sourceSymbol: "^nkx",
+    externalUrl: "https://stooq.com/q/?s=%5Enkx",
+  },
+];
+
+export const MARKET_ATH_CONFIG: MarketAthConfigItem[] = [
+  { id: "bitcoin", name: "Bitcoin", provider: "stooq", sourceSymbol: "btc.v" },
+  { id: "dax", name: "DAX", provider: "stooq", sourceSymbol: "^dax" },
+  {
+    id: "dow-jones-industrial-average",
+    name: "Dow Jones Industrial Average",
+    provider: "stooq",
+    sourceSymbol: "^dji",
   },
   {
-    source: null,
-    sourceSymbol: null,
-    name: "东证指数",
-    tradingView: "TSE:TOPIX",
-    group: "🇯🇵 日股",
+    id: "ftse-all-world",
+    name: "FTSE All-World",
+    provider: "stooq",
+    sourceSymbol: "vwrl.uk",
   },
-  // 波动
+  { id: "gold", name: "Gold", provider: "stooq", sourceSymbol: "xauusd" },
+  { id: "msci-world", name: "MSCI World", provider: "stooq", sourceSymbol: "urth.us" },
   {
-    source: "stooq",
-    sourceSymbol: "^vix",
-    name: "VIX 恐慌指数",
-    tradingView: "CBOE:VIX",
-    group: "📉 波动",
+    id: "nasdaq-composite",
+    name: "Nasdaq Composite",
+    provider: "stooq",
+    sourceSymbol: "oneq.us",
   },
+  { id: "nasdaq-100", name: "Nasdaq-100", provider: "stooq", sourceSymbol: "^ndq" },
+  { id: "nikkei-225", name: "Nikkei 225", provider: "stooq", sourceSymbol: "^nkx" },
+  { id: "sp500-ath", name: "S&P 500", provider: "stooq", sourceSymbol: "^spx" },
+  { id: "smi", name: "SMI", provider: "stooq", sourceSymbol: "^smi" },
 ];

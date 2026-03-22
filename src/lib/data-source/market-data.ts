@@ -1,103 +1,194 @@
-/**
- * 市场指数数据获取（双数据源：Stooq + Yahoo，仅服务端使用）
- *
- * 按 INDEX_CONFIG 中每个指数的 source 字段分发请求：
- * - "stooq" → Stooq CSV API（美股/日股/VIX/HSI）
- * - "yahoo" → yahoo-finance2（A 股/港股/恒生科技）
- * - null → 跳过，返回空价格
- */
+import { roundForStorage } from "../utils/format";
+import { fetchCboeVixHistory } from "./cboe-vix";
+import {
+  buildIndexSnapshotFromHistory,
+  calculateAthDrawdownFromHistory,
+  type MarketHistoryPoint,
+} from "./market-helpers";
+import {
+  MARKET_ATH_CONFIG,
+  MARKET_INDEX_CONFIG,
+  type MarketApiResponse,
+  type MarketAthConfigItem,
+  type MarketAthDrawdown,
+  type MarketIndexConfigItem,
+  type MarketIndexSnapshot,
+  type MarketVixData,
+} from "./market-config";
+import { fetchStooqHistory } from "./stooq";
+import { fetchTencentMarketSnapshotsInBatches } from "./tencent-quote";
 
-import { INDEX_CONFIG, type MarketIndex, type IndexConfigItem } from "./market-config";
-import { fetchStooqQuote } from "./stooq";
-import { fetchYahooQuotes } from "./yahoo";
+export {
+  MARKET_ATH_CONFIG,
+  MARKET_GROUPS,
+  MARKET_INDEX_CONFIG,
+  type MarketApiResponse,
+  type MarketAthDrawdown,
+  type MarketIndexSnapshot,
+  type MarketVixData,
+} from "./market-config";
 
-// 重新导出供 API route 和前端使用
-export { type MarketIndex, INDEX_CONFIG } from "./market-config";
+const STQ_HISTORY_START = "20100101";
+const VIX_SERIES_LIMIT = 252;
 
-/** 构建空价格的 MarketIndex（静态骨架兜底） */
-function buildEmptyIndex(config: IndexConfigItem): MarketIndex {
+function formatHistoryRangeDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}${month}${day}`;
+}
+
+function buildEmptyIndex(config: MarketIndexConfigItem): MarketIndexSnapshot {
   return {
-    symbol: config.sourceSymbol ?? config.name,
+    id: config.id,
+    symbol: config.symbol,
     name: config.name,
     price: 0,
     change: 0,
     changePercent: 0,
     updatedAt: "",
-    tradingViewSymbol: config.tradingView,
-    tradingViewUrl: `https://www.tradingview.com/chart/?symbol=${config.tradingView}`,
     group: config.group,
+    source: config.provider === "tencent" ? "tencent" : "stooq",
+    externalUrl: config.externalUrl,
   };
 }
 
-export async function fetchMarketData(): Promise<MarketIndex[]> {
-  // 按数据源分组
-  const stooqConfigs = INDEX_CONFIG.filter((c) => c.source === "stooq" && c.sourceSymbol);
-  const yahooConfigs = INDEX_CONFIG.filter((c) => c.source === "yahoo" && c.sourceSymbol);
+function buildEmptyAthDrawdown(config: MarketAthConfigItem): MarketAthDrawdown {
+  return {
+    id: config.id,
+    name: config.name,
+    lastAllTimeHighDate: null,
+    drawdownPercent: null,
+    statusEmoji: null,
+  };
+}
 
-  // 并行请求两个数据源（互不影响）
-  const [stooqResults, yahooResults] = await Promise.all([
-    // Stooq: 逐个请求
-    Promise.all(
-      stooqConfigs.map(async (config) => {
-        const quote = await fetchStooqQuote(config.sourceSymbol!);
-        return { config, quote };
-      })
-    ).catch(() => [] as { config: IndexConfigItem; quote: null }[]),
+function buildAthDrawdown(
+  config: MarketAthConfigItem,
+  history: MarketHistoryPoint[]
+): MarketAthDrawdown {
+  const metrics = calculateAthDrawdownFromHistory(history);
+  return {
+    id: config.id,
+    name: config.name,
+    lastAllTimeHighDate: metrics.lastAllTimeHighDate,
+    drawdownPercent: metrics.drawdownPercent,
+    statusEmoji: metrics.statusEmoji,
+  };
+}
 
-    // Yahoo: 批量请求
-    (async () => {
-      const symbols = yahooConfigs.map((c) => c.sourceSymbol!);
-      return fetchYahooQuotes(symbols);
-    })().catch(() => []),
+function buildVixData(points: Awaited<ReturnType<typeof fetchCboeVixHistory>>): MarketVixData {
+  const validPoints = points.filter((point) => Number.isFinite(point.close) && point.close > 0);
+  if (validPoints.length === 0) {
+    return {
+      latest: null,
+      latestAt: null,
+      series: [],
+    };
+  }
+
+  const series = validPoints.slice(-VIX_SERIES_LIMIT).map((point) => ({
+    date: point.date,
+    close: point.close,
+  }));
+  const latest = validPoints[validPoints.length - 1];
+
+  return {
+    latest: latest.close,
+    latestAt: `${latest.date}T00:00:00`,
+    series,
+  };
+}
+
+async function mapWithConcurrency<T, U>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T) => Promise<U>
+): Promise<U[]> {
+  const results: U[] = [];
+  for (let start = 0; start < items.length; start += limit) {
+    const slice = items.slice(start, start + limit);
+    const settled = await Promise.all(slice.map((item) => worker(item)));
+    results.push(...settled);
+  }
+  return results;
+}
+
+export async function fetchMarketData(): Promise<MarketApiResponse> {
+  const historyRange = {
+    from: STQ_HISTORY_START,
+    to: formatHistoryRangeDate(new Date()),
+  };
+
+  const stooqSymbols = new Set<string>();
+  for (const config of MARKET_INDEX_CONFIG) {
+    if (config.provider === "stooq-history") {
+      stooqSymbols.add(config.sourceSymbol);
+    }
+  }
+  for (const config of MARKET_ATH_CONFIG) {
+    stooqSymbols.add(config.sourceSymbol);
+  }
+
+  const [stooqHistoryEntries, tencentResults, vixHistory] = await Promise.all([
+    mapWithConcurrency([...stooqSymbols], 4, async (symbol) => {
+      const history = await fetchStooqHistory(symbol, historyRange);
+      return [symbol, history] as const;
+    }),
+    fetchTencentMarketSnapshotsInBatches(
+      MARKET_INDEX_CONFIG.filter((config) => config.provider === "tencent").map((config) => ({
+        requestId: config.id,
+        symbol: config.sourceSymbol,
+      }))
+    ),
+    fetchCboeVixHistory(),
   ]);
 
-  // 构建 Stooq 结果 Map（sourceSymbol → quote）
-  const stooqMap = new Map<string, MarketIndex>();
-  for (const { config, quote } of stooqResults) {
-    if (quote) {
-      stooqMap.set(config.sourceSymbol!, {
-        symbol: config.sourceSymbol!,
-        name: config.name,
-        price: quote.close,
-        change: 0, // Stooq CSV 不直接提供涨跌，前端可从 TradingView 获取
-        changePercent: 0,
-        updatedAt: quote.date && quote.time ? `${quote.date}T${quote.time}` : quote.date || "",
-        tradingViewSymbol: config.tradingView,
-        tradingViewUrl: `https://www.tradingview.com/chart/?symbol=${config.tradingView}`,
-        group: config.group,
-      });
-    }
-  }
+  const stooqHistoryBySymbol = new Map<string, MarketHistoryPoint[]>(stooqHistoryEntries);
+  const tencentByRequestId = new Map(
+    tencentResults
+      .filter((result) => result.quote)
+      .map((result) => [result.requestId, result.quote!])
+  );
 
-  // 构建 Yahoo 结果 Map（symbol → quote）
-  const yahooMap = new Map<string, MarketIndex>();
-  for (const yq of yahooResults) {
-    // 找到对应的 config
-    const config = yahooConfigs.find((c) => c.sourceSymbol === yq.symbol);
-    if (config) {
-      yahooMap.set(config.sourceSymbol!, {
-        symbol: config.sourceSymbol!,
-        name: config.name,
-        price: yq.price,
-        change: yq.change,
-        changePercent: yq.changePercent,
-        updatedAt: yq.updatedAt,
-        tradingViewSymbol: config.tradingView,
-        tradingViewUrl: `https://www.tradingview.com/chart/?symbol=${config.tradingView}`,
-        group: config.group,
-      });
-    }
-  }
+  const indices = MARKET_INDEX_CONFIG.map((config) => {
+    if (config.provider === "tencent") {
+      const quote = tencentByRequestId.get(config.id);
+      if (!quote) return buildEmptyIndex(config);
 
-  // 按 INDEX_CONFIG 顺序合并结果
-  return INDEX_CONFIG.map((config) => {
-    if (config.source === "stooq" && config.sourceSymbol) {
-      return stooqMap.get(config.sourceSymbol) ?? buildEmptyIndex(config);
+      return {
+        id: config.id,
+        symbol: config.symbol,
+        name: config.name,
+        price: quote.price,
+        change: roundForStorage(quote.change, "amount"),
+        changePercent: roundForStorage(quote.changePercent, "percent"),
+        updatedAt: quote.updatedAt,
+        group: config.group,
+        source: "tencent" as const,
+        externalUrl: config.externalUrl,
+      };
     }
-    if (config.source === "yahoo" && config.sourceSymbol) {
-      return yahooMap.get(config.sourceSymbol) ?? buildEmptyIndex(config);
-    }
-    // source === null
-    return buildEmptyIndex(config);
+
+    const snapshot = buildIndexSnapshotFromHistory(
+      config,
+      stooqHistoryBySymbol.get(config.sourceSymbol) ?? []
+    );
+    return {
+      ...snapshot,
+      group: config.group,
+    };
   });
+
+  const athDrawdowns = MARKET_ATH_CONFIG.map((config) => {
+    const history = stooqHistoryBySymbol.get(config.sourceSymbol) ?? [];
+    return history.length > 0 ? buildAthDrawdown(config, history) : buildEmptyAthDrawdown(config);
+  });
+
+  return {
+    indices,
+    vix: buildVixData(vixHistory),
+    athDrawdowns,
+    updatedAt: new Date().toISOString(),
+  };
 }
