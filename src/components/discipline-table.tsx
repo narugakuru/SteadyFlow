@@ -47,6 +47,16 @@ export function DisciplineTable({
     name: "accounts",
     path: "/api/accounts",
   });
+  const sortableHoldingsQuery = useUserScopedQuery<Holding[]>({
+    name: "holdings",
+    path: sortHoldingFor
+      ? `/api/holdings?scope=discipline&assetClass=${encodeURIComponent(sortHoldingFor.assetClass)}`
+      : "/api/holdings?scope=discipline",
+    params: sortHoldingFor
+      ? { scope: "discipline", assetClass: sortHoldingFor.assetClass }
+      : { scope: "discipline" },
+    enabled: !!sortHoldingFor,
+  });
   const allHoldings = holdingsQuery.data ?? [];
   const accounts = accountsQuery.data ?? [];
   const dataLoaded = !holdingsQuery.isLoading && !accountsQuery.isLoading;
@@ -372,7 +382,7 @@ export function DisciplineTable({
           scope="discipline"
           assetClass={sortHoldingFor.assetClass}
           accountNameById={accountNameById}
-          holdings={allHoldings.filter(
+          holdings={(sortableHoldingsQuery.data ?? []).filter(
             (holding) => normalizeAssetClassName(holding.assetClass) === sortHoldingFor.assetClass
           )}
           onSaved={() => {

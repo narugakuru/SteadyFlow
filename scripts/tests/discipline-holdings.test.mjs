@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   filterVisibleDisciplineHoldings,
+  getEffectiveDisciplineMarketValue,
+  isZeroDisciplineHoldingValue,
   sortDisciplineHoldingsWithZeroLast,
 } from "../../src/lib/services/discipline-holdings.ts";
 
@@ -32,3 +34,54 @@ test("filterVisibleDisciplineHoldings removes zero-amount holdings", () => {
   );
 });
 
+test("getEffectiveDisciplineMarketValue prefers shares x price for shares mode", () => {
+  assert.equal(
+    getEffectiveDisciplineMarketValue({
+      valuationMode: "shares",
+      marketValue: 999,
+      shares: 12,
+      price: 0,
+    }),
+    0
+  );
+
+  assert.equal(
+    getEffectiveDisciplineMarketValue({
+      valuationMode: "amount",
+      marketValue: 88,
+      shares: 12,
+      price: 0,
+    }),
+    88
+  );
+});
+
+test("isZeroDisciplineHoldingValue recognizes both valuation modes", () => {
+  assert.equal(
+    isZeroDisciplineHoldingValue({
+      valuationMode: "shares",
+      marketValue: 500,
+      shares: 0,
+      price: 8,
+    }),
+    true
+  );
+
+  assert.equal(
+    isZeroDisciplineHoldingValue({
+      valuationMode: "amount",
+      marketValue: 0,
+    }),
+    true
+  );
+
+  assert.equal(
+    isZeroDisciplineHoldingValue({
+      valuationMode: "shares",
+      marketValue: 0,
+      shares: 10,
+      price: 3.2,
+    }),
+    false
+  );
+});

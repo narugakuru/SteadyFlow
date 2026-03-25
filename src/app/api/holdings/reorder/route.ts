@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
+import { listVisibleDisciplineHoldings } from "@/lib/services/discipline-holdings-query";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 
 export async function POST(request: Request) {
@@ -81,51 +82,15 @@ export async function POST(request: Request) {
   }
 
   const normalizedAssetClass = normalizeAssetClassName(String(assetClass));
-
-  const targetRows = await db
-    .select({
-      id: holdings.id,
-      assetClass: holdings.assetClass,
-      accountId: holdings.accountId,
-    })
-    .from(holdings)
-    .innerJoin(accounts, eq(holdings.accountId, accounts.id))
-    .where(and(eq(accounts.userId, userId), inArray(holdings.id, normalizedIds)));
-
-  if (targetRows.length !== normalizedIds.length) {
-    return NextResponse.json({ error: "排序列表包含无效持仓" }, { status: 400 });
-  }
-
-  const mixedClass = targetRows.some(
-    (row: { assetClass: string }) =>
-      normalizeAssetClassName(row.assetClass) !== normalizedAssetClass
-  );
-  if (mixedClass) {
-    return NextResponse.json({ error: "排序列表存在非当前资产类别持仓" }, { status: 400 });
-  }
-
-  const classRows = await db
-    .select({
-      id: holdings.id,
-      assetClass: holdings.assetClass,
-    })
-    .from(holdings)
-    .innerJoin(accounts, eq(holdings.accountId, accounts.id))
-    .where(eq(accounts.userId, userId));
-
-  const allClassIds = classRows
-    .filter(
-      (row: { assetClass: string }) =>
-        normalizeAssetClassName(row.assetClass) === normalizedAssetClass
-    )
-    .map((row: { id: number }) => row.id);
+  const visibleHoldings = await listVisibleDisciplineHoldings(userId, normalizedAssetClass);
+  const allClassIds = visibleHoldings.map((holding) => holding.id);
 
   if (allClassIds.length !== normalizedIds.length) {
-    return NextResponse.json({ error: "排序列表必须包含该资产类别全部持仓" }, { status: 400 });
+    return NextResponse.json({ error: "排序列表必须包含该资产类别全部可见持仓" }, { status: 400 });
   }
   const classSet = new Set(allClassIds);
   if (normalizedIds.some((id) => !classSet.has(id))) {
-    return NextResponse.json({ error: "排序列表包含非当前资产类别持仓" }, { status: 400 });
+    return NextResponse.json({ error: "排序列表包含非当前资产类别可见持仓" }, { status: 400 });
   }
 
   const now = new Date().toISOString();

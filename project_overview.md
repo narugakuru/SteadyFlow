@@ -67,6 +67,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-25] 资产配置纪律零市值标的过滤前移到数据库查询阶段：新增纪律专用持仓查询口径，统一兼容 amount/shares 两种市值判定；Dashboard 展开明细与持仓排序弹窗均不再返回零市值标的，纪律排序保存仅校验当前可见持仓全集。同步更新 `asset-allocation` 与 `discipline-overview-sorting` 主 spec。
 - [2026-03-22] 统一全站业务页面与顶部导航的桌面容器宽度：新增共享 `PageContainer`（`max-w-5xl`），总览/市场/账户/交易/净值/股价更新/管理页统一复用，消除市场页与其他页面宽度不一致。同步更新 `navigation-layout` 主 spec 与 `openspec/project.md`。
 - [2026-03-22] 完成 `optimize-netvalue-page-query-and-storage` 实装：净值页拆为 `/api/netvalue/list` 分页接口与 `/api/netvalue/chart` 固定区间聚合接口，历史清单默认每页 30 条；净值客户端缓存拆为 `netvalue-list/netvalue-chart` 且 staleTime 统一提升到 60 分钟；新写入 `netvalue.dataJson` 精简为 `allocation + rates`，并补充 SQLite/PG 双库运行时回填、手动回填脚本与 Vercel 部署期 PostgreSQL 自动迁移/回填说明。同步更新 `daily-netvalue`、`visualization-charts`、`client-cache-layer` 主 spec 与运维文档。
 - [2026-03-22] OpenSpec：新增 `optimize-netvalue-page-query-and-storage` 变更工件（proposal/design/specs/tasks），明确净值页列表分页默认 30 条、图表改为独立 `range + grain` 聚合接口、净值本地缓存拆分为 list/chart 且 staleTime 提升到 60 分钟，以及 `netvalue.dataJson` 精简与历史回填方案。

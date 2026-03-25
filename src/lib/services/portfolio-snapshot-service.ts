@@ -6,8 +6,9 @@ import { accounts, assetClasses, holdings } from "@/db/schema";
 import { getExchangeRates, convertToCNY } from "@/lib/data-source/exchange-rate";
 import {
   filterVisibleDisciplineHoldings,
-  sortDisciplineHoldingsWithZeroLast,
+  isZeroDisciplineHoldingValue,
 } from "@/lib/services/discipline-holdings";
+import { listVisibleDisciplineHoldings } from "@/lib/services/discipline-holdings-query";
 import { getQuoteSyncMetadataFromMap } from "@/lib/services/quote-sync-metadata-service";
 import {
   getPublicUserSettingsFromMap,
@@ -96,16 +97,18 @@ function sortByDefaultAssetClassOrder<T extends { name: string; sortOrder?: numb
 
 export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioExportSnapshot> {
   const generatedAt = new Date().toISOString();
-  const [ratesResult, allAccounts, allClasses, settingMap] = await Promise.all([
-    getExchangeRates(),
-    db.select().from(accounts).where(eq(accounts.userId, userId)),
-    db
-      .select()
-      .from(assetClasses)
-      .where(eq(assetClasses.userId, userId))
-      .orderBy(asc(assetClasses.sortOrder), asc(assetClasses.id)),
-    readUserSettingsMap(userId),
-  ]);
+  const [ratesResult, allAccounts, allClasses, settingMap, visibleDisciplineHoldings] =
+    await Promise.all([
+      getExchangeRates(),
+      db.select().from(accounts).where(eq(accounts.userId, userId)),
+      db
+        .select()
+        .from(assetClasses)
+        .where(eq(assetClasses.userId, userId))
+        .orderBy(asc(assetClasses.sortOrder), asc(assetClasses.id)),
+      readUserSettingsMap(userId),
+      listVisibleDisciplineHoldings(userId),
+    ]);
 
   const accountIds = allAccounts.map((account: any) => account.id);
   const rawHoldings = accountIds.length
@@ -119,7 +122,9 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
     ...holding,
     assetClass: normalizeAssetClassName(holding.assetClass),
   }));
-  const exportableHoldings = normalizedHoldings.filter((holding: any) => holding.marketValue !== 0);
+  const exportableHoldings = normalizedHoldings.filter(
+    (holding: any) => !isZeroDisciplineHoldingValue(holding)
+  );
 
   const publicSettings = getPublicUserSettingsFromMap(settingMap);
   const quoteSync = getQuoteSyncMetadataFromMap(settingMap);
@@ -132,6 +137,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
   const accountHoldingsCostCny: Record<number, number> = {};
   const accountHoldingsCount: Record<number, number> = {};
   const classHoldings: Record<string, typeof normalizedHoldings> = {};
+  const visibleClassHoldings: Record<string, typeof visibleDisciplineHoldings> = {};
   const classValues: Record<string, number> = {};
 
   for (const holdingRow of normalizedHoldings) {
@@ -159,6 +165,13 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
       classHoldings[holdingRow.assetClass] = [];
     }
     classHoldings[holdingRow.assetClass].push(holdingRow);
+  }
+
+  for (const holdingRow of visibleDisciplineHoldings) {
+    if (!visibleClassHoldings[holdingRow.assetClass]) {
+      visibleClassHoldings[holdingRow.assetClass] = [];
+    }
+    visibleClassHoldings[holdingRow.assetClass].push(holdingRow);
   }
 
   const totalAssetCny = allAccounts.reduce((sum: number, account: any) => {
@@ -211,7 +224,9 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
       status = "warning";
     }
 
-    const rawHoldingsList: AllocationHolding[] = isCash
+    const rawHoldingsList = isCash ? [] : classHoldings[assetClassRow.name] || [];
+    const visibleHoldingsList = isCash ? [] : visibleClassHoldings[assetClassRow.name] || [];
+    const holdingsList: AllocationHolding[] = isCash
       ? accountCash.map((accountCashRow: (typeof accountCash)[number]) => ({
           id: -accountCashRow.accountId,
           name: `${accountCashRow.accountName} 现金`,
@@ -230,7 +245,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
               ? roundForStorage((accountCashRow.cashCny / totalAssetCny) * 100, "percent")
               : 0,
         }))
-      : (classHoldings[assetClassRow.name] || []).map((holdingRow: any) => {
+      : visibleHoldingsList.map((holdingRow: any) => {
           const account = accountMap.get(holdingRow.accountId)!;
           const valueCny = convertToCNY(holdingRow.marketValue, account.currency, rates);
           const holdingTotalCost =
@@ -269,21 +284,26 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
               totalAssetCny > 0 ? roundForStorage((valueCny / totalAssetCny) * 100, "percent") : 0,
           };
         });
-
-    const sortedHoldingsList = sortDisciplineHoldingsWithZeroLast(rawHoldingsList);
-    const holdingsList = filterVisibleDisciplineHoldings(sortedHoldingsList);
     const totalCost = isCash
       ? 0
-      : rawHoldingsList.reduce(
-          (sum: number, holdingRow: any) =>
-            sum + convertToCNY(holdingRow.cost, holdingRow.currency, rates),
-          0
-        );
+      : rawHoldingsList.reduce((sum: number, holdingRow: any) => {
+          const account = accountMap.get(holdingRow.accountId);
+          if (!account) return sum;
+
+          const holdingCost =
+            holdingRow.valuationMode === "shares"
+              ? holdingRow.cost * holdingRow.shares
+              : holdingRow.cost;
+          return sum + convertToCNY(holdingCost, account.currency, rates);
+        }, 0);
     const totalPnl = isCash ? 0 : roundForStorage(actualValue - totalCost, "amount");
     const adjustAmount = roundForStorage(
       (assetClassRow.targetPct / 100) * totalAssetCny - actualValue,
       "amount"
     );
+    const visibleAllocationHoldings = isCash
+      ? filterVisibleDisciplineHoldings(holdingsList)
+      : holdingsList;
 
     return {
       id: assetClassRow.id,
@@ -296,7 +316,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
       adjustAmount,
       totalCost: roundForStorage(totalCost, "amount"),
       totalPnl,
-      holdings: holdingsList,
+      holdings: visibleAllocationHoldings,
     };
   });
 

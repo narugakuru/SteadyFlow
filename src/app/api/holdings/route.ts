@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
+import { listVisibleDisciplineHoldings } from "@/lib/services/discipline-holdings-query";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { roundForStorage } from "@/lib/utils/format";
 import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
@@ -21,10 +22,18 @@ async function getValidAssetClasses(userId: string): Promise<string[]> {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { userId, response } = await requireUser();
   if (!userId) {
     return response;
+  }
+
+  const { searchParams } = new URL(request.url);
+  const scope = searchParams.get("scope");
+  const assetClass = searchParams.get("assetClass")?.trim();
+
+  if (scope === "discipline") {
+    return NextResponse.json(await listVisibleDisciplineHoldings(userId, assetClass || undefined));
   }
 
   const accountRows = await db
