@@ -185,9 +185,9 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
-  CNY: "人民币",
-  USD: "美元",
-  HKD: "港币",
+  CNY: "CNY",
+  USD: "USD",
+  HKD: "HKD",
 };
 
 /** 根据 colorMode 返回盈亏颜色 class。cn=正红负绿（A股），us=正绿负红（美股） */

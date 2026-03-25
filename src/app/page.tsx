@@ -227,7 +227,7 @@ export default function Dashboard() {
             value={displayCurrency}
             onValueChange={(value) => setDisplayCurrency(value as DisplayCurrencyMode)}
           >
-            <SelectTrigger size="sm" className="w-[110px]">
+            <SelectTrigger size="sm" className="w-[90px]">
               <SelectValue placeholder="货币" />
             </SelectTrigger>
             <SelectContent>
