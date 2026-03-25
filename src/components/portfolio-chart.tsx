@@ -218,6 +218,8 @@ export function PortfolioChart({
                 }}
               />
               <Legend
+                iconSize={12}
+                wrapperStyle={{ fontSize: "12px", lineHeight: "16px" }}
                 payloadUniqBy={(entry) => {
                   const meta = getLegendMeta(entry);
                   return meta?.isCash

@@ -67,6 +67,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-25] 继续收紧 Dashboard 资产分布图 legend 尺寸：图例文字与色块统一缩小为紧凑尺寸，减少图下注释与 legend 的视觉跳跃。同步更新 `portfolio-chart` 主 spec。
 - [2026-03-25] 调整 Dashboard 资产分布图标签展示：外环类别/标的标签缩小到与图下注释一致的紧凑字号；按标的视角下 legend 中多个“XXX账户 现金”合并为单个“现金”，但图表与 Tooltip 仍保留账户级现金切片。同步更新 `portfolio-chart` 主 spec。
 - [2026-03-25] Dashboard 新增临时货币视图与纪律区快捷交易按钮：总资产/再平衡可切换默认或账户币种展示；资产配置纪律表类别盈亏补充收益率，展开明细与账户页外币持仓默认仅显示原币金额；资产分布图百分比统一保留两位小数。同步更新 `asset-allocation`、`dashboard`、`account-management`、`rebalance-suggestion`、`transaction-management`、`portfolio-chart`、`visualization-charts` 主 spec。
 - [2026-03-25] 纪律投资笔记弹窗移动端继续压缩底部便签列表：列表默认最多显示 2 条记录并缩小卡片尺寸，把更多高度让给正文；顶部状态提示文案统一改为“自动保存”；修复移动端经典句子区与正文挤压重叠，并同步收紧 quote 字号与边距。同步更新 `discipline-notes` 主 spec。
