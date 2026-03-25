@@ -12,13 +12,34 @@ import {
   PriceUpdateResultDialog,
 } from "@/components/price-update-result-dialog";
 import { RebalancePanel } from "@/components/rebalance-panel";
+import { TransactionForm } from "@/components/transaction-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import {
+  convertFromCny,
+  getCurrencySymbol,
+  getDisplayCurrencyLabel,
+  getSummaryCurrency,
+} from "@/lib/utils/display-currency";
 import { shouldTriggerSilentQuoteRefresh } from "@/lib/utils/quote-sync";
 import { formatAmount, formatRate } from "@/lib/utils/format";
-import { pnlColorClass, type AllocationData } from "@/lib/utils/types";
+import {
+  pnlColorClass,
+  type Account,
+  type AllocationData,
+  type CurrencyCode,
+  type DisplayCurrencyMode,
+  type Holding,
+} from "@/lib/utils/types";
 
 function formatRelativeTime(isoString: string) {
   const deltaMs = Math.max(0, Date.now() - Date.parse(isoString));
@@ -50,12 +71,22 @@ function getQuoteSyncHint(allocation: AllocationData) {
 export default function Dashboard() {
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
+  const [txOpen, setTxOpen] = useState(false);
+  const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrencyMode>("default");
   const netvalueTriggeredRef = useRef(false);
   const silentQuoteTriggeredRef = useRef(false);
 
   const allocationQuery = useUserScopedQuery<AllocationData>({
     name: "asset-allocation",
     path: "/api/asset-allocation",
+  });
+  const accountsQuery = useUserScopedQuery<Account[]>({
+    name: "accounts",
+    path: "/api/accounts",
+  });
+  const holdingsQuery = useUserScopedQuery<Holding[]>({
+    name: "holdings",
+    path: "/api/holdings",
   });
 
   const priceMutation = useMutationJson<never, unknown>();
@@ -65,6 +96,7 @@ export default function Dashboard() {
     allocationQuery.sessionStatus === "loading" || (allocationQuery.isLoading && !allocation);
   const fetchingPrices = priceMutation.isPending;
   const error = allocationQuery.error instanceof Error ? allocationQuery.error.message : "";
+  const summaryCurrency = getSummaryCurrency(displayCurrency);
 
   useEffect(() => {
     if (!allocation || netvalueTriggeredRef.current) return;
@@ -134,6 +166,14 @@ export default function Dashboard() {
     window.location.assign("/api/export/portfolio?download=1&detail=decision");
   };
 
+  const refreshDashboardContext = async () => {
+    await Promise.all([
+      allocationQuery.refetch(),
+      accountsQuery.refetch(),
+      holdingsQuery.refetch(),
+    ]);
+  };
+
   if (loading) {
     return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
   }
@@ -157,12 +197,48 @@ export default function Dashboard() {
   }
 
   const rates = allocation.rates.rates;
+  const summarySymbol = getCurrencySymbol(summaryCurrency);
+  const displayTotalAsset = convertFromCny(allocation.totalAssetCny, summaryCurrency, rates);
+  const displayTotalPnl = convertFromCny(allocation.totalPnl, summaryCurrency, rates);
+  const displayUnrealizedPnl = convertFromCny(allocation.unrealizedPnl, summaryCurrency, rates);
+  const displayRealizedPnl = convertFromCny(allocation.realizedPnl, summaryCurrency, rates);
+  const currencySet = new Set<CurrencyCode>();
+  (accountsQuery.data ?? []).forEach((account) => currencySet.add(account.currency));
+  if (currencySet.size === 0) {
+    allocation.allocation.forEach((item) => {
+      item.holdings.forEach((holding) => {
+        const currency = holding.currency as CurrencyCode;
+        if (currency === "CNY" || currency === "USD" || currency === "HKD") {
+          currencySet.add(currency);
+        }
+      });
+    });
+  }
+  const availableCurrencies = (["CNY", "USD", "HKD"] as CurrencyCode[]).filter((currency) =>
+    currencySet.has(currency)
+  );
 
   return (
     <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
         <div className="flex items-center gap-2">
+          <Select
+            value={displayCurrency}
+            onValueChange={(value) => setDisplayCurrency(value as DisplayCurrencyMode)}
+          >
+            <SelectTrigger size="sm" className="w-[110px]">
+              <SelectValue placeholder="货币" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">默认</SelectItem>
+              {availableCurrencies.map((currency) => (
+                <SelectItem key={currency} value={currency}>
+                  {getDisplayCurrencyLabel(currency)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
             {fetchingPrices ? (
               <span className="flex items-center gap-1">
@@ -177,12 +253,17 @@ export default function Dashboard() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">总资产 (CNY)</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground">
+            总资产 ({summaryCurrency})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <p className="text-3xl font-bold">¥{formatAmount(allocation.totalAssetCny)}</p>
+              <p className="text-3xl font-bold">
+                {summarySymbol}
+                {formatAmount(displayTotalAsset)}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">
                 汇率更新:{" "}
                 {allocation.rates.updatedAt === "default"
@@ -206,24 +287,28 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 gap-1 text-sm md:min-w-[220px]">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">账户总盈亏</span>
-                <span className={pnlColorClass(allocation.totalPnl, allocation.settings.colorMode)}>
-                  {allocation.totalPnl > 0 ? "+" : ""}¥{formatAmount(allocation.totalPnl)}
+                <span className={pnlColorClass(displayTotalPnl, allocation.settings.colorMode)}>
+                  {displayTotalPnl > 0 ? "+" : ""}
+                  {summarySymbol}
+                  {formatAmount(displayTotalPnl)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">持仓盈亏</span>
                 <span
-                  className={pnlColorClass(allocation.unrealizedPnl, allocation.settings.colorMode)}
+                  className={pnlColorClass(displayUnrealizedPnl, allocation.settings.colorMode)}
                 >
-                  {allocation.unrealizedPnl > 0 ? "+" : ""}¥{formatAmount(allocation.unrealizedPnl)}
+                  {displayUnrealizedPnl > 0 ? "+" : ""}
+                  {summarySymbol}
+                  {formatAmount(displayUnrealizedPnl)}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">了结盈亏</span>
-                <span
-                  className={pnlColorClass(allocation.realizedPnl, allocation.settings.colorMode)}
-                >
-                  {allocation.realizedPnl > 0 ? "+" : ""}¥{formatAmount(allocation.realizedPnl)}
+                <span className={pnlColorClass(displayRealizedPnl, allocation.settings.colorMode)}>
+                  {displayRealizedPnl > 0 ? "+" : ""}
+                  {summarySymbol}
+                  {formatAmount(displayRealizedPnl)}
                 </span>
               </div>
             </div>
@@ -231,21 +316,31 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <PortfolioChart allocation={allocation.allocation} />
+      <PortfolioChart
+        allocation={allocation.allocation}
+        rates={rates}
+        displayCurrency={displayCurrency}
+      />
 
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">资产配置纪律</h2>
-          <Button size="sm" onClick={handleDecisionExport}>
-            导出持仓
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setTxOpen(true)}>
+              交易
+            </Button>
+            <Button size="sm" onClick={handleDecisionExport}>
+              导出持仓
+            </Button>
+          </div>
         </div>
         <DisciplineTable
           allocation={allocation.allocation}
           totalAssetCny={allocation.totalAssetCny}
           rates={rates}
           colorMode={allocation.settings.colorMode}
-          onDataChange={() => void allocationQuery.refetch()}
+          displayCurrency={displayCurrency}
+          onDataChange={() => void refreshDashboardContext()}
         />
         {/* <DeviationChart allocation={allocation.allocation} /> 暂时隐藏*/}
       </div>
@@ -254,12 +349,22 @@ export default function Dashboard() {
         allocation={allocation.allocation}
         warningThreshold={allocation.settings.warningThreshold}
         colorMode={allocation.settings.colorMode}
+        rates={rates}
+        displayCurrency={displayCurrency}
       />
 
       <PriceUpdateResultDialog
         open={resultOpen}
         onOpenChange={setResultOpen}
         result={priceResult}
+      />
+      <TransactionForm
+        open={txOpen}
+        onOpenChange={setTxOpen}
+        onSaved={() => void refreshDashboardContext()}
+        accounts={accountsQuery.data ?? []}
+        holdings={holdingsQuery.data ?? []}
+        defaultType="buy"
       />
     </PageContainer>
   );

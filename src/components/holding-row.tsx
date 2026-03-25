@@ -15,10 +15,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Holding, Account, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/utils/types";
+import { convertCurrency, convertToCny, getCurrencySymbol } from "@/lib/utils/display-currency";
 import { HoldingEditDialog } from "@/components/holding-edit-dialog";
 import { TransactionForm } from "@/components/transaction-form";
 import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/utils/format";
+import { Holding, Account, pnlColorClass, type DisplayCurrencyMode } from "@/lib/utils/types";
 
 interface HoldingRowProps {
   holding: Holding;
@@ -26,6 +27,7 @@ interface HoldingRowProps {
   totalAssetCny: number;
   rates: Record<string, number>;
   colorMode: "cn" | "us";
+  displayCurrency?: DisplayCurrencyMode;
   showAccountName?: boolean;
   accountName?: string;
   actions: "compact" | "full";
@@ -42,6 +44,7 @@ export function HoldingRow({
   totalAssetCny,
   rates,
   colorMode,
+  displayCurrency = "default",
   showAccountName,
   accountName,
   actions,
@@ -56,20 +59,21 @@ export function HoldingRow({
   const [txType, setTxType] = useState<string>("buy");
   const [showMobileMemo, setShowMobileMemo] = useState(false);
 
-  const sym = CURRENCY_SYMBOLS[currency] || "¥";
-
-  const toCny = (val: number) => {
-    if (currency === "CNY") return val;
-    const pair = `${currency}/CNY`;
-    return val * (rates[pair] ?? 1);
-  };
-
-  const valueCny = toCny(h.marketValue);
+  const valueCny = convertToCny(h.marketValue, currency, rates);
   const pctOfTotal = totalAssetCny > 0 ? (valueCny / totalAssetCny) * 100 : 0;
   // shares 模式：总成本 = cost(平均每股成本) × shares；amount 模式：总成本 = cost
   const totalCost = h.valuationMode === "shares" ? h.cost * h.shares : h.cost;
   const pnl = totalCost > 0 ? h.marketValue - totalCost : 0;
   const returnRate = totalCost > 0 ? (pnl / totalCost) * 100 : null;
+  const displayAmountCurrency = displayCurrency === "default" ? currency : displayCurrency;
+  const displayMarketValue =
+    displayCurrency === "default"
+      ? h.marketValue
+      : convertCurrency(h.marketValue, currency, displayCurrency, rates);
+  const displayPnl =
+    displayCurrency === "default" ? pnl : convertCurrency(pnl, currency, displayCurrency, rates);
+  const amountSymbol = getCurrencySymbol(displayAmountCurrency);
+  const sourceSymbol = getCurrencySymbol(currency);
 
   const openTx = (type: "buy" | "sell") => {
     setTxType(type);
@@ -78,10 +82,10 @@ export function HoldingRow({
 
   const pnlDisplay =
     returnRate !== null ? (
-      <span className={`text-sm ${pnlColorClass(pnl, colorMode)}`}>
-        {pnl > 0 ? "+" : ""}
-        {sym}
-        {formatAmount(pnl)}
+      <span className={`text-sm ${pnlColorClass(displayPnl, colorMode)}`}>
+        {displayPnl > 0 ? "+" : ""}
+        {amountSymbol}
+        {formatAmount(displayPnl)}
         <span className="ml-1">
           ({returnRate > 0 ? "+" : ""}
           {formatPercent(returnRate)}%)
@@ -183,13 +187,8 @@ export function HoldingRow({
             </div>
             <div className="flex items-center gap-4 shrink-0">
               <span className="font-semibold">
-                {sym}
-                {formatAmount(h.marketValue)}
-                {currency !== "CNY" && (
-                  <span className="text-xs text-muted-foreground ml-1">
-                    ≈ ¥{formatAmount(valueCny)}
-                  </span>
-                )}
+                {amountSymbol}
+                {formatAmount(displayMarketValue)}
               </span>
               {pnlDisplay}
             </div>
@@ -204,14 +203,14 @@ export function HoldingRow({
                   {h.cost > 0 && (
                     <>
                       <span>
-                        成本价 {sym}
+                        成本价 {sourceSymbol}
                         {formatPrice(h.cost)}
                       </span>
                       <span>·</span>
                     </>
                   )}
                   <span>
-                    现价 {sym}
+                    现价 {sourceSymbol}
                     {formatPrice(h.price)}
                   </span>
                   <span>·</span>
@@ -238,13 +237,8 @@ export function HoldingRow({
           {/* Row 2: value + pnl */}
           <div className="flex items-center justify-between">
             <span className="font-semibold text-sm">
-              {sym}
-              {formatAmount(h.marketValue)}
-              {currency !== "CNY" && (
-                <span className="text-xs text-muted-foreground ml-1">
-                  ≈ ¥{formatAmount(valueCny)}
-                </span>
-              )}
+              {amountSymbol}
+              {formatAmount(displayMarketValue)}
             </span>
             {pnlDisplay}
           </div>
@@ -257,14 +251,14 @@ export function HoldingRow({
                 {h.cost > 0 && (
                   <>
                     <span>
-                      成本价 {sym}
+                      成本价 {sourceSymbol}
                       {formatPrice(h.cost)}
                     </span>
                     <span>·</span>
                   </>
                 )}
                 <span>
-                  现价 {sym}
+                  现价 {sourceSymbol}
                   {formatPrice(h.price)}
                 </span>
                 <span>·</span>

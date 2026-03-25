@@ -146,7 +146,12 @@ amount 模式卖出副作用（affectHolding=true）：
 
 ### Requirement: 交易弹窗切换保持上下文并自动填充价格
 
-系统 SHALL 在交易弹窗中切换 `buy`、`sell`、`dividend` 时保持当前已选账户和持仓。对于 buy/sell 且选择 shares 模式持仓时，成交价输入框 SHALL 自动填充持仓记录价格（`holding.price`），并允许用户手动覆盖。
+系统 SHALL 在交易弹窗中区分“通用入口”和“持仓快捷入口”两种默认行为。通用入口打开时，交易类型 MUST 默认选择 `buy`，且账户与持仓均保持未选择状态；从持仓快捷入口打开时，系统 SHALL 预填该持仓所属账户和持仓。对于 buy/sell 且选择 shares 模式持仓时，成交价输入框 SHALL 自动填充持仓记录价格（`holding.price`），并允许用户手动覆盖。交易弹窗中切换 `buy`、`sell`、`dividend` 时，若当前已有已选账户和持仓，系统 SHALL 保持该上下文不变。
+
+#### Scenario: 通用入口默认买入且不预选账户持仓
+
+- **WHEN** 用户从 Dashboard 纪律区或交易页的通用“新增交易”入口打开交易弹窗
+- **THEN** 表单默认类型为“买入”，账户选择器与持仓选择器均保持为空，等待用户手动选择
 
 #### Scenario: 切换类型时保持账户与持仓
 

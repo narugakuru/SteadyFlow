@@ -84,11 +84,7 @@ export function TransactionForm({
   useEffect(() => {
     if (open && !wasOpenRef.current) {
       const nextType = defaultType || "buy";
-      const nextAccountId = defaultAccountId
-        ? String(defaultAccountId)
-        : accounts.length > 0
-          ? String(accounts[0].id)
-          : "";
+      const nextAccountId = defaultAccountId ? String(defaultAccountId) : "";
       const nextHoldingId = defaultHoldingId ? String(defaultHoldingId) : "";
       const nextTxPrice =
         nextType === "buy" || nextType === "sell"

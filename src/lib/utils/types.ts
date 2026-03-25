@@ -1,9 +1,12 @@
 import type { QuoteSyncMetadata } from "@/lib/utils/quote-sync";
 
+export type CurrencyCode = "CNY" | "USD" | "HKD";
+export type DisplayCurrencyMode = "default" | CurrencyCode;
+
 export interface Account {
   id: number;
   name: string;
-  currency: "CNY" | "USD" | "HKD";
+  currency: CurrencyCode;
   cashBalance: number;
   realizedPnl: number;
   holdingsPnl: number;
@@ -179,6 +182,12 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
   CNY: "¥",
   USD: "$",
   HKD: "HK$",
+};
+
+export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
+  CNY: "人民币",
+  USD: "美元",
+  HKD: "港币",
 };
 
 /** 根据 colorMode 返回盈亏颜色 class。cn=正红负绿（A股），us=正绿负红（美股） */

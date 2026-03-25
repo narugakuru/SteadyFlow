@@ -3,25 +3,41 @@
 import { useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
-import { AllocationItem } from "@/lib/utils/types";
+import {
+  convertCurrency,
+  convertFromCny,
+  getCurrencySymbol,
+  getSummaryCurrency,
+} from "@/lib/utils/display-currency";
 import { getClassColor, getClassGradients } from "@/lib/visualization/chart-colors";
-import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { formatAmount } from "@/lib/utils/format";
+import { AllocationItem, type DisplayCurrencyMode } from "@/lib/utils/types";
 
 type ViewMode = "category" | "holding";
 
 interface PortfolioChartProps {
   allocation: AllocationItem[];
+  rates: Record<string, number>;
+  displayCurrency?: DisplayCurrencyMode;
 }
 
-export function PortfolioChart({ allocation }: PortfolioChartProps) {
+export function PortfolioChart({
+  allocation,
+  rates,
+  displayCurrency = "default",
+}: PortfolioChartProps) {
   const [view, setView] = useState<ViewMode>("category");
+  const chartCurrency = getSummaryCurrency(displayCurrency);
+  const chartSymbol = getCurrencySymbol(chartCurrency);
+  const formatChartPercent = (value: number) =>
+    Number.isFinite(value) ? value.toFixed(2) : "0.00";
 
   // 外环：实际配置（按大类）
   const categoryData = allocation
     .filter((a) => a.actualValue > 0)
     .map((a) => ({
       name: a.name,
-      value: a.actualValue,
+      value: convertFromCny(a.actualValue, chartCurrency, rates),
       pct: a.actualPct,
       color: getClassColor(a.name),
       ring: "outer" as const,
@@ -36,7 +52,10 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
       if (h.marketValueCny > 0) {
         holdingData.push({
           name: h.name,
-          value: h.marketValueCny,
+          value:
+            chartCurrency === "CNY"
+              ? h.marketValueCny
+              : convertCurrency(h.marketValue, h.currency, chartCurrency, rates),
           pct: h.pctOfTotal,
           color: gradients[i % gradients.length],
           ring: "outer",
@@ -62,7 +81,7 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
   const renderOuterLabel = (props: any) => {
     const { name, pct } = props as { name: string; pct: number };
     if (pct < 3) return "";
-    return `${name} ${pct}%`;
+    return `${name} ${formatChartPercent(pct)}%`;
   };
 
   return (
@@ -128,9 +147,9 @@ export function PortfolioChart({ allocation }: PortfolioChartProps) {
                 formatter={(value: any, name: any, props: any) => {
                   const ring = props?.payload?.ring;
                   if (ring === "inner") {
-                    return [`${formatPercent(Number(value))}%`, name];
+                    return [`${formatChartPercent(Number(value))}%`, name];
                   }
-                  return [`¥${formatAmount(Number(value))}`, name];
+                  return [`${chartSymbol}${formatAmount(Number(value))}`, name];
                 }}
               />
               <Legend />

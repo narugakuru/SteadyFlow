@@ -3,12 +3,18 @@
 import { useState, Fragment } from "react";
 import { ArrowUpDown } from "lucide-react";
 import {
+  convertCurrency,
+  convertFromCny,
+  getCurrencySymbol,
+  getSummaryCurrency,
+} from "@/lib/utils/display-currency";
+import {
   AllocationItem,
   AllocationHolding,
   Holding,
   Account,
-  CURRENCY_SYMBOLS,
   pnlColorClass,
+  type DisplayCurrencyMode,
 } from "@/lib/utils/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +30,7 @@ interface DisciplineTableProps {
   totalAssetCny: number;
   rates: Record<string, number>;
   colorMode: "cn" | "us";
+  displayCurrency?: DisplayCurrencyMode;
   onDataChange: () => void;
 }
 
@@ -32,6 +39,7 @@ export function DisciplineTable({
   totalAssetCny,
   rates,
   colorMode,
+  displayCurrency = "default",
   onDataChange,
 }: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -61,6 +69,8 @@ export function DisciplineTable({
   const accounts = accountsQuery.data ?? [];
   const dataLoaded = !holdingsQuery.isLoading && !accountsQuery.isLoading;
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
+  const summaryCurrency = getSummaryCurrency(displayCurrency);
+  const summarySymbol = getCurrencySymbol(summaryCurrency);
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -108,7 +118,12 @@ export function DisciplineTable({
           {item.holdings.map((ah) => {
             const isCash = ah.id < 0;
             if (isCash) {
-              const sym = CURRENCY_SYMBOLS[ah.currency] || "¥";
+              const cashCurrency = displayCurrency === "default" ? ah.currency : displayCurrency;
+              const cashValue =
+                displayCurrency === "default"
+                  ? ah.marketValue
+                  : convertCurrency(ah.marketValue, ah.currency, displayCurrency, rates);
+              const cashSymbol = getCurrencySymbol(cashCurrency);
               return (
                 <div
                   key={ah.id}
@@ -121,8 +136,8 @@ export function DisciplineTable({
                     </Badge>
                   </div>
                   <span>
-                    {ah.currency !== "CNY" ? `${sym}${formatAmount(ah.marketValue)} ≈ ` : ""}¥
-                    {formatAmount(ah.marketValueCny)}
+                    {cashSymbol}
+                    {formatAmount(cashValue)}
                   </span>
                 </div>
               );
@@ -143,6 +158,7 @@ export function DisciplineTable({
                 totalAssetCny={totalAssetCny}
                 rates={rates}
                 colorMode={colorMode}
+                displayCurrency={displayCurrency}
                 showAccountName
                 accountName={ah.accountName}
                 actions="compact"
@@ -168,7 +184,7 @@ export function DisciplineTable({
               <th className="text-left p-3 font-medium w-8"></th>
               <th className="text-left p-3 font-medium">资产类别</th>
               <th className="text-right p-3 font-medium">实际 / 目标</th>
-              <th className="text-right p-3 font-medium">金额 (¥)</th>
+              <th className="text-right p-3 font-medium">金额 ({summarySymbol})</th>
               <th className="text-right p-3 font-medium">持仓盈亏</th>
               <th className="text-center p-3 font-medium">状态</th>
             </tr>
@@ -176,6 +192,10 @@ export function DisciplineTable({
           <tbody>
             {allocation.map((item) => {
               const isExpanded = expanded.has(item.id);
+              const displayActualValue = convertFromCny(item.actualValue, summaryCurrency, rates);
+              const displayTotalPnl = convertFromCny(item.totalPnl, summaryCurrency, rates);
+              const totalPnlPct =
+                item.totalCost > 0 ? (item.totalPnl / item.totalCost) * 100 : null;
               return (
                 <Fragment key={item.id}>
                   <tr
@@ -210,14 +230,22 @@ export function DisciplineTable({
                         </span>
                       </div>
                     </td>
-                    <td className="p-3 text-right">¥{formatAmount(item.actualValue)}</td>
                     <td className="p-3 text-right">
-                      {item.name === "现金" ? (
+                      {summarySymbol}
+                      {formatAmount(displayActualValue)}
+                    </td>
+                    <td className="p-3 text-right">
+                      {item.name === "现金" || totalPnlPct === null ? (
                         <span className="text-muted-foreground">--</span>
                       ) : (
-                        <span className={pnlColorClass(item.totalPnl, colorMode)}>
-                          {item.totalPnl > 0 ? "+" : ""}
-                          {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
+                        <span className={pnlColorClass(displayTotalPnl, colorMode)}>
+                          {displayTotalPnl > 0 ? "+" : ""}
+                          {summarySymbol}
+                          {formatAmount(displayTotalPnl)}
+                          <span className="ml-1 text-xs">
+                            ({totalPnlPct > 0 ? "+" : ""}
+                            {formatPercent(totalPnlPct)}%)
+                          </span>
                         </span>
                       )}
                     </td>
@@ -283,6 +311,9 @@ export function DisciplineTable({
       <div className="md:hidden space-y-3">
         {allocation.map((item) => {
           const isExpanded = expanded.has(item.id);
+          const displayActualValue = convertFromCny(item.actualValue, summaryCurrency, rates);
+          const displayTotalPnl = convertFromCny(item.totalPnl, summaryCurrency, rates);
+          const totalPnlPct = item.totalCost > 0 ? (item.totalPnl / item.totalCost) * 100 : null;
           return (
             <div key={item.id} className="border rounded-lg overflow-hidden">
               <div
@@ -319,18 +350,24 @@ export function DisciplineTable({
                 </div>
                 <div className="mt-3 flex items-end justify-between gap-3">
                   <p className="text-2xl font-semibold leading-tight tabular-nums break-all">
-                    ¥{formatAmount(item.actualValue)}
+                    {summarySymbol}
+                    {formatAmount(displayActualValue)}
                   </p>
-                  {item.name === "现金" ? (
+                  {item.name === "现金" || totalPnlPct === null ? (
                     <span className="text-muted-foreground text-xs tabular-nums whitespace-nowrap">
                       --
                     </span>
                   ) : (
                     <span
-                      className={`text-xs tabular-nums whitespace-nowrap ${pnlColorClass(item.totalPnl, colorMode)}`}
+                      className={`text-xs tabular-nums whitespace-nowrap ${pnlColorClass(displayTotalPnl, colorMode)}`}
                     >
-                      {item.totalPnl > 0 ? "+" : ""}
-                      {item.totalPnl !== 0 ? `¥${formatAmount(item.totalPnl)}` : "--"}
+                      {displayTotalPnl > 0 ? "+" : ""}
+                      {summarySymbol}
+                      {formatAmount(displayTotalPnl)}
+                      <span className="ml-1">
+                        ({totalPnlPct > 0 ? "+" : ""}
+                        {formatPercent(totalPnlPct)}%)
+                      </span>
                     </span>
                   )}
                 </div>

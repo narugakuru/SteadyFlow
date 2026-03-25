@@ -67,6 +67,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-25] Dashboard 新增临时货币视图与纪律区快捷交易按钮：总资产/再平衡可切换默认或账户币种展示；资产配置纪律表类别盈亏补充收益率，展开明细与账户页外币持仓默认仅显示原币金额；资产分布图百分比统一保留两位小数。同步更新 `asset-allocation`、`dashboard`、`account-management`、`rebalance-suggestion`、`transaction-management`、`portfolio-chart`、`visualization-charts` 主 spec。
 - [2026-03-25] 纪律投资笔记弹窗移动端继续压缩底部便签列表：列表默认最多显示 2 条记录并缩小卡片尺寸，把更多高度让给正文；顶部状态提示文案统一改为“自动保存”；修复移动端经典句子区与正文挤压重叠，并同步收紧 quote 字号与边距。同步更新 `discipline-notes` 主 spec。
 - [2026-03-25] 资产配置纪律零市值标的过滤前移到数据库查询阶段：新增纪律专用持仓查询口径，统一兼容 amount/shares 两种市值判定；Dashboard 展开明细与持仓排序弹窗均不再返回零市值标的，纪律排序保存仅校验当前可见持仓全集。同步更新 `asset-allocation` 与 `discipline-overview-sorting` 主 spec。
 - [2026-03-25] 调整纪律投资笔记弹窗布局：PC 端移除主编辑区冗余说明标签、将经典句子下沉到底部并改为本地随机展示，删除操作改为红色垃圾桶图标；移动端改为上方标题/正文/句子、下方便签列表。同步更新 `discipline-notes` 主 spec，并将纪律笔记接口中的 `quote` 降为兼容字段。
