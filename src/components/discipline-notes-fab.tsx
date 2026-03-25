@@ -375,7 +375,7 @@ export function DisciplineNotesFab() {
 
             <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[240px_minmax(0,1fr)]">
               <section
-                className="order-1 flex min-h-0 flex-1 flex-col px-4 py-4 md:order-2 md:px-6 md:py-5"
+                className="order-1 flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-3 md:order-2 md:px-6 md:py-5"
                 onBlurCapture={handleEditorBoundaryBlur}
               >
                 <div className="flex items-start gap-2">
@@ -419,14 +419,14 @@ export function DisciplineNotesFab() {
                   ) : saveStatus === "saved" ? (
                     "已自动保存"
                   ) : selectedNote ? (
-                    "失去焦点后自动保存"
+                    "自动保存"
                   ) : (
                     "创建笔记后开始记录"
                   )}
                 </div>
 
-                <div className="mt-3 flex min-h-0 flex-1 flex-col">
-                  <div className="min-h-[220px] flex-1 overflow-hidden rounded-lg border bg-background md:min-h-0">
+                <div className="mt-2.5 flex min-h-0 flex-1 flex-col">
+                  <div className="min-h-[180px] flex-1 overflow-hidden rounded-lg border bg-background md:min-h-0">
                     {selectedNote ? (
                       isPlanEditing ? (
                         <textarea
@@ -469,18 +469,17 @@ export function DisciplineNotesFab() {
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-lg border bg-muted/30 px-4 py-3 text-sm italic text-muted-foreground">
+                <div className="mt-2.5 shrink-0 rounded-md border bg-muted/20 px-3 py-2 text-xs leading-4 italic text-muted-foreground md:mt-3 md:rounded-lg md:px-4 md:py-3 md:text-sm md:leading-5">
                   “{displayQuote}”
                 </div>
 
                 {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
               </section>
 
-              <aside className="order-2 flex shrink-0 flex-col border-t px-4 py-4 md:order-1 md:min-h-0 md:border-r md:border-t-0 md:px-5">
-                <div className="mb-3 flex items-center justify-between gap-2">
+              <aside className="order-2 flex shrink-0 flex-col border-t px-4 py-3 md:order-1 md:min-h-0 md:border-r md:border-t-0 md:px-5 md:py-4">
+                <div className="mb-2 flex items-start justify-between gap-2 md:mb-3 md:items-center">
                   <div>
                     <p className="text-sm font-medium">便签列表</p>
-                    <p className="text-xs text-muted-foreground">切换笔记前会自动保存当前修改</p>
                   </div>
                   <Button
                     type="button"
@@ -488,17 +487,19 @@ export function DisciplineNotesFab() {
                     size="sm"
                     onClick={() => void handleCreate()}
                     disabled={saving}
-                    className="h-8 px-2"
+                    className="h-8 w-8 px-0 md:px-2"
                   >
                     <Plus className="size-4" />
                   </Button>
                 </div>
 
-                <div className="min-h-[160px] max-h-[28dvh] overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1">
-                  <div className="space-y-1">
-                    {loading && <p className="text-xs text-muted-foreground">加载中...</p>}
+                <div className="min-h-[92px] max-h-[100px] overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1">
+                  <div className="space-y-0.5 md:space-y-1">
+                    {loading && (
+                      <p className="text-[11px] text-muted-foreground md:text-xs">加载中...</p>
+                    )}
                     {!loading && notes.length === 0 && (
-                      <p className="rounded-md border border-dashed px-3 py-4 text-xs text-muted-foreground">
+                      <p className="rounded-md border border-dashed px-2.5 py-3 text-[11px] text-muted-foreground md:px-3 md:py-4 md:text-xs">
                         暂无笔记，点击右上角 + 创建
                       </p>
                     )}
@@ -508,14 +509,14 @@ export function DisciplineNotesFab() {
                         type="button"
                         onClick={() => void handleSelectNote(note.id)}
                         className={cn(
-                          "w-full rounded-lg border px-3 py-2 text-left text-xs transition",
+                          "w-full rounded-md border px-2.5 py-1.5 text-left text-[11px] leading-4 transition md:rounded-lg md:px-3 md:py-2 md:text-xs",
                           selectedId === note.id
                             ? "border-foreground/20 bg-accent"
                             : "hover:bg-accent/50"
                         )}
                       >
-                        <p className="truncate font-medium">{note.title}</p>
-                        <p className="mt-1 text-muted-foreground">
+                        <p className="truncate font-medium leading-4 md:leading-5">{note.title}</p>
+                        <p className="mt-0.5 truncate text-[10px] leading-4 text-muted-foreground md:mt-1 md:text-[11px]">
                           {new Date(note.updatedAt).toLocaleString()}
                         </p>
                       </button>
