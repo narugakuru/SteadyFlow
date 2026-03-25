@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 const CLASSIC_QUOTES = [
   "在别人恐惧时贪婪，在别人贪婪时恐惧。",
@@ -60,7 +59,7 @@ export function DisciplineNotesFab() {
   const [form, setForm] = useState<DisciplineNoteDraft>(createDefaultFormState);
   const [savedForm, setSavedForm] = useState<DisciplineNoteDraft>(createDefaultFormState);
   const [isPlanEditing, setIsPlanEditing] = useState(false);
-  const [fallbackQuote, setFallbackQuote] = useState(() => pickQuote());
+  const [displayQuote, setDisplayQuote] = useState(() => pickQuote());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -102,9 +101,7 @@ export function DisciplineNotesFab() {
     setSavedForm(nextForm);
     setIsPlanEditing(false);
     setSaveStatus("idle");
-    if (note?.quote) {
-      setFallbackQuote(note.quote);
-    }
+    setDisplayQuote(pickQuote());
   }, []);
 
   const beginSaving = () => {
@@ -135,7 +132,6 @@ export function DisciplineNotesFab() {
 
       if (data.length === 0) {
         applySelectedNote(null);
-        setFallbackQuote(pickQuote());
         return;
       }
 
@@ -151,19 +147,18 @@ export function DisciplineNotesFab() {
 
   useEffect(() => {
     if (open && status === "authenticated") {
-      setFallbackQuote(pickQuote());
+      setDisplayQuote(pickQuote());
       setIsPlanEditing(false);
       void fetchNotes();
     }
   }, [fetchNotes, open, status]);
 
   const saveDraft = async (noteId: number, draft: DisciplineNoteDraft) => {
-    const targetNote = notesRef.current.find((note) => note.id === noteId);
-    if (!targetNote) {
+    if (!notesRef.current.some((note) => note.id === noteId)) {
       return true;
     }
 
-    const payload = buildDisciplineNoteSavePayload(targetNote.quote || fallbackQuote, draft);
+    const payload = buildDisciplineNoteSavePayload(draft);
     if (!payload.title || !payload.plan) {
       setError("笔记标题和内容不能为空");
       return false;
@@ -256,13 +251,11 @@ export function DisciplineNotesFab() {
 
     try {
       const payload = createDefaultFormState();
-      const quote = pickQuote();
       const res = await fetch("/api/discipline-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: payload.title,
-          quote,
           plan: payload.plan,
           content: payload.plan,
         }),
@@ -305,9 +298,6 @@ export function DisciplineNotesFab() {
       const nextNotes = notesRef.current.filter((note) => note.id !== noteId);
       setNotes(nextNotes);
       applySelectedNote(nextNotes[0] ?? null);
-      if (nextNotes.length === 0) {
-        setFallbackQuote(pickQuote());
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除笔记失败");
     } finally {
@@ -383,8 +373,110 @@ export function DisciplineNotesFab() {
               <DialogTitle>纪律投资笔记</DialogTitle>
             </DialogHeader>
 
-            <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)]">
-              <aside className="flex min-h-0 flex-col border-b px-4 py-4 md:border-r md:border-b-0 md:px-5">
+            <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[240px_minmax(0,1fr)]">
+              <section
+                className="order-1 flex min-h-0 flex-1 flex-col px-4 py-4 md:order-2 md:px-6 md:py-5"
+                onBlurCapture={handleEditorBoundaryBlur}
+              >
+                <div className="flex items-start gap-2">
+                  <Input
+                    id="discipline-note-title"
+                    value={form.title}
+                    disabled={!selectedNote}
+                    onFocus={() => setIsPlanEditing(false)}
+                    onChange={(event) => {
+                      setError("");
+                      setSaveStatus("idle");
+                      setForm((prev) => ({
+                        ...prev,
+                        title: event.target.value,
+                      }));
+                    }}
+                    placeholder="例如：2026-03-21 开盘计划"
+                    className="h-10 text-base md:h-11 md:text-lg"
+                  />
+                  {selectedNote ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleDelete}
+                      disabled={saving}
+                      className="h-10 w-10 shrink-0 text-destructive hover:text-destructive"
+                      aria-label="删除当前笔记"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="mt-2 flex items-center justify-end text-xs text-muted-foreground">
+                  {saving ? (
+                    <span className="inline-flex items-center gap-1">
+                      <LoaderCircle className="size-3 animate-spin" />
+                      自动保存中...
+                    </span>
+                  ) : saveStatus === "saved" ? (
+                    "已自动保存"
+                  ) : selectedNote ? (
+                    "失去焦点后自动保存"
+                  ) : (
+                    "创建笔记后开始记录"
+                  )}
+                </div>
+
+                <div className="mt-3 flex min-h-0 flex-1 flex-col">
+                  <div className="min-h-[220px] flex-1 overflow-hidden rounded-lg border bg-background md:min-h-0">
+                    {selectedNote ? (
+                      isPlanEditing ? (
+                        <textarea
+                          ref={planEditorRef}
+                          value={form.plan}
+                          onChange={(event) => {
+                            setError("");
+                            setSaveStatus("idle");
+                            setForm((prev) => ({
+                              ...prev,
+                              plan: event.target.value,
+                            }));
+                          }}
+                          className="h-full w-full resize-none overflow-y-auto bg-transparent px-4 py-3 text-sm leading-6 font-mono outline-none"
+                          placeholder="支持 Markdown，例如 ## 标题 / - 列表 / **加粗**"
+                        />
+                      ) : (
+                        <article
+                          role="button"
+                          tabIndex={0}
+                          className="h-full cursor-text overflow-y-auto px-4 py-3 text-left text-sm leading-6 outline-none hover:bg-accent/20 focus-visible:bg-accent/20 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2"
+                          onClick={startPlanEditing}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              startPlanEditing();
+                            }
+                          }}
+                        >
+                          <ReactMarkdown skipHtml>
+                            {form.plan || "_点击此处编辑笔记内容_"}
+                          </ReactMarkdown>
+                        </article>
+                      )
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                        请选择一条笔记，或点击下方列表右侧的 + 新建一条投资笔记。
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-lg border bg-muted/30 px-4 py-3 text-sm italic text-muted-foreground">
+                  “{displayQuote}”
+                </div>
+
+                {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+              </section>
+
+              <aside className="order-2 flex shrink-0 flex-col border-t px-4 py-4 md:order-1 md:min-h-0 md:border-r md:border-t-0 md:px-5">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium">便签列表</p>
@@ -402,7 +494,7 @@ export function DisciplineNotesFab() {
                   </Button>
                 </div>
 
-                <div className="min-h-[160px] max-h-[28vh] overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1">
+                <div className="min-h-[160px] max-h-[28dvh] overflow-y-auto pr-1 md:max-h-none md:min-h-0 md:flex-1">
                   <div className="space-y-1">
                     {loading && <p className="text-xs text-muted-foreground">加载中...</p>}
                     {!loading && notes.length === 0 && (
@@ -431,116 +523,6 @@ export function DisciplineNotesFab() {
                   </div>
                 </div>
               </aside>
-
-              <section
-                className="flex min-h-0 flex-col px-4 py-4 md:px-6 md:py-5"
-                onBlurCapture={handleEditorBoundaryBlur}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      投资笔记
-                    </p>
-                    <p className="mt-1 text-sm italic text-muted-foreground">
-                      “{selectedNote?.quote ?? fallbackQuote}”
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleDelete}
-                    disabled={!selectedNote || saving}
-                  >
-                    <Trash2 className="size-4" />
-                    删除
-                  </Button>
-                </div>
-
-                <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
-                  <div>
-                    <Label htmlFor="discipline-note-title">标题</Label>
-                    <Input
-                      id="discipline-note-title"
-                      value={form.title}
-                      disabled={!selectedNote}
-                      onFocus={() => setIsPlanEditing(false)}
-                      onChange={(event) => {
-                        setError("");
-                        setSaveStatus("idle");
-                        setForm((prev) => ({
-                          ...prev,
-                          title: event.target.value,
-                        }));
-                      }}
-                      placeholder="例如：2026-03-21 开盘计划"
-                    />
-                  </div>
-
-                  <div className="flex min-h-0 flex-1 flex-col">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <Label>笔记内容</Label>
-                      <div className="text-xs text-muted-foreground">
-                        {saving ? (
-                          <span className="inline-flex items-center gap-1">
-                            <LoaderCircle className="size-3 animate-spin" />
-                            自动保存中...
-                          </span>
-                        ) : saveStatus === "saved" ? (
-                          "已自动保存"
-                        ) : selectedNote ? (
-                          "失去焦点后自动保存"
-                        ) : (
-                          "创建笔记后开始记录"
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="min-h-0 flex-1 overflow-hidden rounded-lg border bg-background">
-                      {selectedNote ? (
-                        isPlanEditing ? (
-                          <textarea
-                            ref={planEditorRef}
-                            value={form.plan}
-                            onChange={(event) => {
-                              setError("");
-                              setSaveStatus("idle");
-                              setForm((prev) => ({
-                                ...prev,
-                                plan: event.target.value,
-                              }));
-                            }}
-                            className="h-full w-full resize-none overflow-y-auto bg-transparent px-4 py-3 text-sm leading-6 font-mono outline-none"
-                            placeholder="支持 Markdown，例如 ## 标题 / - 列表 / **加粗**"
-                          />
-                        ) : (
-                          <article
-                            role="button"
-                            tabIndex={0}
-                            className="h-full cursor-text overflow-y-auto px-4 py-3 text-left text-sm leading-6 outline-none hover:bg-accent/20 focus-visible:bg-accent/20 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-2"
-                            onClick={startPlanEditing}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                startPlanEditing();
-                              }
-                            }}
-                          >
-                            <ReactMarkdown skipHtml>
-                              {form.plan || "_点击此处编辑笔记内容_"}
-                            </ReactMarkdown>
-                          </article>
-                        )
-                      ) : (
-                        <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                          请选择一条笔记，或点击左上角 + 新建一条投资笔记。
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
-              </section>
             </div>
           </div>
         </DialogContent>

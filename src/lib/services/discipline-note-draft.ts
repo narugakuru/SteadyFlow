@@ -5,7 +5,7 @@ export interface DisciplineNoteDraft {
 
 export interface DisciplineNoteSavePayload {
   title: string;
-  quote: string;
+  quote?: string;
   plan: string;
   content: string;
 }
@@ -36,13 +36,11 @@ export function createDisciplineNoteSaveSignature(noteId: number, draft: Discipl
 }
 
 export function buildDisciplineNoteSavePayload(
-  quote: string,
   draft: DisciplineNoteDraft
 ): DisciplineNoteSavePayload {
   const normalizedDraft = normalizeDisciplineNoteDraft(draft);
   return {
     title: normalizedDraft.title,
-    quote,
     plan: normalizedDraft.plan,
     content: normalizedDraft.plan,
   };

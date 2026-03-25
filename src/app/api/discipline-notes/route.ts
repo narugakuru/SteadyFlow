@@ -9,6 +9,7 @@ const MAX_TITLE_LEN = 120;
 const MAX_QUOTE_LEN = 280;
 const MAX_PLAN_LEN = 2000;
 const MAX_CONTENT_LEN = 20000;
+const DEFAULT_COMPAT_QUOTE = "市场先生每天给你报价，但你不必每天都交易。";
 
 type CreateNotePayload = {
   title?: unknown;
@@ -21,23 +22,32 @@ function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeOptionalQuote(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
 function validatePayload(
   payload: CreateNotePayload
 ):
-  | { ok: true; data: { title: string; quote: string; plan: string; content: string } }
+  | { ok: true; data: { title: string; quote: string | null; plan: string; content: string } }
   | { ok: false; error: string } {
   const title = normalizeText(payload.title);
-  const quote = normalizeText(payload.quote);
+  const quote = normalizeOptionalQuote(payload.quote);
   const plan = normalizeText(payload.plan);
   const content = normalizeText(payload.content);
 
-  if (!title || !quote || !plan || !content) {
-    return { ok: false, error: "title/quote/plan/content 为必填项" };
+  if (!title || !plan || !content) {
+    return { ok: false, error: "title/plan/content 为必填项" };
   }
   if (title.length > MAX_TITLE_LEN) {
     return { ok: false, error: `title 不能超过 ${MAX_TITLE_LEN} 字符` };
   }
-  if (quote.length > MAX_QUOTE_LEN) {
+  if (quote && quote.length > MAX_QUOTE_LEN) {
     return { ok: false, error: `quote 不能超过 ${MAX_QUOTE_LEN} 字符` };
   }
   if (plan.length > MAX_PLAN_LEN) {
@@ -88,6 +98,7 @@ export async function POST(request: Request) {
     .values({
       userId,
       ...validated.data,
+      quote: validated.data.quote ?? DEFAULT_COMPAT_QUOTE,
     })
     .returning();
 
