@@ -21,6 +21,7 @@
 ## 编码规范
 
 - 系统编码可能为 GBK，但**文件与命令行统一用 UTF-8**
+- 数据表改动需要使用drizzle管理pg/sqlite两个数据库的表，且项目在vercel部署时要自动进行数据库迁移。
 
 ## Git Commit
 
@@ -30,6 +31,7 @@
 - 编写完成了一个change的所有文件
 - apply完成了一个change
 - 修改了某个功能模块的代码/文档
+- opsx:ff模式下写好change文档要commit一次，写好代码再一次commit
 
 ```
 <类型>: <简要描述>

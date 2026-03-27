@@ -24,6 +24,7 @@ export interface PortfolioAccountBreakdown {
   id: number;
   name: string;
   currency: "CNY" | "USD" | "HKD";
+  sortOrder: number;
   cashBalance: number;
   cashCny: number;
   holdingsValue: number;
@@ -100,7 +101,11 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
   const [ratesResult, allAccounts, allClasses, settingMap, visibleDisciplineHoldings] =
     await Promise.all([
       getExchangeRates(),
-      db.select().from(accounts).where(eq(accounts.userId, userId)),
+      db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.userId, userId))
+        .orderBy(asc(accounts.sortOrder), asc(accounts.id)),
       db
         .select()
         .from(assetClasses)
@@ -347,6 +352,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
       id: account.id,
       name: account.name,
       currency: account.currency,
+      sortOrder: account.sortOrder,
       cashBalance: account.cashBalance,
       cashCny: roundForStorage(
         convertToCNY(account.cashBalance, account.currency, rates),
@@ -386,6 +392,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
         id: account.id,
         name: account.name,
         currency: account.currency,
+        sortOrder: account.sortOrder,
         cashBalance: account.cashBalance,
         realizedPnl: account.realizedPnl,
         createdAt: account.createdAt,

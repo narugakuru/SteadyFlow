@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, Fragment, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +25,82 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/utils/types";
-import { Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
+import { AccountSortDialog } from "@/components/account-sort-dialog";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 
 // ─── Account Form (create/edit) ───
+
+type AccountColumnSortKey = "accountValue" | "holdingsPnl" | "cashBalance" | "holdingsCount";
+type AccountColumnSortState = {
+  key: AccountColumnSortKey;
+  direction: "desc" | "asc";
+} | null;
+
+const ACCOUNT_COLUMN_SORT_LABELS: Array<{ key: AccountColumnSortKey; label: string }> = [
+  { key: "accountValue", label: "总价值" },
+  { key: "holdingsPnl", label: "持仓盈亏" },
+  { key: "cashBalance", label: "现金" },
+  { key: "holdingsCount", label: "持仓数" },
+];
+
+function compareAccountsByDefaultOrder(left: Account, right: Account) {
+  return left.sortOrder - right.sortOrder || left.id - right.id;
+}
+
+function getAccountSortValue(account: Account, key: AccountColumnSortKey) {
+  return account[key];
+}
+
+function SortIndicator({
+  activeSort,
+  sortKey,
+}: {
+  activeSort: AccountColumnSortState;
+  sortKey: AccountColumnSortKey;
+}) {
+  if (activeSort?.key !== sortKey) {
+    return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+
+  return activeSort.direction === "desc" ? (
+    <ArrowDown className="h-3.5 w-3.5" />
+  ) : (
+    <ArrowUp className="h-3.5 w-3.5" />
+  );
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeSort,
+  onToggle,
+}: {
+  label: string;
+  sortKey: AccountColumnSortKey;
+  activeSort: AccountColumnSortState;
+  onToggle: (sortKey: AccountColumnSortKey) => void;
+}) {
+  const isActive = activeSort?.key === sortKey;
+
+  return (
+    <th className="p-3 font-medium text-right">
+      <button
+        type="button"
+        className={`inline-flex w-full items-center justify-end gap-1 transition-colors ${
+          isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => onToggle(sortKey)}
+      >
+        <span>{label}</span>
+        <SortIndicator activeSort={activeSort} sortKey={sortKey} />
+      </button>
+    </th>
+  );
+}
 
 interface AccountFormProps {
   account?: Account;
@@ -270,6 +339,8 @@ export function AccountList({
   const [expanded, setExpanded] = useState<Set<number>>(
     defaultExpandId ? new Set([defaultExpandId]) : new Set()
   );
+  const [accountSortOpen, setAccountSortOpen] = useState(false);
+  const [columnSort, setColumnSort] = useState<AccountColumnSortState>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
@@ -283,6 +354,26 @@ export function AccountList({
   const allHoldings = holdingsQuery.data ?? [];
   const fetchingPrices = mutation.isPending;
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
+  const defaultOrderedAccounts = useMemo(
+    () => [...accounts].sort(compareAccountsByDefaultOrder),
+    [accounts]
+  );
+  const displayedAccounts = useMemo(() => {
+    if (!columnSort) {
+      return defaultOrderedAccounts;
+    }
+
+    return [...defaultOrderedAccounts].sort((left, right) => {
+      const leftValue = getAccountSortValue(left, columnSort.key);
+      const rightValue = getAccountSortValue(right, columnSort.key);
+
+      if (leftValue !== rightValue) {
+        return columnSort.direction === "desc" ? rightValue - leftValue : leftValue - rightValue;
+      }
+
+      return compareAccountsByDefaultOrder(left, right);
+    });
+  }, [columnSort, defaultOrderedAccounts]);
 
   const handleFetchPrices = async () => {
     setPriceMsg("");
@@ -341,6 +432,18 @@ export function AccountList({
   const handleDataChange = () => {
     void holdingsQuery.refetch();
     onRefresh();
+  };
+
+  const handleColumnSortToggle = (sortKey: AccountColumnSortKey) => {
+    setColumnSort((prev) => {
+      if (!prev || prev.key !== sortKey) {
+        return { key: sortKey, direction: "desc" };
+      }
+      if (prev.direction === "desc") {
+        return { key: sortKey, direction: "asc" };
+      }
+      return null;
+    });
   };
 
   // Shared expanded detail content
@@ -423,10 +526,22 @@ export function AccountList({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">账户列表</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground"
+            onClick={() => setAccountSortOpen(true)}
+            disabled={defaultOrderedAccounts.length <= 1}
+            aria-label="排序账户"
+            title="排序账户"
+          >
+            <ArrowUpDown className="h-4 w-4" />
+          </Button>
           <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
             {fetchingPrices ? "更新中..." : "📡 更新股价"}
           </Button>
@@ -435,6 +550,26 @@ export function AccountList({
           </Button>
         </div>
       </div>
+
+      {defaultOrderedAccounts.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 md:hidden">
+          {ACCOUNT_COLUMN_SORT_LABELS.map((item) => {
+            const isActive = columnSort?.key === item.key;
+            return (
+              <Button
+                key={item.key}
+                type="button"
+                size="xs"
+                variant={isActive ? "secondary" : "outline"}
+                onClick={() => handleColumnSortToggle(item.key)}
+              >
+                {item.label}
+                <SortIndicator activeSort={columnSort} sortKey={item.key} />
+              </Button>
+            );
+          })}
+        </div>
+      ) : null}
 
       {accounts.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无账户，点击上方添加</p>
@@ -447,15 +582,35 @@ export function AccountList({
                 <tr>
                   <th className="text-left p-3 font-medium w-8"></th>
                   <th className="text-left p-3 font-medium">账户</th>
-                  <th className="text-right p-3 font-medium">总价值</th>
-                  <th className="text-right p-3 font-medium">持仓盈亏</th>
-                  <th className="text-right p-3 font-medium">现金</th>
-                  <th className="text-right p-3 font-medium">持仓数</th>
+                  <SortableHeader
+                    label="总价值"
+                    sortKey="accountValue"
+                    activeSort={columnSort}
+                    onToggle={handleColumnSortToggle}
+                  />
+                  <SortableHeader
+                    label="持仓盈亏"
+                    sortKey="holdingsPnl"
+                    activeSort={columnSort}
+                    onToggle={handleColumnSortToggle}
+                  />
+                  <SortableHeader
+                    label="现金"
+                    sortKey="cashBalance"
+                    activeSort={columnSort}
+                    onToggle={handleColumnSortToggle}
+                  />
+                  <SortableHeader
+                    label="持仓数"
+                    sortKey="holdingsCount"
+                    activeSort={columnSort}
+                    onToggle={handleColumnSortToggle}
+                  />
                   <th className="text-center p-3 font-medium w-20">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((a) => {
+                {displayedAccounts.map((a) => {
                   const sym = CURRENCY_SYMBOLS[a.currency];
                   const pnl = a.holdingsPnl;
                   const holdingsCost = a.holdingsValue - a.holdingsPnl;
@@ -559,7 +714,7 @@ export function AccountList({
 
           {/* Mobile: card layout */}
           <div className="md:hidden space-y-3">
-            {accounts.map((a) => {
+            {displayedAccounts.map((a) => {
               const sym = CURRENCY_SYMBOLS[a.currency];
               const pnl = a.holdingsPnl;
               const holdingsCost = a.holdingsValue - a.holdingsPnl;
@@ -667,6 +822,15 @@ export function AccountList({
       )}
 
       <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />
+      <AccountSortDialog
+        open={accountSortOpen}
+        onOpenChange={setAccountSortOpen}
+        accounts={defaultOrderedAccounts}
+        onSaved={() => {
+          setColumnSort(null);
+          onRefresh();
+        }}
+      />
       {editAccount && (
         <AccountForm
           account={editAccount}

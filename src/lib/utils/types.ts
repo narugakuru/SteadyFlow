@@ -10,6 +10,7 @@ export interface Account {
   cashBalance: number;
   realizedPnl: number;
   holdingsPnl: number;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
   holdingsValue: number;

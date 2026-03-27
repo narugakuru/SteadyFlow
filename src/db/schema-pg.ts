@@ -80,6 +80,7 @@ export const accounts = pgTable("accounts", {
   currency: varchar("currency", { length: 3 }).notNull(),
   cashBalance: doublePrecision("cash_balance").notNull().default(0),
   realizedPnl: doublePrecision("realized_pnl").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(999),
   createdAt: text("created_at")
     .notNull()
     .default(sql`now()`),

@@ -43,7 +43,7 @@ openspec/       # 需求规格与变更流程
 ## 数据模型（核心表）
 
 - 认证与用户：`users`, `authAccounts`, `sessions`, `verificationTokens`
-- 投资域：`accounts`, `holdings`, `transactions`, `assetClasses`
+- 投资域：`accounts`（含账户默认排序 `sortOrder`）, `holdings`, `transactions`, `assetClasses`
 - 指标与辅助：`exchangeRates`, `netvalue`, `disciplineNotes`, `settings`
 
 ## 关键文档入口
@@ -67,6 +67,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-27] 账户页新增账户默认排序与表头三态排序：支持通过排序按钮拖拽调整账户默认顺序并持久化；“总价值 / 持仓盈亏 / 现金 / 持仓数”支持大到小、小到大、默认顺序三态切换，移动端同步提供排序按钮。同步更新 `account-management` 主 spec 与 `openspec/project.md`。
 - [2026-03-27] OpenSpec：新增 `add-account-sorting-controls` 变更工件（proposal/design/specs/tasks），明确账户页支持账户默认排序按钮，以及“总价值 / 持仓盈亏 / 现金 / 持仓数”表头三态排序。
 - [2026-03-25] 继续收紧 Dashboard 资产分布图 legend 尺寸：图例文字与色块统一缩小为紧凑尺寸，减少图下注释与 legend 的视觉跳跃。同步更新 `portfolio-chart` 主 spec。
 - [2026-03-25] 调整 Dashboard 资产分布图标签展示：外环类别/标的标签缩小到与图下注释一致的紧凑字号；按标的视角下 legend 中多个“XXX账户 现金”合并为单个“现金”，但图表与 Tooltip 仍保留账户级现金切片。同步更新 `portfolio-chart` 主 spec。

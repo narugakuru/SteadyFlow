@@ -30,7 +30,7 @@ src/
 │       ├── auth/                   # Auth.js 路由
 │       ├── register/               # 注册 API
 │       ├── admin/                  # 管理后台 API
-│       ├── accounts/               # 账户 CRUD
+│       ├── accounts/               # 账户 CRUD + 默认排序重排
 │       ├── holdings/               # 持仓 CRUD
 │       ├── transactions/           # 交易记录 CRUD + 副作用
 │       ├── asset-allocation/       # 资产配置
@@ -50,7 +50,8 @@ src/
 │   ├── vix-chart-card.tsx          # 市场页顶部 VIX 图表卡片
 │   ├── vix-sentiment.tsx           # VIX 单态区间说明组件
 │   ├── tradingview-chart.tsx       # TradingView Advanced Chart Widget 嵌入组件（保留，市场页未引用）
-│   ├── account-list.tsx            # 账户列表（含持仓盈亏）
+│   ├── account-list.tsx            # 账户列表（含账户默认排序与表头三态排序）
+│   ├── account-sort-dialog.tsx     # 账户默认排序弹窗（拖拽重排）
 │   ├── holdings-panel.tsx          # 持仓面板（已废弃，不再被引用）
 │   ├── holding-edit-dialog.tsx     # 持仓编辑弹窗（三字段联动，共享组件）
 │   ├── holding-row.tsx             # 持仓行组件（两行布局，纪律表/账户页共用）
@@ -119,7 +120,7 @@ src/
 | authAccounts       | OAuth 账号关联 | userId(FK), provider, providerAccountId, accessToken                                                                                                                                                         |
 | sessions           | 会话           | sessionToken, userId(FK), expires                                                                                                                                                                            |
 | verificationTokens | 验证令牌       | identifier, token, expires                                                                                                                                                                                   |
-| accounts           | 投资账户       | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额), realizedPnl(累计了结盈亏，账户原币种)                                                                                              |
+| accounts           | 投资账户       | userId(FK, not null), name, currency(CNY/USD/HKD), cashBalance(现金余额), realizedPnl(累计了结盈亏，账户原币种), sortOrder(账户默认排序)                                                                     |
 | holdings           | 持仓明细       | accountId(FK), name, ticker, valuationMode(amount/shares), cost, marketValue, shares, price, assetClass, memo(持仓备注)                                                                                      |
 | transactions       | 交易记录       | accountId(FK), holdingId(FK可选), type(buy/sell/dividend/deposit/withdraw), date, amount, realizedPnl(单笔了结盈亏，账户原币种), shares, price, fee, affectCash(影响现金, 0/1), affectHolding(影响持仓, 0/1) |
 | assetClasses       | 资产类别配置   | userId(FK, not null), name, targetPct(目标百分比)                                                                                                                                                            |

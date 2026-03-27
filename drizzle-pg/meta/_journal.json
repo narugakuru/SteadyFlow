@@ -43,6 +43,13 @@
       "when": 1772621636247,
       "tag": "0005_skinny_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774612793266,
+      "tag": "0006_add_account_sort_order",
+      "breakpoints": true
     }
   ]
 }

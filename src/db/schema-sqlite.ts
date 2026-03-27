@@ -77,6 +77,7 @@ export const accounts = sqliteTable("accounts", {
   currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
   cashBalance: real("cash_balance").notNull().default(0),
   realizedPnl: real("realized_pnl").notNull().default(0),
+  sortOrder: integer("sort_order").notNull().default(999),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
