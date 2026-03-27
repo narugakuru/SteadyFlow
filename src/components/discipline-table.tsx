@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Fragment } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { useEffect, useState, Fragment } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import {
   convertCurrency,
   convertFromCny,
@@ -20,6 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
+import {
+  getNextDisciplineDetailSortState,
+  readDisciplineDetailSortState,
+  writeDisciplineDetailSortState,
+  type DisciplineDetailSortKey,
+  type DisciplineDetailSortState,
+} from "@/lib/services/discipline-table-sort-state";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/utils";
@@ -34,6 +41,110 @@ interface DisciplineTableProps {
   onDataChange: () => void;
 }
 
+const DISCIPLINE_DETAIL_SORT_LABELS: Array<{ key: DisciplineDetailSortKey; label: string }> = [
+  { key: "amount", label: "金额" },
+  { key: "pnl", label: "持仓盈亏" },
+];
+
+function getDisciplineDetailSortMetric(
+  holding: AllocationHolding,
+  sortKey: DisciplineDetailSortKey
+): number | null {
+  // Sort against a single comparable currency baseline to avoid mixing raw CNY/USD/HKD values.
+  if (sortKey === "amount") {
+    return holding.marketValueCny;
+  }
+
+  return holding.returnRate === null ? null : holding.pnlAmountCny;
+}
+
+function sortAllocationHoldings(
+  holdings: AllocationHolding[],
+  activeSort: DisciplineDetailSortState
+): AllocationHolding[] {
+  if (!activeSort) {
+    return holdings;
+  }
+
+  return holdings
+    .map((holding, index) => ({
+      holding,
+      index,
+      metric: getDisciplineDetailSortMetric(holding, activeSort.key),
+    }))
+    .sort((left, right) => {
+      const leftMissing = left.metric === null;
+      const rightMissing = right.metric === null;
+      if (leftMissing !== rightMissing) return leftMissing ? 1 : -1;
+
+      if (left.metric !== right.metric) {
+        return activeSort.direction === "desc"
+          ? (right.metric ?? 0) - (left.metric ?? 0)
+          : (left.metric ?? 0) - (right.metric ?? 0);
+      }
+
+      return left.index - right.index;
+    })
+    .map((entry) => entry.holding);
+}
+
+function SortIndicator({
+  activeSort,
+  sortKey,
+  className,
+}: {
+  activeSort: DisciplineDetailSortState;
+  sortKey: DisciplineDetailSortKey;
+  className?: string;
+}) {
+  const isActive = activeSort?.key === sortKey;
+  const iconClassName = cn("h-3 w-3", className);
+
+  if (!isActive) {
+    return <ArrowUpDown className={cn(iconClassName, "text-slate-300")} />;
+  }
+
+  return activeSort.direction === "desc" ? (
+    <ArrowDown className={cn(iconClassName, "text-blue-600")} />
+  ) : (
+    <ArrowUp className={cn(iconClassName, "text-blue-600")} />
+  );
+}
+
+function DesktopSortHeader({
+  label,
+  sortKey,
+  activeSort,
+  onToggle,
+}: {
+  label: string;
+  sortKey: DisciplineDetailSortKey;
+  activeSort: DisciplineDetailSortState;
+  onToggle: (sortKey: DisciplineDetailSortKey) => void;
+}) {
+  const isActive = activeSort?.key === sortKey;
+
+  return (
+    <th className="p-0 text-right">
+      <button
+        type="button"
+        className="group flex w-full cursor-pointer items-center justify-end gap-1 px-3 py-3 hover:bg-slate-50 transition-colors"
+        onClick={() => onToggle(sortKey)}
+      >
+        <span
+          className={cn(
+            "text-sm font-medium",
+            isActive ? "font-bold text-blue-600" : "text-slate-500"
+          )}
+        >
+          {label}
+        </span>
+        <SortIndicator activeSort={activeSort} sortKey={sortKey} />
+      </button>
+    </th>
+  );
+}
+
 export function DisciplineTable({
   allocation,
   totalAssetCny,
@@ -43,6 +154,8 @@ export function DisciplineTable({
   onDataChange,
 }: DisciplineTableProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [detailSort, setDetailSort] = useState<DisciplineDetailSortState>(null);
+  const [sortPreferenceReady, setSortPreferenceReady] = useState(false);
   const [sortHoldingFor, setSortHoldingFor] = useState<{
     assetClass: string;
     title: string;
@@ -71,6 +184,24 @@ export function DisciplineTable({
   const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
   const summaryCurrency = getSummaryCurrency(displayCurrency);
   const summarySymbol = getCurrencySymbol(summaryCurrency);
+  const displayedAllocation = allocation.map((item) => ({
+    ...item,
+    holdings: sortAllocationHoldings(item.holdings, detailSort),
+  }));
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setDetailSort(readDisciplineDetailSortState());
+      setSortPreferenceReady(true);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
+    if (!sortPreferenceReady) return;
+    writeDisciplineDetailSortState(detailSort);
+  }, [detailSort, sortPreferenceReady]);
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -84,6 +215,10 @@ export function DisciplineTable({
   const handleDataChange = () => {
     void Promise.all([holdingsQuery.refetch(), accountsQuery.refetch()]);
     void onDataChange();
+  };
+
+  const handleDetailSortToggle = (sortKey: DisciplineDetailSortKey) => {
+    setDetailSort((prev) => getNextDisciplineDetailSortState(prev, sortKey));
   };
 
   const getFullHolding = (ah: AllocationHolding): Holding | null => {
@@ -106,6 +241,34 @@ export function DisciplineTable({
       : deviation < 0
         ? `低配 ${formatPercent(deviation)}%`
         : "正常";
+
+  const renderMobileSortButton = ({
+    label,
+    sortKey,
+    align,
+  }: {
+    label: string;
+    sortKey: DisciplineDetailSortKey;
+    align: "left" | "right";
+  }) => {
+    const isActive = detailSort?.key === sortKey;
+
+    return (
+      <button
+        type="button"
+        className={cn(
+          "inline-flex min-w-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors",
+          align === "right" ? "justify-end text-right" : "justify-start text-left",
+          isActive ? "text-blue-600" : "text-slate-400"
+        )}
+        onClick={() => handleDetailSortToggle(sortKey)}
+      >
+        <span className="truncate">{label}</span>
+        <SortIndicator activeSort={detailSort} sortKey={sortKey} className="h-2.5 w-2.5" />
+        {isActive ? <span className="h-1 w-1 rounded-full bg-blue-500" /> : null}
+      </button>
+    );
+  };
 
   const renderHoldings = (item: AllocationItem) => {
     if (item.holdings.length === 0) {
@@ -184,13 +347,23 @@ export function DisciplineTable({
               <th className="text-left p-3 font-medium w-8"></th>
               <th className="text-left p-3 font-medium">资产类别</th>
               <th className="text-right p-3 font-medium">实际 / 目标</th>
-              <th className="text-right p-3 font-medium">金额 ({summarySymbol})</th>
-              <th className="text-right p-3 font-medium">持仓盈亏</th>
+              <DesktopSortHeader
+                label={`金额 (${summarySymbol})`}
+                sortKey="amount"
+                activeSort={detailSort}
+                onToggle={handleDetailSortToggle}
+              />
+              <DesktopSortHeader
+                label="持仓盈亏"
+                sortKey="pnl"
+                activeSort={detailSort}
+                onToggle={handleDetailSortToggle}
+              />
               <th className="text-center p-3 font-medium">状态</th>
             </tr>
           </thead>
           <tbody>
-            {allocation.map((item) => {
+            {displayedAllocation.map((item) => {
               const isExpanded = expanded.has(item.id);
               const displayActualValue = convertFromCny(item.actualValue, summaryCurrency, rates);
               const displayTotalPnl = convertFromCny(item.totalPnl, summaryCurrency, rates);
@@ -309,7 +482,20 @@ export function DisciplineTable({
 
       {/* Mobile: card layout */}
       <div className="md:hidden space-y-3">
-        {allocation.map((item) => {
+        {displayedAllocation.length > 0 ? (
+          <div className="sticky top-0 z-10 -mb-1 flex h-7 items-center justify-between rounded-md border border-slate-200/80 bg-white/90 px-3 backdrop-blur-md">
+            {DISCIPLINE_DETAIL_SORT_LABELS.map((item, index) => (
+              <div key={item.key} className={cn("min-w-0", index === 0 ? "flex-1" : "w-32")}>
+                {renderMobileSortButton({
+                  label: item.label,
+                  sortKey: item.key,
+                  align: index === 0 ? "left" : "right",
+                })}
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {displayedAllocation.map((item) => {
           const isExpanded = expanded.has(item.id);
           const displayActualValue = convertFromCny(item.actualValue, summaryCurrency, rates);
           const displayTotalPnl = convertFromCny(item.totalPnl, summaryCurrency, rates);
