@@ -67,6 +67,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-03-27] OpenSpec：新增 `add-account-sorting-controls` 变更工件（proposal/design/specs/tasks），明确账户页支持账户默认排序按钮，以及“总价值 / 持仓盈亏 / 现金 / 持仓数”表头三态排序。
 - [2026-03-25] 继续收紧 Dashboard 资产分布图 legend 尺寸：图例文字与色块统一缩小为紧凑尺寸，减少图下注释与 legend 的视觉跳跃。同步更新 `portfolio-chart` 主 spec。
 - [2026-03-25] 调整 Dashboard 资产分布图标签展示：外环类别/标的标签缩小到与图下注释一致的紧凑字号；按标的视角下 legend 中多个“XXX账户 现金”合并为单个“现金”，但图表与 Tooltip 仍保留账户级现金切片。同步更新 `portfolio-chart` 主 spec。
 - [2026-03-25] Dashboard 新增临时货币视图与纪律区快捷交易按钮：总资产/再平衡可切换默认或账户币种展示；资产配置纪律表类别盈亏补充收益率，展开明细与账户页外币持仓默认仅显示原币金额；资产分布图百分比统一保留两位小数。同步更新 `asset-allocation`、`dashboard`、`account-management`、`rebalance-suggestion`、`transaction-management`、`portfolio-chart`、`visualization-charts` 主 spec。
