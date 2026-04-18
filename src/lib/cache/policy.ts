@@ -10,6 +10,7 @@ export type CacheQueryName =
   | "accounts"
   | "holdings"
   | "transactions"
+  | "exchange-rates"
   | "settings"
   | "netvalue-list"
   | "netvalue-chart"
@@ -49,6 +50,7 @@ export const QUERY_POLICIES: Record<CacheQueryName, QueryPolicy> = {
   accounts: BASE_POLICY,
   holdings: BASE_POLICY,
   transactions: BASE_POLICY,
+  "exchange-rates": BASE_POLICY,
   settings: BASE_POLICY,
   "netvalue-list": LONG_HISTORY_POLICY,
   "netvalue-chart": LONG_HISTORY_POLICY,
@@ -72,6 +74,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "holdings",
     "accounts",
     "asset-allocation",
+    "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
   ],
@@ -79,6 +82,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "holdings",
     "accounts",
     "asset-allocation",
+    "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
   ],
@@ -86,6 +90,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "holdings",
     "accounts",
     "asset-allocation",
+    "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
   ],

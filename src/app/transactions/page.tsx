@@ -30,15 +30,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
+import { convertCurrency, getCurrencySymbol } from "@/lib/utils/display-currency";
 import {
   Account,
   CURRENCY_SYMBOLS,
+  type CurrencyCode,
   Holding,
   Settings,
   Transaction,
   pnlColorClass,
 } from "@/lib/utils/types";
 import { formatAmount, formatPrice, formatShares } from "@/lib/utils/format";
+
+type ExchangeRateResponse = {
+  rates: Record<string, number>;
+  updatedAt: string;
+  source: string;
+};
 
 const TX_TYPE_LABELS: Record<string, string> = {
   buy: "买入",
@@ -56,6 +65,10 @@ const TX_TYPE_COLORS: Record<string, string> = {
   withdraw: "bg-red-100 text-red-800",
 };
 
+function normalizeCurrencyCode(value: string | undefined): CurrencyCode {
+  return value === "USD" || value === "HKD" ? value : "CNY";
+}
+
 export default function TransactionsPage() {
   return (
     <Suspense fallback={<LoadingSpinner text="加载中..." className="py-8" />}>
@@ -67,6 +80,7 @@ export default function TransactionsPage() {
 function TransactionsContent() {
   const searchParams = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
+  const [displayCurrency] = useDisplayCurrencyPreference();
   const [filterAccount, setFilterAccount] = useState<string>(
     searchParams.get("accountId") || "all"
   );
@@ -103,6 +117,10 @@ function TransactionsContent() {
     name: "settings",
     path: "/api/settings",
   });
+  const exchangeRatesQuery = useUserScopedQuery<ExchangeRateResponse>({
+    name: "exchange-rates",
+    path: "/api/exchange-rates",
+  });
 
   const deleteTxMutation = useMutationJson<never, unknown>();
 
@@ -111,12 +129,14 @@ function TransactionsContent() {
     (txQuery.isLoading && !txQuery.data) ||
     (accountsQuery.isLoading && !accountsQuery.data) ||
     (holdingsQuery.isLoading && !holdingsQuery.data) ||
-    (settingsQuery.isLoading && !settingsQuery.data);
+    (settingsQuery.isLoading && !settingsQuery.data) ||
+    (displayCurrency !== "default" && exchangeRatesQuery.isLoading && !exchangeRatesQuery.data);
 
   const transactions = txQuery.data ?? [];
   const accounts = accountsQuery.data ?? [];
   const holdings = holdingsQuery.data ?? [];
   const colorMode = settingsQuery.data?.colorMode ?? "cn";
+  const rates = exchangeRatesQuery.data?.rates ?? {};
 
   const refreshAll = async () => {
     await Promise.all([txQuery.refetch(), accountsQuery.refetch(), holdingsQuery.refetch()]);
@@ -198,8 +218,27 @@ function TransactionsContent() {
             </thead>
             <tbody>
               {transactions.map((tx) => {
-                const sym = tx.accountCurrency ? CURRENCY_SYMBOLS[tx.accountCurrency] : "¥";
+                const sourceCurrency = normalizeCurrencyCode(tx.accountCurrency);
+                const displaySym =
+                  displayCurrency === "default"
+                    ? tx.accountCurrency
+                      ? CURRENCY_SYMBOLS[tx.accountCurrency]
+                      : "¥"
+                    : getCurrencySymbol(displayCurrency);
+                const convertAmountForDisplay = (amount: number) => {
+                  if (displayCurrency === "default") {
+                    return amount;
+                  }
+
+                  return convertCurrency(amount, sourceCurrency, displayCurrency, rates);
+                };
                 const hasRealizedPnl = tx.type === "sell" && tx.affectHolding;
+                const displayPrice = tx.price != null ? convertAmountForDisplay(tx.price) : null;
+                const displayAmount = convertAmountForDisplay(tx.amount);
+                const displayFee = tx.fee > 0 ? convertAmountForDisplay(tx.fee) : null;
+                const displayRealizedPnl = hasRealizedPnl
+                  ? convertAmountForDisplay(tx.realizedPnl)
+                  : null;
                 return (
                   <tr key={tx.id} className="border-t hover:bg-accent/30 transition-colors">
                     <td className="p-3 whitespace-nowrap">{tx.accountName}</td>
@@ -246,24 +285,24 @@ function TransactionsContent() {
                       {tx.shares != null ? formatShares(tx.shares) : "--"}
                     </td>
                     <td className="p-3 text-right whitespace-nowrap">
-                      {tx.price != null ? `${sym}${formatPrice(tx.price)}` : "--"}
+                      {displayPrice != null ? `${displaySym}${formatPrice(displayPrice)}` : "--"}
                     </td>
                     <td className="p-3 text-right whitespace-nowrap font-medium">
-                      {sym}
-                      {formatAmount(tx.amount)}
+                      {displaySym}
+                      {formatAmount(displayAmount)}
                     </td>
                     <td className="p-3 text-right whitespace-nowrap">
-                      {tx.fee > 0 ? `${sym}${formatAmount(tx.fee)}` : "--"}
+                      {displayFee != null ? `${displaySym}${formatAmount(displayFee)}` : "--"}
                     </td>
                     <td
                       className={`p-3 text-right whitespace-nowrap ${
                         hasRealizedPnl
-                          ? pnlColorClass(tx.realizedPnl, colorMode)
+                          ? pnlColorClass(displayRealizedPnl ?? 0, colorMode)
                           : "text-muted-foreground"
                       }`}
                     >
-                      {hasRealizedPnl
-                        ? `${tx.realizedPnl > 0 ? "+" : ""}${sym}${formatAmount(tx.realizedPnl)}`
+                      {displayRealizedPnl != null
+                        ? `${displayRealizedPnl > 0 ? "+" : ""}${displaySym}${formatAmount(displayRealizedPnl)}`
                         : "--"}
                     </td>
                     <td className="p-3 whitespace-nowrap">{tx.date}</td>

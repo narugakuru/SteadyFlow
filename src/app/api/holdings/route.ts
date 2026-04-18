@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, holdings, assetClasses } from "@/db/schema";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
 import { listVisibleDisciplineHoldings } from "@/lib/services/discipline-holdings-query";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
@@ -31,6 +31,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const scope = searchParams.get("scope");
   const assetClass = searchParams.get("assetClass")?.trim();
+  const includeZeroMarketValue = searchParams.get("includeZeroMarketValue") !== "0";
 
   if (scope === "discipline") {
     return NextResponse.json(await listVisibleDisciplineHoldings(userId, assetClass || undefined));
@@ -46,7 +47,12 @@ export async function GET(request: Request) {
     ? await db
         .select()
         .from(holdings)
-        .where(inArray(holdings.accountId, accountIds))
+        .where(
+          and(
+            inArray(holdings.accountId, accountIds),
+            includeZeroMarketValue ? undefined : gt(holdings.marketValue, 0)
+          )
+        )
         .orderBy(asc(holdings.accountId), asc(holdings.accountSortOrder), asc(holdings.id))
     : [];
   return NextResponse.json(

@@ -24,10 +24,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
 import {
   convertFromCny,
   getCurrencySymbol,
-  getDisplayCurrencyLabel,
   getSummaryCurrency,
 } from "@/lib/utils/display-currency";
 import { shouldTriggerSilentQuoteRefresh } from "@/lib/utils/quote-sync";
@@ -36,7 +36,6 @@ import {
   pnlColorClass,
   type Account,
   type AllocationData,
-  type CurrencyCode,
   type DisplayCurrencyMode,
   type Holding,
 } from "@/lib/utils/types";
@@ -72,7 +71,7 @@ export default function Dashboard() {
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
   const [txOpen, setTxOpen] = useState(false);
-  const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrencyMode>("default");
+  const [displayCurrency, setDisplayCurrency] = useDisplayCurrencyPreference();
   const netvalueTriggeredRef = useRef(false);
   const silentQuoteTriggeredRef = useRef(false);
 
@@ -202,22 +201,6 @@ export default function Dashboard() {
   const displayTotalPnl = convertFromCny(allocation.totalPnl, summaryCurrency, rates);
   const displayUnrealizedPnl = convertFromCny(allocation.unrealizedPnl, summaryCurrency, rates);
   const displayRealizedPnl = convertFromCny(allocation.realizedPnl, summaryCurrency, rates);
-  const currencySet = new Set<CurrencyCode>();
-  (accountsQuery.data ?? []).forEach((account) => currencySet.add(account.currency));
-  if (currencySet.size === 0) {
-    allocation.allocation.forEach((item) => {
-      item.holdings.forEach((holding) => {
-        const currency = holding.currency as CurrencyCode;
-        if (currency === "CNY" || currency === "USD" || currency === "HKD") {
-          currencySet.add(currency);
-        }
-      });
-    });
-  }
-  const availableCurrencies = (["CNY", "USD", "HKD"] as CurrencyCode[]).filter((currency) =>
-    currencySet.has(currency)
-  );
-
   return (
     <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex items-center justify-between">
@@ -232,11 +215,9 @@ export default function Dashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="default">默认</SelectItem>
-              {availableCurrencies.map((currency) => (
-                <SelectItem key={currency} value={currency}>
-                  {getDisplayCurrencyLabel(currency)}
-                </SelectItem>
-              ))}
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="CNY">CNY</SelectItem>
+              <SelectItem value="HKD">HKD</SelectItem>
             </SelectContent>
           </Select>
           <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>

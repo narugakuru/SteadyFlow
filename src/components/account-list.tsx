@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -24,13 +25,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Account, Holding, AssetClass, CURRENCY_SYMBOLS, pnlColorClass } from "@/lib/utils/types";
+import {
+  Account,
+  Holding,
+  AssetClass,
+  CURRENCY_SYMBOLS,
+  pnlColorClass,
+  type CurrencyCode,
+  type DisplayCurrencyMode,
+} from "@/lib/utils/types";
 import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
 import { HoldingRow } from "@/components/holding-row";
 import { HoldingSortDialog } from "@/components/holding-sort-dialog";
 import { AccountSortDialog } from "@/components/account-sort-dialog";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
+import { convertCurrency, getCurrencySymbol } from "@/lib/utils/display-currency";
 
 // ─── Account Form (create/edit) ───
 
@@ -53,6 +64,19 @@ function compareAccountsByDefaultOrder(left: Account, right: Account) {
 
 function getAccountSortValue(account: Account, key: AccountColumnSortKey) {
   return account[key];
+}
+
+function convertAccountAmount(
+  amount: number,
+  sourceCurrency: CurrencyCode,
+  displayCurrency: DisplayCurrencyMode,
+  rates: Record<string, number>
+) {
+  if (displayCurrency === "default") {
+    return amount;
+  }
+
+  return convertCurrency(amount, sourceCurrency, displayCurrency, rates);
 }
 
 function SortIndicator({
@@ -345,10 +369,18 @@ export function AccountList({
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
   const [sortHoldingFor, setSortHoldingFor] = useState<Account | null>(null);
+  const [showZeroMarketHoldings, setShowZeroMarketHoldings] = useState(false);
   const [priceMsg, setPriceMsg] = useState("");
+  const [displayCurrency] = useDisplayCurrencyPreference();
+  const holdingsPath = showZeroMarketHoldings
+    ? "/api/holdings?includeZeroMarketValue=1"
+    : "/api/holdings?includeZeroMarketValue=0";
   const holdingsQuery = useUserScopedQuery<Holding[]>({
     name: "holdings",
-    path: "/api/holdings",
+    path: holdingsPath,
+    params: {
+      includeZeroMarketValue: showZeroMarketHoldings ? 1 : 0,
+    },
   });
   const mutation = useMutationJson<unknown, unknown>();
   const allHoldings = holdingsQuery.data ?? [];
@@ -364,8 +396,24 @@ export function AccountList({
     }
 
     return [...defaultOrderedAccounts].sort((left, right) => {
-      const leftValue = getAccountSortValue(left, columnSort.key);
-      const rightValue = getAccountSortValue(right, columnSort.key);
+      const leftValue =
+        columnSort.key === "holdingsCount"
+          ? getAccountSortValue(left, columnSort.key)
+          : convertAccountAmount(
+              getAccountSortValue(left, columnSort.key),
+              left.currency,
+              displayCurrency,
+              rates
+            );
+      const rightValue =
+        columnSort.key === "holdingsCount"
+          ? getAccountSortValue(right, columnSort.key)
+          : convertAccountAmount(
+              getAccountSortValue(right, columnSort.key),
+              right.currency,
+              displayCurrency,
+              rates
+            );
 
       if (leftValue !== rightValue) {
         return columnSort.direction === "desc" ? rightValue - leftValue : leftValue - rightValue;
@@ -373,7 +421,7 @@ export function AccountList({
 
       return compareAccountsByDefaultOrder(left, right);
     });
-  }, [columnSort, defaultOrderedAccounts]);
+  }, [columnSort, defaultOrderedAccounts, displayCurrency, rates]);
 
   const handleFetchPrices = async () => {
     setPriceMsg("");
@@ -448,11 +496,30 @@ export function AccountList({
 
   // Shared expanded detail content
   const renderExpandedDetail = (a: Account) => {
-    const sym = CURRENCY_SYMBOLS[a.currency];
+    const amountCurrency = displayCurrency === "default" ? a.currency : displayCurrency;
+    const sym = getCurrencySymbol(amountCurrency);
     const accountHoldings = allHoldings
       .filter((h) => h.accountId === a.id)
       .sort((x, y) => x.accountSortOrder - y.accountSortOrder || x.id - y.id);
     const holdingsTotal = accountHoldings.reduce((s, h) => s + h.marketValue, 0);
+    const displayAccountValue = convertAccountAmount(
+      a.accountValue,
+      a.currency,
+      displayCurrency,
+      rates
+    );
+    const displayHoldingsTotal = convertAccountAmount(
+      holdingsTotal,
+      a.currency,
+      displayCurrency,
+      rates
+    );
+    const displayCashBalance = convertAccountAmount(
+      a.cashBalance,
+      a.currency,
+      displayCurrency,
+      rates
+    );
 
     return (
       <div className="bg-muted/20 px-3 md:px-4 py-3">
@@ -462,21 +529,21 @@ export function AccountList({
             总价值{" "}
             <span className="font-semibold">
               {sym}
-              {formatAmount(a.accountValue)}
+              {formatAmount(displayAccountValue)}
             </span>
           </span>
           <span>
             持仓{" "}
             <span className="font-semibold">
               {sym}
-              {formatAmount(holdingsTotal)}
+              {formatAmount(displayHoldingsTotal)}
             </span>
           </span>
           <span>
             现金{" "}
             <span className="font-semibold">
               {sym}
-              {formatAmount(a.cashBalance)}
+              {formatAmount(displayCashBalance)}
             </span>
           </span>
           <div className="flex-1 hidden md:block" />
@@ -510,6 +577,7 @@ export function AccountList({
                 totalAssetCny={totalAssetCny}
                 rates={rates}
                 colorMode={colorMode}
+                displayCurrency={displayCurrency}
                 actions="full"
                 accountId={a.id}
                 accounts={accounts}
@@ -542,6 +610,15 @@ export function AccountList({
           >
             <ArrowUpDown className="h-4 w-4" />
           </Button>
+          <label className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs text-muted-foreground">
+            <span>显示未持仓标的</span>
+            <Switch
+              size="sm"
+              checked={showZeroMarketHoldings}
+              onCheckedChange={setShowZeroMarketHoldings}
+              aria-label="显示未持仓标的"
+            />
+          </label>
           <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
             {fetchingPrices ? "更新中..." : "📡 更新股价"}
           </Button>
@@ -611,12 +688,27 @@ export function AccountList({
               </thead>
               <tbody>
                 {displayedAccounts.map((a) => {
-                  const sym = CURRENCY_SYMBOLS[a.currency];
-                  const pnl = a.holdingsPnl;
-                  const holdingsCost = a.holdingsValue - a.holdingsPnl;
-                  const pnlPct = holdingsCost > 0 ? (pnl / holdingsCost) * 100 : null;
+                  const amountCurrency =
+                    displayCurrency === "default" ? a.currency : displayCurrency;
+                  const sym = getCurrencySymbol(amountCurrency);
+                  const rawPnl = a.holdingsPnl;
+                  const pnl = convertAccountAmount(rawPnl, a.currency, displayCurrency, rates);
+                  const holdingsCost = a.holdingsValue - rawPnl;
+                  const pnlPct = holdingsCost > 0 ? (rawPnl / holdingsCost) * 100 : null;
                   const hasPnl = a.holdingsCount > 0;
                   const isExpanded = expanded.has(a.id);
+                  const displayAccountValue = convertAccountAmount(
+                    a.accountValue,
+                    a.currency,
+                    displayCurrency,
+                    rates
+                  );
+                  const displayCashBalance = convertAccountAmount(
+                    a.cashBalance,
+                    a.currency,
+                    displayCurrency,
+                    rates
+                  );
 
                   return (
                     <Fragment key={a.id}>
@@ -635,7 +727,7 @@ export function AccountList({
                         </td>
                         <td className="p-3 text-right font-semibold">
                           {sym}
-                          {formatAmount(a.accountValue)}
+                          {formatAmount(displayAccountValue)}
                         </td>
                         <td
                           className={`p-3 text-right ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}
@@ -658,7 +750,7 @@ export function AccountList({
                         </td>
                         <td className="p-3 text-right">
                           {sym}
-                          {formatAmount(a.cashBalance)}
+                          {formatAmount(displayCashBalance)}
                         </td>
                         <td className="p-3 text-right">{a.holdingsCount}</td>
                         <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -715,12 +807,26 @@ export function AccountList({
           {/* Mobile: card layout */}
           <div className="md:hidden space-y-3">
             {displayedAccounts.map((a) => {
-              const sym = CURRENCY_SYMBOLS[a.currency];
-              const pnl = a.holdingsPnl;
-              const holdingsCost = a.holdingsValue - a.holdingsPnl;
-              const pnlPct = holdingsCost > 0 ? (pnl / holdingsCost) * 100 : null;
+              const amountCurrency = displayCurrency === "default" ? a.currency : displayCurrency;
+              const sym = getCurrencySymbol(amountCurrency);
+              const rawPnl = a.holdingsPnl;
+              const pnl = convertAccountAmount(rawPnl, a.currency, displayCurrency, rates);
+              const holdingsCost = a.holdingsValue - rawPnl;
+              const pnlPct = holdingsCost > 0 ? (rawPnl / holdingsCost) * 100 : null;
               const hasPnl = a.holdingsCount > 0;
               const isExpanded = expanded.has(a.id);
+              const displayAccountValue = convertAccountAmount(
+                a.accountValue,
+                a.currency,
+                displayCurrency,
+                rates
+              );
+              const displayCashBalance = convertAccountAmount(
+                a.cashBalance,
+                a.currency,
+                displayCurrency,
+                rates
+              );
 
               return (
                 <div key={a.id} className="border rounded-lg overflow-hidden">
@@ -782,7 +888,7 @@ export function AccountList({
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold">
                         {sym}
-                        {formatAmount(a.accountValue)}
+                        {formatAmount(displayAccountValue)}
                       </span>
                       <span
                         className={`text-xs ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}
@@ -808,7 +914,7 @@ export function AccountList({
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                       <span>
                         现金 {sym}
-                        {formatAmount(a.cashBalance)}
+                        {formatAmount(displayCashBalance)}
                       </span>
                       <span>持仓 {a.holdingsCount} 个</span>
                     </div>

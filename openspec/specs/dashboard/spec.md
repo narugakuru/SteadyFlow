@@ -55,19 +55,24 @@
 - **WHEN** 视口宽度小于移动端断点
 - **THEN** 收益拆解切换为纵向堆叠，不出现内容裁切或重叠
 
-### Requirement: Dashboard 总览支持临时货币视图
+### Requirement: Dashboard 总览支持全局显示货币
 
-系统 SHALL 在 Dashboard 中维护一个仅当前页面有效的临时货币视图状态，用于驱动总资产卡片、纪律表、资产分布图 tooltip 与再平衡建议的金额展示。该状态默认值 MUST 为“默认”，并在每次重新进入网站时恢复为默认，不得写入数据库或本地存储。
+系统 SHALL 将 Dashboard header 中的货币下拉作为全站统一的显示货币控制入口，并把当前选择持久化到浏览器本地存储。该状态 MUST 不写入数据库；用户在 Dashboard 选择“默认 / USD / CNY / HKD”后，Dashboard、账户页、交易页的金额展示 MUST 共享同一状态。`默认` 的语义 MUST 为“显示记录原始币种金额”，而不是统一折算为 CNY。
 
-#### Scenario: 首次进入页面默认使用默认视图
+#### Scenario: 首次进入页面默认使用原币视图
 
-- **WHEN** 用户首次进入 Dashboard
-- **THEN** 货币视图默认为“默认”，总资产卡片金额显示为 CNY，纪律表持仓明细保持原币显示
+- **WHEN** 用户首次进入网站，且本地存储中不存在有效的显示货币偏好
+- **THEN** Dashboard 的货币下拉默认选中“默认”，页面金额按各记录原始币种展示
 
-#### Scenario: 切换币种仅影响当前页面会话
+#### Scenario: 刷新后恢复最近一次显示货币选择
 
-- **WHEN** 用户将货币视图切换到 USD 后刷新页面或重新进入网站
-- **THEN** Dashboard 再次恢复为“默认”视图，而不是保留上一次的 USD 选择
+- **WHEN** 用户在 Dashboard 将货币下拉切换到 USD，随后刷新页面或重新进入网站
+- **THEN** Dashboard 继续显示 USD 为当前选中项，而不是回退到默认
+
+#### Scenario: Dashboard 修改后账户页跟随
+
+- **WHEN** 用户在 Dashboard 将货币下拉切换到 HKD，然后进入账户页
+- **THEN** 账户页金额展示按 HKD 实时换算显示，无需用户再次设置
 
 ### Requirement: 资产配置纪律表
 
@@ -208,17 +213,17 @@ Dashboard 页面 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代
 
 ### Requirement: Dashboard 导航
 
-系统 SHALL 在 Dashboard header 区域保留标题，并在右侧提供“货币视图”下拉框与「更新股价」按钮；下拉框 MUST 放置在「更新股价」按钮左侧，并基于当前账户币种动态列出“默认 + 账户里存在的币种”。系统 MUST 不显示「记录净值」手动按钮。点击「更新股价」后调用 `POST /api/holdings/fetch-prices` 的手动模式，显示加载状态，完成后展示逐条结果明细弹窗并刷新页面数据。完整数据导出入口 MUST 放置在设置面板中，而不是 Dashboard header。
+系统 SHALL 在 Dashboard header 区域保留标题，并在右侧提供“货币视图”下拉框与「更新股价」按钮；下拉框 MUST 放置在「更新股价」按钮左侧，并固定提供“默认、USD、CNY、HKD”四个选项。系统 MUST 不显示「记录净值」手动按钮。点击「更新股价」后调用 `POST /api/holdings/fetch-prices` 的手动模式，显示加载状态，完成后展示逐条结果明细弹窗并刷新页面数据。完整数据导出入口 MUST 放置在设置面板中，而不是 Dashboard header。
 
 #### Scenario: Dashboard header 布局
 
 - **WHEN** 用户打开 Dashboard
 - **THEN** header 区域显示标题、货币视图下拉框和「更新股价」按钮，不显示「记录净值」按钮，也不显示完整数据导出按钮
 
-#### Scenario: 货币视图下拉列出账户币种
+#### Scenario: 货币视图下拉显示固定选项
 
-- **WHEN** 当前用户账户包含 CNY、USD 与 HKD 三种币种
-- **THEN** Dashboard header 的下拉框显示“默认、人民币、美元、港币”四个选项
+- **WHEN** 用户展开 Dashboard header 的货币下拉框
+- **THEN** 下拉框显示“默认、USD、CNY、HKD”四个选项
 
 #### Scenario: 点击手动更新股价
 
