@@ -67,6 +67,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-08] OpenSpec：新增 `refactor-wealthfolio-style-ui` 变更工件（proposal/design/specs/tasks），明确 Wealthfolio 风格 UI 重构范围：左侧边栏应用外壳、新增洞察页、总览改用资产曲线与纪律/再平衡布局、市场页与股价更新页下线，历史盈亏曲线暂缓。
 - [2026-06-08] 股价更新范围收紧为当前仍持有的 shares 标的：`POST /api/holdings/fetch-prices` 仅对 `shares > 0` 的 shares 模式持仓请求外部报价，已清仓股票返回跳过且不更新 price/marketValue；Dashboard、批量更新页、静默刷新与 Cron 统一复用该口径。同步更新 `auto-quote-fetch` 与 `batch-update` 主 spec。
 - [2026-04-18] Dashboard 货币下拉升级为全局本地持久化显示货币：主页切换后账户页与交易页金额同步按默认/USD/CNY/HKD 展示；账户页新增“显示未持仓标的”开关，默认隐藏零市值持仓并通过现有持仓接口按需显示。同步更新 `dashboard`、`account-management`、`transaction-management` 主 spec。
 - [2026-03-27] Dashboard 资产配置纪律表新增类别内三态排序：展开明细支持按金额/持仓盈亏进行 `降序 -> 升序 -> 默认` 循环，排序比较统一使用折算后的同一货币基准且不打乱资产类别顺序；桌面端新增表头高亮箭头，移动端新增 sticky 排序辅助栏，排序偏好持久化到本地。同步更新 `dashboard` 与 `mobile-responsive` 主 spec。
