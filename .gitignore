@@ -14,7 +14,7 @@ out/
 build/
 release/
 *.unpacked
-
+tmp-ui-screenshots
 # ========================
 # Electron
 # ========================
