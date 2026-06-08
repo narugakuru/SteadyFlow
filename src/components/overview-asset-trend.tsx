@@ -17,6 +17,10 @@ const RANGE_LABELS: Record<NetvalueChartRange, string> = {
   all: "ALL",
 };
 
+const OVERVIEW_ASSET_LINE = "#168a56";
+const OVERVIEW_ASSET_FILL = "#58c786";
+const OVERVIEW_ASSET_DOT = "#0f7f4d";
+
 interface OverviewAssetTrendProps {
   chart?: NetvalueChartResponse;
   loading?: boolean;
@@ -48,9 +52,9 @@ function AssetTooltip({ active, payload, label }: ChartTooltipProps) {
   const value = Number(payload[0]?.value ?? 0);
 
   return (
-    <div className="rounded-md border border-white/10 bg-[#151712] px-3 py-2 text-xs shadow-xl">
-      <p className="text-neutral-400">{label}</p>
-      <p className="mt-1 font-semibold text-neutral-100">¥{formatAmount(value)}</p>
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl">
+      <p className="text-muted-foreground">{label}</p>
+      <p className="mt-1 font-semibold">¥{formatAmount(value)}</p>
     </div>
   );
 }
@@ -78,18 +82,18 @@ export function OverviewAssetTrend({
   const hasChart = points.length >= 2;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-white/10 bg-[#12140f]">
+    <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative min-h-[420px]">
         <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between md:p-7">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase text-neutral-500">资产曲线</p>
-            <h1 className="mt-3 truncate text-4xl font-bold text-neutral-100 md:text-5xl">
+            <p className="text-xs font-medium uppercase text-muted-foreground">资产曲线</p>
+            <h1 className="mt-3 truncate text-4xl font-bold text-foreground md:text-5xl">
               {totalLabel}
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
               <span className={pnlClassName}>{pnlLabel}</span>
               <span className={pnlClassName}>{pnlPctLabel}</span>
-              <span className="text-neutral-500">当前快照</span>
+              <span className="text-muted-foreground">当前快照</span>
             </div>
             <DataFreshness updatedAt={updatedAt} isFetching={isFetching} className="mt-2" />
           </div>
@@ -98,10 +102,10 @@ export function OverviewAssetTrend({
 
         <div className="absolute inset-x-0 bottom-0 top-32 md:top-28">
           {loading && !chart ? (
-            <LoadingSpinner text="资产曲线加载中..." className="h-full text-neutral-300" />
+            <LoadingSpinner text="资产曲线加载中..." className="h-full text-muted-foreground" />
           ) : error ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
-              <p className="text-sm text-red-300">{error || "资产曲线加载失败"}</p>
+              <p className="text-sm text-destructive">{error || "资产曲线加载失败"}</p>
               <Button variant="outline" size="sm" onClick={onRetry}>
                 重试
               </Button>
@@ -111,16 +115,16 @@ export function OverviewAssetTrend({
               <AreaChart data={points} margin={{ top: 20, right: 0, bottom: 12, left: 0 }}>
                 <defs>
                   <linearGradient id="overviewAssetFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8faa2b" stopOpacity={0.58} />
-                    <stop offset="65%" stopColor="#8faa2b" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#8faa2b" stopOpacity={0.04} />
+                    <stop offset="0%" stopColor={OVERVIEW_ASSET_FILL} stopOpacity={0.5} />
+                    <stop offset="65%" stopColor={OVERVIEW_ASSET_FILL} stopOpacity={0.18} />
+                    <stop offset="100%" stopColor={OVERVIEW_ASSET_FILL} stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="date"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "rgba(229, 229, 229, 0.45)", fontSize: 11 }}
+                  tick={{ fill: "rgba(107, 114, 128, 0.85)", fontSize: 11 }}
                   minTickGap={28}
                 />
                 <YAxis
@@ -128,27 +132,27 @@ export function OverviewAssetTrend({
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={(value) => `¥${formatNumber(Number(value) / 10000, 0)}万`}
                 />
-                <Tooltip content={<AssetTooltip />} cursor={{ stroke: "rgba(255,255,255,0.16)" }} />
+                <Tooltip content={<AssetTooltip />} cursor={{ stroke: "rgba(15,23,42,0.12)" }} />
                 <Area
                   type="monotone"
                   dataKey="total"
-                  stroke="#9bb43a"
+                  stroke={OVERVIEW_ASSET_LINE}
                   strokeWidth={2}
                   fill="url(#overviewAssetFill)"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: "#d8e56b" }}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: OVERVIEW_ASSET_DOT }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center px-4 text-center text-sm text-neutral-500">
+            <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
               暂无足够净值历史，后续记录净值后将显示资产曲线。
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 border-t border-white/10 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-center gap-2 border-t border-border px-4 py-3">
         {NETVALUE_CHART_RANGE_ORDER.map((option) => (
           <Button
             key={option}
@@ -156,9 +160,7 @@ export function OverviewAssetTrend({
             variant={option === range ? "default" : "ghost"}
             onClick={() => onRangeChange(option)}
             className={
-              option === range
-                ? "bg-black text-white hover:bg-black"
-                : "text-neutral-400 hover:bg-white/8 hover:text-neutral-100"
+              option === range ? "" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }
           >
             {RANGE_LABELS[option]}

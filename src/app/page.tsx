@@ -242,10 +242,7 @@ export default function Dashboard() {
               value={displayCurrency}
               onValueChange={(value) => setDisplayCurrency(value as DisplayCurrencyMode)}
             >
-              <SelectTrigger
-                size="sm"
-                className="w-[92px] border-white/10 bg-white/8 text-neutral-100"
-              >
+              <SelectTrigger size="sm" className="w-[92px]">
                 <SelectValue placeholder="货币" />
               </SelectTrigger>
               <SelectContent>
@@ -267,11 +264,11 @@ export default function Dashboard() {
           </>
         }
       />
-      <p className="text-xs text-neutral-500">{getQuoteSyncHint(allocation)}</p>
+      <p className="text-xs text-muted-foreground">{getQuoteSyncHint(allocation)}</p>
 
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-neutral-100">资产配置纪律</h2>
+          <h2 className="text-lg font-semibold">资产配置纪律</h2>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => setTxOpen(true)}>
               交易

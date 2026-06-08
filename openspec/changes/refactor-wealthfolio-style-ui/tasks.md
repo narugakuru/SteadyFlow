@@ -48,10 +48,11 @@
 
 ## 6. Styling And Responsiveness
 
-- [x] 6.1 Apply Wealthfolio-inspired dark/neutral layout styling and restrained green chart fill to the shell, overview, and insights surfaces.
+- [x] 6.1 Apply Wealthfolio-inspired layout styling while preserving the original light theme, existing palette, and restrained green chart fill across the shell, overview, and insights surfaces.
 - [x] 6.2 Ensure text does not overflow sidebar items, chart controls, cards, heatmap blocks, or action buttons across desktop and mobile widths.
 - [x] 6.3 Verify account, activity, net value, and admin pages remain usable inside the new shell without major workflow changes.
 - [x] 6.4 Preserve user `colorMode` semantics for positive/negative P&L colors in overview and insights.
+- [x] 6.5 Tune the final chart palette: use brighter insights composition colors, softer 3-level heatmap colors, and a deeper green overview asset curve without adding a return-zero baseline.
 
 ## 7. Documentation And Spec Sync
 

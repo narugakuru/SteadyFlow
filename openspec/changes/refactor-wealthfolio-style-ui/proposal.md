@@ -1,6 +1,6 @@
 ## Why
 
-The current application exposes too many top-level pages for a personal portfolio workflow, and the Dashboard still presents older chart-heavy structure instead of the focused Wealthfolio-style overview the product now needs. This change refactors the primary UI around a left navigation shell, a visual overview page, and a dedicated insights page while keeping the existing asset discipline, amount-mode holdings, accounts, activities, net value, and admin workflows intact.
+The current application exposes too many top-level pages for a personal portfolio workflow, and the Dashboard still presents older chart-heavy structure instead of the focused Wealthfolio-style overview the product now needs. This change refactors the primary UI around a left navigation shell, a visual overview page, and a dedicated insights page while keeping the existing asset discipline, amount-mode holdings, accounts, activities, net value, and admin workflows intact. The layout should borrow from Wealthfolio, but the product keeps its original white/light palette and existing business colors.
 
 ## What Changes
 
@@ -10,12 +10,13 @@ The current application exposes too many top-level pages for a personal portfoli
 - Sidebar top-level items become: 总览, 洞察, 账户, 活动, 净值, 管理; 管理 is visible only to admin users.
 - Move Settings to the lower-left sidebar area and keep it as the current settings dialog entry.
 - Add a new 洞察 page for portfolio composition charts and a holdings heatmap.
-- Refactor 总览 to use a Wealthfolio-like visual hierarchy:
+- Refactor 总览 to use a Wealthfolio-like visual hierarchy while preserving the original light theme:
   - a large green-filled asset trend chart area;
   - total asset value and current account total P&L summary in the chart's upper-left area;
   - chart range controls below the chart;
   - asset allocation discipline table and rebalance suggestions below the chart.
 - Use existing net value history as an asset-value trend source for this change. Accurate historical P&L/TWR/IRR curves are explicitly out of scope.
+- Tune the final chart colors without changing metric semantics: 总览 uses a slightly deeper green asset curve without a return-zero baseline; 洞察 uses brighter composition colors and softer multi-level heatmap colors.
 - Hide or move the existing asset distribution pie chart out of 总览; composition belongs on 洞察.
 - Preserve existing account, activity/transaction, net value, and admin page business behavior with only shell/navigation-level integration changes.
 - Treat `valuationMode="amount"` holdings as first-class throughout the new overview and insights UI; amount-mode assets use stored market value and cost, not `shares * price`.

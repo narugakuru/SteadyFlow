@@ -7,14 +7,14 @@ import { formatAmount, formatPercent } from "@/lib/utils/format";
 import type { InsightsCompositionItem } from "@/lib/utils/types";
 
 const CHART_COLORS = [
-  "#9bb43a",
-  "#4f8fba",
-  "#d99f45",
-  "#b35f55",
-  "#8a7ad9",
-  "#4fa67f",
-  "#d4d4c8",
-  "#7a7a72",
+  "#5ecf8f",
+  "#5baaf7",
+  "#f6c15a",
+  "#f4867b",
+  "#a58af6",
+  "#48d0c5",
+  "#f5a6c8",
+  "#a8d76d",
 ];
 
 interface InsightsCompositionChartProps {
@@ -37,9 +37,9 @@ function CompositionTooltip({ active, payload }: ChartTooltipProps) {
   if (!item) return null;
 
   return (
-    <div className="rounded-md border border-white/10 bg-[#151712] px-3 py-2 text-xs shadow-xl">
-      <p className="font-medium text-neutral-100">{item.name}</p>
-      <p className="mt-1 text-neutral-400">
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl">
+      <p className="font-medium">{item.name}</p>
+      <p className="mt-1 text-muted-foreground">
         ¥{formatAmount(item.valueCny)} · {formatPercent(item.pct)}%
       </p>
     </div>
@@ -51,8 +51,8 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
   const primary = items[0];
 
   return (
-    <section className="rounded-lg border border-white/10 bg-[#181916] p-4">
-      <h2 className="text-sm font-semibold uppercase text-neutral-500">{title}</h2>
+    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+      <h2 className="text-sm font-semibold uppercase text-muted-foreground">{title}</h2>
       {hasData ? (
         <>
           <div className="relative mt-3 h-44">
@@ -69,8 +69,8 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
                   cx="50%"
                   cy="80%"
                   paddingAngle={2}
-                  stroke="rgba(18, 19, 17, 0.9)"
-                  strokeWidth={2}
+                  stroke="var(--card)"
+                  strokeWidth={3}
                 >
                   {items.map((item, index) => (
                     <Cell key={item.id} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -81,11 +81,11 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
             </ResponsiveContainer>
             {primary ? (
               <div className="pointer-events-none absolute inset-x-0 bottom-5 text-center">
-                <p className="truncate text-xs text-neutral-500">{primary.name}</p>
-                <p className="text-lg font-semibold text-neutral-100">
+                <p className="truncate text-xs text-muted-foreground">{primary.name}</p>
+                <p className="text-lg font-semibold text-foreground">
                   ¥{formatAmount(primary.valueCny)}
                 </p>
-                <p className="text-xs text-neutral-500">{formatPercent(primary.pct)}%</p>
+                <p className="text-xs text-muted-foreground">{formatPercent(primary.pct)}%</p>
               </div>
             ) : null}
           </div>
@@ -93,15 +93,15 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
             {items.slice(0, 5).map((item, index) => (
               <div key={item.id} className="flex items-center gap-2 text-xs">
                 <span
-                  className="h-2.5 w-2.5 rounded-sm"
+                  className="h-2.5 w-2.5 rounded-full"
                   style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                 />
-                <span className="min-w-0 flex-1 truncate text-neutral-300">{item.name}</span>
-                <span className="shrink-0 text-neutral-500">
+                <span className="min-w-0 flex-1 truncate text-foreground">{item.name}</span>
+                <span className="shrink-0 text-muted-foreground">
                   {item.currency ? getCurrencySymbol(item.currency) : "¥"}
                   {formatAmount(item.value)}
                 </span>
-                <span className="w-14 shrink-0 text-right text-neutral-400">
+                <span className="w-14 shrink-0 text-right text-muted-foreground">
                   {formatPercent(item.pct)}%
                 </span>
               </div>
@@ -109,7 +109,7 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
           </div>
         </>
       ) : (
-        <div className="flex h-56 items-center justify-center text-sm text-neutral-500">
+        <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
           暂无可用数据
         </div>
       )}

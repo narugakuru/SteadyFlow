@@ -2,7 +2,7 @@
 
 The current app uses a global top `Navbar`, a centered `PageContainer`, and several peer pages: Dashboard, Market, Accounts, Transactions, Net Value, Stock Price Update, and Admin. The Dashboard already has the core portfolio business data: total assets, realized P&L, unrealized P&L, asset allocation discipline, rebalance suggestions, quote sync metadata, amount-mode and shares-mode holdings, and display-currency projection.
 
-The desired direction is a Wealthfolio-inspired product shell and overview. The app should feel like a focused portfolio tool rather than a set of independent utility pages. Two existing utility pages, Market and Stock Price Update, should leave the primary product surface. The accurate historical P&L/performance curve is intentionally deferred because the existing `netvalue` table stores asset-value snapshots, not cash-flow-adjusted investment performance.
+The desired direction is a Wealthfolio-inspired product shell and overview. The app should feel like a focused portfolio tool rather than a set of independent utility pages. The reference is layout and hierarchy only: the product should keep its original white/light theme and existing palette, while two utility pages, Market and Stock Price Update, leave the primary surface. The accurate historical P&L/performance curve is intentionally deferred because the existing `netvalue` table stores asset-value snapshots, not cash-flow-adjusted investment performance.
 
 ## Goals / Non-Goals
 
@@ -10,7 +10,7 @@ The desired direction is a Wealthfolio-inspired product shell and overview. The 
 
 - Replace the top navigation with a left sidebar shell on desktop.
 - Add a new Insights page for composition charts and a current holdings heatmap.
-- Refactor Dashboard into a Wealthfolio-style overview:
+- Refactor Dashboard into a Wealthfolio-style overview while preserving the original light theme and palette:
   - large green-filled asset trend chart using existing net value history;
   - total assets and current account total P&L headline;
   - asset allocation discipline and rebalance suggestions.
@@ -66,7 +66,7 @@ The quote refresh API remains because it supports Dashboard manual refresh, Dash
 
 The overview chart uses `GET /api/netvalue/chart?range=...` and displays it as an asset-value trend. It must be labeled and implemented as an asset curve, not as investment performance. Supported ranges should initially reuse the existing fixed net value ranges: `30d`, `90d`, `1y`, `3y`, and `all`.
 
-Accurate historical P&L remains out of scope because it requires cash-flow classification and more complete daily performance snapshots. The current headline P&L can still be shown as a current snapshot because `buildAllocationData` already returns total, realized, and unrealized P&L.
+Accurate historical P&L remains out of scope because it requires cash-flow classification and more complete daily performance snapshots. The current headline P&L can still be shown as a current snapshot because `buildAllocationData` already returns total, realized, and unrealized P&L. Because the chart is still an asset curve, it should not render a profit-zero baseline or imply the Y axis is return/performance.
 
 ### Define Current P&L Percent As A Snapshot Metric
 
@@ -114,7 +114,7 @@ This mirrors the app's existing handling of domestic funds and cash-like product
 
 ### Keep Visual Refactor Scoped
 
-The Wealthfolio visual language should be applied most strongly to the shell, overview, and insights page. The existing dense operational pages can be adapted to the new shell without a full UI rewrite in this change.
+The Wealthfolio visual language should be applied most strongly to the shell, overview, and insights page, but only as layout guidance. The existing dense operational pages can be adapted to the new shell without a full UI rewrite in this change, and the current white/light palette should remain the default visual base. The overview asset curve can use a slightly deeper green line/fill, while insights composition charts should use a clearer, brighter palette and the heatmap should use softer red/green intensity levels rather than heavy saturated blocks.
 
 ## Risks / Trade-offs
 
@@ -133,5 +133,5 @@ The Wealthfolio visual language should be applied most strongly to the shell, ov
 - [Risk] A global shell can accidentally wrap login/register pages.  
   Mitigation: shell should be hidden on unauthenticated public routes or use route checks to keep login/register clean.
 
-- [Risk] New dark/green visual styling could create one-note color dominance or contrast issues.  
-  Mitigation: keep semantic P&L colors tied to `colorMode`, use restrained green fill for the chart, and verify mobile/desktop screenshots.
+- [Risk] New green accent usage could create one-note color dominance or contrast issues if overapplied.
+  Mitigation: keep semantic P&L colors tied to `colorMode`, retain the existing light theme, use restrained green fill for the chart, and verify mobile/desktop screenshots.

@@ -23,14 +23,14 @@ export default function InsightsPage() {
   const insights = insightsQuery.data;
 
   if (loading) {
-    return <LoadingSpinner text="加载中..." className="min-h-[60vh] text-neutral-300" />;
+    return <LoadingSpinner text="加载中..." className="min-h-[60vh]" />;
   }
 
   if (error || !insights) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4">
         <div className="space-y-3 text-center">
-          <p className="inline-flex items-center gap-2 text-red-300">
+          <p className="inline-flex items-center gap-2 text-destructive">
             <AlertCircle className="size-4" />
             {error || "洞察数据加载失败"}
           </p>
@@ -46,13 +46,13 @@ export default function InsightsPage() {
     <PageContainer className="space-y-6 py-4 md:py-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-100">洞察</h1>
-          <p className="mt-1 text-sm text-neutral-500">当前资产配置与持仓盈亏快照</p>
+          <h1 className="text-2xl font-bold">洞察</h1>
+          <p className="mt-1 text-sm text-muted-foreground">当前资产配置与持仓盈亏快照</p>
         </div>
         <DataFreshness
           updatedAt={insightsQuery.dataUpdatedAt}
           isFetching={insightsQuery.isFetching}
-          className="text-neutral-500"
+          className="text-muted-foreground"
         />
       </div>
 
@@ -65,8 +65,10 @@ export default function InsightsPage() {
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-neutral-100">持仓热力图</h2>
-            <p className="text-sm text-neutral-500">面积代表当前市值，颜色代表当前持仓盈亏比例。</p>
+            <h2 className="text-lg font-semibold">持仓热力图</h2>
+            <p className="text-sm text-muted-foreground">
+              面积代表当前市值，颜色代表当前持仓盈亏比例。
+            </p>
           </div>
         </div>
         <InsightsHeatmap

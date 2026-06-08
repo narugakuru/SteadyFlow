@@ -6,7 +6,7 @@
 
 个人投资组合管理 Web 工具，替代 Excel 管理多平台资产，覆盖总览、洞察、账户、持仓、交易/活动、净值与纪律提醒。
 
-## 当前状态（2026-06-08）
+## 当前状态（2026-06-09）
 
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
@@ -68,6 +68,8 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-09] 继续微调 `refactor-wealthfolio-style-ui` 图表配色：洞察占比图切换为更清透明亮的组合色，持仓热力图改为柔和红/绿三档强度；总览资产曲线仅加深绿色线条与填充，明确不加入收益 0 水平线。同步更新 OpenSpec change 与主 specs。
+- [2026-06-08] 调整 `refactor-wealthfolio-style-ui` 配色策略：确认 Wealthfolio 仅作为布局/信息层级参考，应用外壳、总览和洞察页面回退为原有白色浅色主题与既有业务配色，仅保留绿色资产曲线与盈亏语义色。同步修正 change 设计/任务说明与主 specs。
 - [2026-06-08] 完成 `refactor-wealthfolio-style-ui` 实装：全站业务页切换为左侧边栏 + 右主界面应用外壳，新增 `/insights` 洞察页与 `/api/insights` 当前快照读模型；总览改为绿色填充资产曲线 + 当前账户总盈亏快照 + 资产配置纪律 + 再平衡建议，Dashboard 默认移除资产分布饼图；`/market` 与 `/batch-update` 改为重定向到总览，报价 API/静默刷新/Cron 保留。同步更新 OpenSpec 主 specs 与 `openspec/project.md`。
 - [2026-06-08] OpenSpec：新增 `refactor-wealthfolio-style-ui` 变更工件（proposal/design/specs/tasks），明确 Wealthfolio 风格 UI 重构范围：左侧边栏应用外壳、新增洞察页、总览改用资产曲线与纪律/再平衡布局、市场页与股价更新页下线，历史盈亏曲线暂缓。
 - [2026-06-08] 股价更新范围收紧为当前仍持有的 shares 标的：`POST /api/holdings/fetch-prices` 仅对 `shares > 0` 的 shares 模式持仓请求外部报价，已清仓股票返回跳过且不更新 price/marketValue；Dashboard、批量更新页、静默刷新与 Cron 统一复用该口径。同步更新 `auto-quote-fetch` 与 `batch-update` 主 spec。

@@ -18,6 +18,19 @@ interface Rect {
   height: number;
 }
 
+const HEAT_COLORS = {
+  green: ["#c8ead7", "#95ddb9", "#5fc990"],
+  red: ["#f8ced1", "#f2a6ad", "#e77b86"],
+  neutral: "#dde3ea",
+} as const;
+
+function getHeatLevel(returnRate: number) {
+  const absRate = Math.abs(returnRate);
+  if (absRate >= 15) return 2;
+  if (absRate >= 5) return 1;
+  return 0;
+}
+
 function splitItems(items: InsightsHeatmapHolding[]) {
   const total = items.reduce((sum, item) => sum + item.marketValueCny, 0);
   let running = 0;
@@ -70,10 +83,10 @@ function layoutTreemap(
 }
 
 function getHeatColor(returnRate: number | null, colorMode: Settings["colorMode"]) {
-  if (returnRate === null || returnRate === 0) return "#3a3a35";
-  const positiveColor = colorMode === "cn" ? "#9b3f38" : "#6f8f31";
-  const negativeColor = colorMode === "cn" ? "#6f8f31" : "#9b3f38";
-  return returnRate > 0 ? positiveColor : negativeColor;
+  if (returnRate === null || returnRate === 0) return HEAT_COLORS.neutral;
+  const level = getHeatLevel(returnRate);
+  const useRed = returnRate > 0 ? colorMode === "cn" : colorMode === "us";
+  return useRed ? HEAT_COLORS.red[level] : HEAT_COLORS.green[level];
 }
 
 export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
@@ -91,14 +104,14 @@ export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
 
   if (rects.length === 0) {
     return (
-      <div className="flex min-h-[360px] items-center justify-center rounded-lg border border-white/10 bg-[#181916] text-sm text-neutral-500">
+      <div className="flex min-h-[360px] items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground shadow-sm">
         暂无非零市值持仓
       </div>
     );
   }
 
   return (
-    <div className="relative h-[440px] overflow-hidden rounded-lg border border-[#10110f] bg-[#10110f] md:h-[520px]">
+    <div className="relative h-[440px] overflow-hidden rounded-lg border border-border bg-muted/30 md:h-[520px]">
       {rects.map((rect) => {
         const labelFits = rect.width >= 14 && rect.height >= 12;
         const detailFits = rect.width >= 18 && rect.height >= 18;
@@ -112,7 +125,7 @@ export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
           <div
             key={rect.item.id}
             title={title}
-            className="absolute overflow-hidden rounded-md border border-[#10110f] p-2 text-neutral-100"
+            className="absolute overflow-hidden rounded-md border border-background p-2 text-slate-900"
             style={{
               left: `${rect.x}%`,
               top: `${rect.y}%`,
@@ -128,14 +141,14 @@ export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
                 </span>
                 {detailFits ? (
                   <>
-                    <span className="mt-1 truncate text-xs text-neutral-200/85">
+                    <span className="mt-1 truncate text-xs text-slate-700">
                       {rect.item.returnRate === null
                         ? "--"
                         : `${rect.item.returnRate > 0 ? "+" : ""}${formatPercent(
                             rect.item.returnRate
                           )}%`}
                     </span>
-                    <span className="mt-1 truncate text-[11px] text-neutral-200/70">
+                    <span className="mt-1 truncate text-[11px] text-slate-600">
                       ¥{formatAmount(rect.item.marketValueCny)}
                     </span>
                   </>
