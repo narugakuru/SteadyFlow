@@ -179,6 +179,45 @@ export interface NetvalueChartResponse {
   points: NetvalueChartPoint[];
 }
 
+export interface InsightsCompositionItem {
+  id: string;
+  name: string;
+  currency?: string;
+  value: number;
+  valueCny: number;
+  pct: number;
+}
+
+export interface InsightsHeatmapHolding {
+  id: number;
+  name: string;
+  ticker: string | null;
+  accountName: string;
+  assetClass: string;
+  currency: string;
+  valuationMode: "amount" | "shares";
+  marketValue: number;
+  marketValueCny: number;
+  pnlAmount: number;
+  pnlAmountCny: number;
+  returnRate: number | null;
+}
+
+export interface PortfolioInsightsData {
+  summary: {
+    totalAssetCny: number;
+    realizedPnl: number;
+    unrealizedPnl: number;
+    totalPnl: number;
+  };
+  currencyComposition: InsightsCompositionItem[];
+  accountComposition: InsightsCompositionItem[];
+  assetClassComposition: InsightsCompositionItem[];
+  heatmapHoldings: InsightsHeatmapHolding[];
+  rates: AllocationData["rates"];
+  settings: Settings;
+}
+
 export const CURRENCY_SYMBOLS: Record<string, string> = {
   CNY: "¥",
   USD: "$",

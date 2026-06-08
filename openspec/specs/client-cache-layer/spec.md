@@ -97,6 +97,25 @@
 - **WHEN** 用户先后读取 `GET /api/netvalue/chart?range=30d` 与 `GET /api/netvalue/chart?range=1y`
 - **THEN** 系统为两次图表请求分别维护独立缓存，不得让 `30d` 与 `1y` 图表数据互相污染
 
+### Requirement: 洞察页使用用户隔离缓存键
+
+系统 SHALL 为 `/api/insights` 提供独立的 `insights` 客户端查询键，并沿用全局默认缓存策略：`staleTime=60s`、`persistTime=3d`。账户、持仓、交易、设置与报价刷新等会改变洞察快照的写操作成功后，系统 MUST 失效当前用户的 `insights` 查询。
+
+#### Scenario: 洞察页命中缓存
+
+- **WHEN** 用户打开 `/insights` 且存在当前用户未过期的 `insights` 缓存
+- **THEN** 页面优先展示缓存数据，并按全局条件刷新策略决定是否后台请求最新洞察数据
+
+#### Scenario: 持仓写操作后失效洞察
+
+- **WHEN** 用户新增、编辑、删除持仓或执行会影响持仓的交易
+- **THEN** 系统失效当前用户的 `insights` 查询，后续进入洞察页读取最新快照
+
+#### Scenario: 报价刷新后失效洞察
+
+- **WHEN** 用户手动、静默或 Cron 链路完成报价刷新
+- **THEN** 系统失效当前用户的 `insights` 查询，确保热力图与占比图可读取最新市值
+
 ### Requirement: 净值查询使用长时 stale 策略并保持写后失效
 
 系统 SHALL 为 `netvalue-list` 与 `netvalue-chart` 提供独立于全局默认值的缓存覆盖策略，统一使用 `staleTime=60m` 与现有 `persistTime=3d`。在缓存未过期时，系统 MUST 允许直接展示本地持久化结果；一旦发生会影响净值的写操作成功事件，系统 MUST 同时失效 `netvalue-list` 与 `netvalue-chart` 两类查询，并继续沿用现有跨标签页失效同步机制。

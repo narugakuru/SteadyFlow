@@ -12,6 +12,7 @@ export type CacheQueryName =
   | "transactions"
   | "exchange-rates"
   | "settings"
+  | "insights"
   | "netvalue-list"
   | "netvalue-chart"
   | "market"
@@ -52,6 +53,7 @@ export const QUERY_POLICIES: Record<CacheQueryName, QueryPolicy> = {
   transactions: BASE_POLICY,
   "exchange-rates": BASE_POLICY,
   settings: BASE_POLICY,
+  insights: BASE_POLICY,
   "netvalue-list": LONG_HISTORY_POLICY,
   "netvalue-chart": LONG_HISTORY_POLICY,
   market: BASE_POLICY,
@@ -60,11 +62,12 @@ export const QUERY_POLICIES: Record<CacheQueryName, QueryPolicy> = {
 };
 
 export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> = {
-  "accounts-write": ["accounts", "asset-allocation", "netvalue-list", "netvalue-chart"],
+  "accounts-write": ["accounts", "asset-allocation", "insights", "netvalue-list", "netvalue-chart"],
   "holdings-write": [
     "holdings",
     "accounts",
     "asset-allocation",
+    "insights",
     "netvalue-list",
     "netvalue-chart",
     "transactions",
@@ -74,6 +77,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "holdings",
     "accounts",
     "asset-allocation",
+    "insights",
     "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
@@ -82,6 +86,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "holdings",
     "accounts",
     "asset-allocation",
+    "insights",
     "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
@@ -90,11 +95,12 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "holdings",
     "accounts",
     "asset-allocation",
+    "insights",
     "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
   ],
-  "settings-write": ["asset-allocation"],
+  "settings-write": ["asset-allocation", "insights"],
 };
 
 type QueryParams = Record<string, string | number | boolean | null | undefined>;

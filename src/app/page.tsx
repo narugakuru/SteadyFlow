@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 
-import { DataFreshness } from "@/components/data-freshness";
 import { DisciplineTable } from "@/components/discipline-table";
+import { OverviewAssetTrend } from "@/components/overview-asset-trend";
 import { PageContainer } from "@/components/page-container";
-import { PortfolioChart } from "@/components/portfolio-chart";
 import {
   PriceUpdateResult,
   PriceUpdateResultDialog,
@@ -14,7 +13,6 @@ import {
 import { RebalancePanel } from "@/components/rebalance-panel";
 import { TransactionForm } from "@/components/transaction-form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import {
   Select,
@@ -25,19 +23,22 @@ import {
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
+import { getNetvalueChartGrain } from "@/lib/services/netvalue-history-helpers";
 import {
   convertFromCny,
   getCurrencySymbol,
   getSummaryCurrency,
 } from "@/lib/utils/display-currency";
 import { shouldTriggerSilentQuoteRefresh } from "@/lib/utils/quote-sync";
-import { formatAmount, formatRate } from "@/lib/utils/format";
+import { formatAmount, formatPercent } from "@/lib/utils/format";
 import {
   pnlColorClass,
   type Account,
   type AllocationData,
   type DisplayCurrencyMode,
   type Holding,
+  type NetvalueChartRange,
+  type NetvalueChartResponse,
 } from "@/lib/utils/types";
 
 function formatRelativeTime(isoString: string) {
@@ -72,12 +73,22 @@ export default function Dashboard() {
   const [resultOpen, setResultOpen] = useState(false);
   const [txOpen, setTxOpen] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useDisplayCurrencyPreference();
+  const [trendRange, setTrendRange] = useState<NetvalueChartRange>("90d");
   const netvalueTriggeredRef = useRef(false);
   const silentQuoteTriggeredRef = useRef(false);
+  const trendGrain = getNetvalueChartGrain(trendRange);
 
   const allocationQuery = useUserScopedQuery<AllocationData>({
     name: "asset-allocation",
     path: "/api/asset-allocation",
+  });
+  const trendQuery = useUserScopedQuery<NetvalueChartResponse>({
+    name: "netvalue-chart",
+    path: `/api/netvalue/chart?range=${trendRange}`,
+    params: {
+      range: trendRange,
+      grain: trendGrain,
+    },
   });
   const accountsQuery = useUserScopedQuery<Account[]>({
     name: "accounts",
@@ -168,6 +179,7 @@ export default function Dashboard() {
   const refreshDashboardContext = async () => {
     await Promise.all([
       allocationQuery.refetch(),
+      trendQuery.refetch(),
       accountsQuery.refetch(),
       holdingsQuery.refetch(),
     ]);
@@ -199,113 +211,67 @@ export default function Dashboard() {
   const summarySymbol = getCurrencySymbol(summaryCurrency);
   const displayTotalAsset = convertFromCny(allocation.totalAssetCny, summaryCurrency, rates);
   const displayTotalPnl = convertFromCny(allocation.totalPnl, summaryCurrency, rates);
-  const displayUnrealizedPnl = convertFromCny(allocation.unrealizedPnl, summaryCurrency, rates);
-  const displayRealizedPnl = convertFromCny(allocation.realizedPnl, summaryCurrency, rates);
+  const estimatedPrincipalCny = allocation.totalAssetCny - allocation.totalPnl;
+  const totalPnlPct =
+    Number.isFinite(estimatedPrincipalCny) && estimatedPrincipalCny > 0
+      ? (allocation.totalPnl / estimatedPrincipalCny) * 100
+      : null;
+  const trendError = trendQuery.error instanceof Error ? trendQuery.error.message : "";
+  const totalPnlPrefix = displayTotalPnl > 0 ? "+" : "";
+  const totalPnlPctLabel =
+    totalPnlPct === null ? "--" : `${totalPnlPct > 0 ? "+" : ""}${formatPercent(totalPnlPct)}%`;
+
   return (
     <PageContainer className="space-y-6 py-4 md:py-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl md:text-2xl font-bold">资产总览</h1>
-        <div className="flex items-center gap-2">
-          <Select
-            value={displayCurrency}
-            onValueChange={(value) => setDisplayCurrency(value as DisplayCurrencyMode)}
-          >
-            <SelectTrigger size="sm" className="w-[90px]">
-              <SelectValue placeholder="货币" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">默认</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="CNY">CNY</SelectItem>
-              <SelectItem value="HKD">HKD</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
-            {fetchingPrices ? (
-              <span className="flex items-center gap-1">
-                <LoadingSpinner className="w-3 h-3 text-white" /> 更新中...
-              </span>
-            ) : (
-              "📡 更新股价"
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground">
-            总资产 ({summaryCurrency})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0">
-              <p className="text-3xl font-bold">
-                {summarySymbol}
-                {formatAmount(displayTotalAsset)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                汇率更新:{" "}
-                {allocation.rates.updatedAt === "default"
-                  ? "使用默认汇率"
-                  : new Date(allocation.rates.updatedAt).toLocaleString()}
-                {allocation.rates.source === "stale_cache" && " (缓存)"}
-                {allocation.rates.source === "default" && " ⚠️"}
-                {Object.entries(rates)
-                  .map(([pair, rate]) => ` · ${pair}: ${formatRate(rate)}`)
-                  .join("")}
-              </p>
-              <DataFreshness
-                updatedAt={allocationQuery.dataUpdatedAt}
-                isFetching={allocationQuery.isFetching}
-                className="mt-1"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {getQuoteSyncHint(allocation)}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-1 text-sm md:min-w-[220px]">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">账户总盈亏</span>
-                <span className={pnlColorClass(displayTotalPnl, allocation.settings.colorMode)}>
-                  {displayTotalPnl > 0 ? "+" : ""}
-                  {summarySymbol}
-                  {formatAmount(displayTotalPnl)}
+      <OverviewAssetTrend
+        chart={trendQuery.data}
+        loading={trendQuery.isLoading}
+        error={trendError}
+        range={trendRange}
+        onRangeChange={setTrendRange}
+        onRetry={() => void trendQuery.refetch()}
+        totalLabel={`${summarySymbol}${formatAmount(displayTotalAsset)}`}
+        pnlLabel={`${totalPnlPrefix}${summarySymbol}${formatAmount(displayTotalPnl)}`}
+        pnlPctLabel={totalPnlPctLabel}
+        pnlClassName={pnlColorClass(displayTotalPnl, allocation.settings.colorMode)}
+        updatedAt={trendQuery.dataUpdatedAt}
+        isFetching={trendQuery.isFetching}
+        actions={
+          <>
+            <Select
+              value={displayCurrency}
+              onValueChange={(value) => setDisplayCurrency(value as DisplayCurrencyMode)}
+            >
+              <SelectTrigger
+                size="sm"
+                className="w-[92px] border-white/10 bg-white/8 text-neutral-100"
+              >
+                <SelectValue placeholder="货币" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">默认</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="CNY">CNY</SelectItem>
+                <SelectItem value="HKD">HKD</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
+              {fetchingPrices ? (
+                <span className="flex items-center gap-1">
+                  <LoadingSpinner className="w-3 h-3 text-white" /> 更新中...
                 </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">持仓盈亏</span>
-                <span
-                  className={pnlColorClass(displayUnrealizedPnl, allocation.settings.colorMode)}
-                >
-                  {displayUnrealizedPnl > 0 ? "+" : ""}
-                  {summarySymbol}
-                  {formatAmount(displayUnrealizedPnl)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">了结盈亏</span>
-                <span className={pnlColorClass(displayRealizedPnl, allocation.settings.colorMode)}>
-                  {displayRealizedPnl > 0 ? "+" : ""}
-                  {summarySymbol}
-                  {formatAmount(displayRealizedPnl)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <PortfolioChart
-        allocation={allocation.allocation}
-        rates={rates}
-        displayCurrency={displayCurrency}
+              ) : (
+                "更新股价"
+              )}
+            </Button>
+          </>
+        }
       />
+      <p className="text-xs text-neutral-500">{getQuoteSyncHint(allocation)}</p>
 
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">资产配置纪律</h2>
+          <h2 className="text-lg font-semibold text-neutral-100">资产配置纪律</h2>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => setTxOpen(true)}>
               交易

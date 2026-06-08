@@ -1,71 +1,42 @@
 ## Purpose
 
-定义 batch-update 能力的业务约束与验收标准。
+定义 batch-update 能力在独立页面下线后的业务约束与验收标准。
 
 ## Requirements
 
-### Requirement: 股价更新页使用 LoadingSpinner 加载动画
+### Requirement: 独立股价更新页下线
 
-股价更新页 SHALL 在数据加载期间使用 `LoadingSpinner` 组件替代纯文本"加载中..."。
+系统 SHALL 下线独立的 `/batch-update` 股价更新页面。该页面不得再作为产品主流程展示当前用户账户和持仓编辑列表；用户也不得通过全局导航进入该页面。
 
-#### Scenario: 股价更新页加载中
+#### Scenario: 导航不显示股价更新页
 
-- **WHEN** 股价更新页正在获取账户和持仓数据
-- **THEN** 页面显示 LoadingSpinner 组件，替代原有纯文本
+- **WHEN** 已登录用户查看全局导航
+- **THEN** 导航中不显示“股价更新”或指向 `/batch-update` 的入口
 
-### Requirement: 批量更新页面
+#### Scenario: 直接访问下线页面
 
-系统 SHALL 提供独立的批量更新页面（`/batch-update`），在一个页面内展示当前用户的所有账户及其持仓，支持 inline 编辑持仓市值/股价。页面顶部 SHALL 提供“更新股价”按钮，点击后调用 `POST /api/holdings/fetch-prices` 自动更新可识别 ticker、当前持有且 shares > 0 的 shares 模式持仓价格；已清仓或 shares 无效的股票 MUST 返回为跳过项且不得触发外部报价请求。调用完成后 MUST 使用结果弹窗按标的逐条显示成功/失败/跳过明细，并刷新页面数据。页面在移动端（<768px）SHALL 使用稳定的单列优先布局，避免输入区、操作区与列表发生重叠、截断或超出屏幕的问题。
+- **WHEN** 用户直接访问 `/batch-update`
+- **THEN** 系统不渲染旧股价更新页面，并重定向到 `/`
 
-#### Scenario: 查看批量更新页面
+### Requirement: 报价刷新能力保留
 
-- **WHEN** 已登录用户访问 `/batch-update` 页面
-- **THEN** 系统展示当前用户的所有账户和持仓，页面顶部显示“更新股价”按钮，不显示其他用户数据
+系统 SHALL 保留 `POST /api/holdings/fetch-prices`、Dashboard/总览手动报价刷新、Dashboard 静默报价刷新与每日 Cron 报价刷新能力。独立页面下线不得影响 shares 模式当前持仓报价同步、amount 模式跳过、逐条结果弹窗和缓存失效刷新口径。
 
-#### Scenario: 点击更新股价并查看逐条明细
+#### Scenario: Dashboard 仍可手动更新股价
 
-- **WHEN** 用户在 batch-update 页面点击“更新股价”按钮
-- **THEN** 按钮显示加载状态，完成后弹窗逐条展示结果，其中成功项显示最新股价，失败/跳过项显示原因
+- **WHEN** 用户在 Dashboard/总览点击“更新股价”
+- **THEN** 系统调用 `POST /api/holdings/fetch-prices`，完成后展示逐条明细并刷新页面数据
 
-#### Scenario: 批量更新页跳过已清仓股票
+#### Scenario: 背景报价链路不受影响
 
-- **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us` 且 shares=0，并在 batch-update 页面点击“更新股价”
-- **THEN** 系统不请求该标的报价，不修改该持仓 price 与 marketValue，并在结果弹窗中将该标的显示为跳过
+- **WHEN** Dashboard 静默刷新或每日 Cron 触发报价同步
+- **THEN** 系统继续复用报价同步核心逻辑，不依赖 `/batch-update` 页面存在
 
-#### Scenario: 编辑持仓市值
+### Requirement: 持仓市值编辑迁移
 
-- **WHEN** 用户修改某个持仓的市值输入框
-- **THEN** 该输入框标记为"已修改"状态（视觉区分），保存按钮变为可用
+系统 SHALL 继续通过账户页、纪律表持仓编辑弹窗或其他现有持仓编辑入口维护持仓市值、股价、成本与资产类别。独立批量更新页面下线后，不再要求提供一个集中 inline 编辑所有持仓市值的页面。
 
-#### Scenario: 一键保存所有变更
+#### Scenario: 编辑单个持仓
 
-- **WHEN** 用户点击“保存所有变更”按钮
-- **THEN** 系统验证所有被修改的持仓属于当前用户，并提交变更，成功后刷新页面数据并清除“已修改”标记
-
-#### Scenario: 账户总价值自动更新
-
-- **WHEN** 用户修改了某账户下持仓的市值并保存
-- **THEN** 该账户的总价值（cashBalance + holdingsValue）自动重新计算并刷新显示
-
-#### Scenario: 移动端布局稳定可操作
-
-- **WHEN** 用户在移动端访问批量更新页面并执行编辑/保存
-- **THEN** 列表、输入框与操作按钮完整展示，无横向溢出、无内容重叠，主要操作可点击
-
-### Requirement: 批量更新市值显示
-
-股价更新页中的数值 SHALL 使用统一格式化函数显示：
-
-- 市值：使用 `formatAmount()` 格式化
-- 股价：使用 `formatPrice()` 格式化
-- 份额：使用 `formatShares()` 格式化
-
-#### Scenario: 市值整数显示
-
-- **WHEN** 持仓市值为 50000
-- **THEN** 显示为 `¥50,000`
-
-#### Scenario: 股价小数显示
-
-- **WHEN** 股价为 3.85
-- **THEN** 显示为 `3.85`
+- **WHEN** 用户需要修正某个持仓的市值或价格
+- **THEN** 用户通过现有持仓编辑弹窗完成修改

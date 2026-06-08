@@ -117,7 +117,7 @@
 
 #### Scenario: 成功登出
 
-- **WHEN** 用户点击导航栏的登出按钮
+- **WHEN** 用户点击全局应用外壳中的登出按钮
 - **THEN** 系统清除 session，重定向到 /login 页面
 
 ### Requirement: 路由守卫

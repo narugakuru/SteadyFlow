@@ -4,20 +4,21 @@
 
 ## 项目定位
 
-个人投资组合管理 Web 工具，替代 Excel 管理多平台资产，覆盖账户、持仓、交易、净值、纪律提醒与市场概览。
+个人投资组合管理 Web 工具，替代 Excel 管理多平台资产，覆盖总览、洞察、账户、持仓、交易/活动、净值与纪律提醒。
 
-## 当前状态（2026-03-10）
+## 当前状态（2026-06-08）
 
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
-- 核心页面已稳定：总览、账户、交易、净值、股价更新、市场、登录/注册、管理后台。
+- 核心页面已调整为左侧边栏应用外壳：总览、洞察、账户、活动、净值、管理（admin only）与设置入口；登录/注册不渲染应用外壳。
+- 独立“市场”和“股价更新”页面已下线，直接访问 `/market` 与 `/batch-update` 会重定向到总览；报价 API、Dashboard 手动刷新、静默刷新与 Cron 刷新保留。
 - 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`30d/90d -> day`，`1y -> week`，`3y/all -> month`）。
 - 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）。
 - 自动报价路由已升级：港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份。
 - 已提供参数化投资组合 JSON 导出接口（`/api/export/portfolio?detail=full|decision`）：设置面板可导出全部数据，Dashboard 资产配置纪律区可导出精简决策快照。
 - 已落地“每日 Cron 保底 + Dashboard 静默兜底”的股价刷新策略，并在总资产卡片显示最近股价同步时间。
 - 净值快照持久化已瘦身：新写入 `netvalue.dataJson` 仅保留 `allocation + rates`；历史旧记录通过运行时维护与脚本回填兼容清理，SQLite 与 PostgreSQL 双模式均覆盖。
-- OpenSpec 流程在用：变更通过 `openspec/changes` 管理，归档后同步到 `openspec/specs`。
+- OpenSpec 流程在用：变更通过 `openspec/changes` 管理；功能变动已同步到 `openspec/specs`。
 
 ## 技术栈（摘要）
 
@@ -67,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-08] 完成 `refactor-wealthfolio-style-ui` 实装：全站业务页切换为左侧边栏 + 右主界面应用外壳，新增 `/insights` 洞察页与 `/api/insights` 当前快照读模型；总览改为绿色填充资产曲线 + 当前账户总盈亏快照 + 资产配置纪律 + 再平衡建议，Dashboard 默认移除资产分布饼图；`/market` 与 `/batch-update` 改为重定向到总览，报价 API/静默刷新/Cron 保留。同步更新 OpenSpec 主 specs 与 `openspec/project.md`。
 - [2026-06-08] OpenSpec：新增 `refactor-wealthfolio-style-ui` 变更工件（proposal/design/specs/tasks），明确 Wealthfolio 风格 UI 重构范围：左侧边栏应用外壳、新增洞察页、总览改用资产曲线与纪律/再平衡布局、市场页与股价更新页下线，历史盈亏曲线暂缓。
 - [2026-06-08] 股价更新范围收紧为当前仍持有的 shares 标的：`POST /api/holdings/fetch-prices` 仅对 `shares > 0` 的 shares 模式持仓请求外部报价，已清仓股票返回跳过且不更新 price/marketValue；Dashboard、批量更新页、静默刷新与 Cron 统一复用该口径。同步更新 `auto-quote-fetch` 与 `batch-update` 主 spec。
 - [2026-04-18] Dashboard 货币下拉升级为全局本地持久化显示货币：主页切换后账户页与交易页金额同步按默认/USD/CNY/HKD 展示；账户页新增“显示未持仓标的”开关，默认隐藏零市值持仓并通过现有持仓接口按需显示。同步更新 `dashboard`、`account-management`、`transaction-management` 主 spec。

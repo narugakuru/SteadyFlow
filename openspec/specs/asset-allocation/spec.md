@@ -81,6 +81,25 @@
 - **WHEN** 当前用户账户A cashBalance=50000(CNY)，持仓市值=150000(CNY)；账户B cashBalance=5000(USD)，持仓市值=10000(USD)，汇率 USD/CNY=7.2
 - **THEN** 总资产 = (50000+150000) + (5000+10000)×7.2 = 200000 + 108000 = ¥308,000
 
+### Requirement: amount 模式资产配置与洞察口径
+
+系统 SHALL 在资产配置、纪律表、总览与洞察读模型中统一支持 amount 模式持仓。amount 模式持仓的当前市值 MUST 使用 `marketValue`，总成本 MUST 使用 `cost`，收益金额 MUST 使用 `marketValue - cost`，收益率 MUST 使用 `(marketValue - cost) / cost`；系统 MUST NOT 对 amount 模式使用 `shares * price` 作为市值来源。
+
+#### Scenario: amount 模式市值参与资产配置
+
+- **WHEN** 用户有 amount 模式持仓 `marketValue=52000` 且资产类别为“债券”
+- **THEN** 资产配置与洞察页将 52000 计入“债券”的当前实际金额
+
+#### Scenario: amount 模式收益率
+
+- **WHEN** amount 模式持仓 `cost=50000` 且 `marketValue=52000`
+- **THEN** 系统计算该持仓当前收益率为约 `4%`
+
+#### Scenario: amount 模式不依赖 shares 和 price
+
+- **WHEN** amount 模式持仓的 `shares=0` 且 `price=0`
+- **THEN** 系统仍使用 `marketValue` 和 `cost` 计算资产配置、纪律与洞察数据
+
 ### Requirement: 资产配置纪律表支持临时货币视图
 
 系统 SHALL 为资产配置纪律表提供临时货币视图。默认视图下，资产类别金额、类别汇总盈亏与再平衡基准保持 CNY，展开的持仓与现金明细显示原始账户币种金额；当用户切换到指定货币时，纪律表中的资产类别金额、类别汇总盈亏、持仓/现金明细与再平衡金额 MUST 全部基于数据库中的原币金额和实时汇率换算为目标币种展示，且该视图选择 MUST NOT 持久化到数据库或本地存储。

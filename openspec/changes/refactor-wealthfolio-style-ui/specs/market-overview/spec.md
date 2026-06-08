@@ -9,3 +9,8 @@
 
 **Reason**: The Market page UI is decommissioned. A user-facing market aggregation page is no longer required by the product surface.
 **Migration**: Existing server code can be retained temporarily if still referenced, but the UI requirement is removed.
+
+#### Scenario: Direct visit redirects
+
+- **WHEN** a user directly visits `/market`
+- **THEN** the system redirects to `/` and does not render the old Market screen

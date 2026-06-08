@@ -1,0 +1,172 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
+import { MenuIcon } from "lucide-react";
+import { useState } from "react";
+
+import { AssetClassSettings } from "@/components/asset-class-settings";
+import { DisciplineNotesFab } from "@/components/discipline-notes-fab";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { clearCurrentUserClientCache } from "@/lib/cache/provider";
+import { cn } from "@/lib/utils/utils";
+
+interface AppShellProps {
+  children: React.ReactNode;
+}
+
+const PUBLIC_ROUTES = ["/login", "/register"];
+
+function isPublicRoute(pathname: string) {
+  return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (isPublicRoute(pathname)) {
+    return <>{children}</>;
+  }
+
+  const isAdmin = session?.user?.role === "admin";
+  const navItems = [
+    { href: "/", label: "总览" },
+    { href: "/insights", label: "洞察" },
+    { href: "/accounts", label: "账户" },
+    { href: "/transactions", label: "活动" },
+    { href: "/netvalue", label: "净值" },
+    ...(isAdmin ? [{ href: "/admin", label: "管理" }] : []),
+  ];
+
+  const displayName = session?.user?.name || session?.user?.email || "用户";
+  const userId = session?.user?.id;
+
+  const handleSignOut = async () => {
+    await clearCurrentUserClientCache(userId);
+    await signOut({ callbackUrl: "/login" });
+  };
+
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
+  const navList = (
+    <nav className="flex flex-col gap-1" aria-label="主导航">
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={() => setMobileMenuOpen(false)}
+          className={cn(
+            "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            isActive(item.href)
+              ? "bg-white/12 text-neutral-100"
+              : "text-neutral-400 hover:bg-white/8 hover:text-neutral-100"
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#10110f] text-neutral-200">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-white/10 bg-[#121311] md:flex">
+        <div className="border-b border-white/10 px-5 py-5">
+          <Link href="/" className="block text-base font-semibold text-neutral-100">
+            SteadyFlow
+          </Link>
+        </div>
+        <div className="flex flex-1 flex-col justify-between px-3 py-4">
+          {navList}
+          <div className="space-y-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSettingsOpen(true)}
+              className="w-full justify-start px-3 text-neutral-300 hover:bg-white/8 hover:text-neutral-100"
+            >
+              设置
+            </Button>
+            {session?.user && (
+              <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+                <p className="truncate text-xs text-neutral-400">{displayName}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="mt-2 h-7 w-full justify-start px-0 text-xs text-neutral-300 hover:bg-transparent hover:text-neutral-100"
+                >
+                  登出
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-white/10 bg-[#121311]/95 px-4 backdrop-blur md:hidden">
+        <Link href="/" className="font-semibold text-neutral-100">
+          SteadyFlow
+        </Link>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="打开菜单"
+          className="text-neutral-100 hover:bg-white/10"
+        >
+          <MenuIcon className="size-5" />
+        </Button>
+      </header>
+
+      <main className="min-h-screen min-w-0 md:pl-56">{children}</main>
+
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent
+          side="left"
+          className="w-72 border-white/10 bg-[#121311] p-0 text-neutral-100"
+        >
+          <SheetHeader className="border-b border-white/10 px-4 py-4">
+            <SheetTitle className="text-left text-base text-neutral-100">SteadyFlow</SheetTitle>
+          </SheetHeader>
+          <div className="flex h-[calc(100dvh-57px)] flex-col justify-between px-3 py-4">
+            {navList}
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setSettingsOpen(true);
+                }}
+                className="w-full justify-start px-3 text-neutral-300 hover:bg-white/8 hover:text-neutral-100"
+              >
+                设置
+              </Button>
+              {session?.user && (
+                <SheetClose asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void handleSignOut()}
+                    className="w-full justify-start px-3 text-neutral-300 hover:bg-white/8 hover:text-neutral-100"
+                  >
+                    登出
+                  </Button>
+                </SheetClose>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <AssetClassSettings open={settingsOpen} onOpenChange={setSettingsOpen} onSaved={() => {}} />
+      {!mobileMenuOpen ? <DisciplineNotesFab /> : null}
+    </div>
+  );
+}
