@@ -1,0 +1,100 @@
+## MODIFIED Requirements
+
+### Requirement: 自动获取持仓报价 API
+
+系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户当前持有的 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。当前持有 MUST 以 shares 模式持仓的 `shares > 0` 判定；shares 为空、无效或小于等于 0 的 shares 模式持仓 MUST NOT 请求任何外部报价源，并 MUST 返回在 `skipped` 列表中。请求 MUST 支持显式触发来源语义，用于区分 `manual`、`silent-client` 与 `cron` 等模式；不同模式 MUST 复用同一报价同步核心逻辑，并使用统一口径写入报价同步元数据。
+报价分发规则 MUST 为：
+
+- `.US` / `.JP` 使用 Stooq（保留原有实现）
+- `.SS` / `.SZ` / `.HK` / `.BJ` 优先使用腾讯简易接口（`qt.gtimg.cn`）
+- 腾讯返回不可用时，若已配置 `quote_api.eodhd_key`，则回退 EODHD
+- 腾讯与 EODHD 均不可用时，若已配置 `quote_api.twelvedata_key`，则回退 Twelve Data（最低权重可选备份）
+
+系统 MUST 按市场规则完成腾讯 symbol 映射：
+
+- `.SS` -> `sh` + 6 位代码
+- `.SZ` -> `sz` + 6 位代码
+- `.BJ` -> `bj` + 6 位代码
+- `.HK` -> `hk` + 5 位代码（不足 5 位前补零）
+
+系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
+
+#### Scenario: 成功更新美股持仓价格（Stooq）
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us`，shares=100，旧 price=150
+- **THEN** 系统从 Stooq 获取最新价格并更新 price 与 marketValue，返回该持仓在 updated 列表中
+
+#### Scenario: 成功更新 A 股持仓价格（Tencent）
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`601088.SS`
+- **THEN** 系统使用腾讯映射 `sh601088` 获取价格并更新该持仓，`provider` 返回 `tencent`
+
+#### Scenario: 成功更新港股持仓价格（Tencent 5 位补零）
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`700.HK`
+- **THEN** 系统将其映射为 `hk00700` 请求腾讯并在成功时更新该持仓
+
+#### Scenario: 成功更新北交所持仓价格（Tencent）
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`835185.BJ`
+- **THEN** 系统使用 `bj835185` 请求腾讯并在成功时更新该持仓
+
+#### Scenario: 腾讯失败后回退 EODHD
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`0700.HK`，腾讯未返回可用价格，且已配置 EODHD key
+- **THEN** 系统使用 EODHD 获取价格并更新该持仓，`provider` 返回 `eodhd`
+
+#### Scenario: 腾讯与 EODHD 失败后回退 Twelve Data
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`601088.SS`，腾讯与 EODHD 均未返回可用价格，且已配置 Twelve Data key
+- **THEN** 系统使用 Twelve Data 获取价格并更新该持仓，`provider` 返回 `twelve-data`
+
+#### Scenario: Twelve Data 不使用固定延时批次等待
+
+- **WHEN** 当前用户触发自动报价并命中 Twelve Data 回退路径
+- **THEN** 系统不执行固定 65 秒或其他秒级 sleep 等待，按无固定延时策略继续请求与回退流程
+
+#### Scenario: 未配置任何回退 key 但腾讯可用
+
+- **WHEN** 当前用户未配置 EODHD/Twelve Data key，且其 A 股或港股持仓可由腾讯返回价格
+- **THEN** 系统仍可成功更新该持仓，不因缺少 key 失败
+
+#### Scenario: 腾讯失败且无可用回退配置
+
+- **WHEN** 当前用户有 shares 模式亚洲持仓，腾讯无可用价格，且未配置可用的 EODHD/Twelve Data key
+- **THEN** 该持仓保持原值，并在 `failed` 列表中返回明确失败原因
+
+#### Scenario: Stooq 特殊代码兼容
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`BRK.B.US`
+- **THEN** 系统将其转换为 Stooq 兼容符号后拉取报价，并在成功时更新该持仓
+
+#### Scenario: 跳过 amount 模式持仓
+
+- **WHEN** 当前用户有 amount 模式持仓 ticker=`aapl.us`
+- **THEN** 该持仓不参与自动拉取，返回在 skipped 列表中
+
+#### Scenario: 跳过已清仓 shares 模式持仓
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us`，shares=0，且旧 price=150
+- **THEN** 该持仓不请求任何外部报价源，不修改 price 与 marketValue，并返回在 skipped 列表中
+
+#### Scenario: 返回结果结构
+
+- **WHEN** 自动报价完成
+- **THEN** API 返回 JSON `{ updated: [{id, name, ticker, oldPrice, newPrice, provider, source}], failed: [{id, name, ticker, error}], skipped: [{id, name, ticker, reason}] }`，且 `provider` 至少可区分 `tencent`、`eodhd`、`twelve-data`
+
+#### Scenario: 静默模式不改变接口语义
+
+- **WHEN** 页面以 `silent-client` 触发一次报价同步
+- **THEN** 系统仍返回兼容的 `updated`、`failed`、`skipped` 结构，并按静默来源记录报价同步元数据
+
+#### Scenario: Cron 模式记录来源
+
+- **WHEN** 每日后台链路以 `cron` 触发一次报价同步
+- **THEN** 系统使用与手动模式一致的报价同步逻辑，并将触发来源记录为 `cron`
+
+#### Scenario: 未登录用户
+
+- **WHEN** 未登录用户请求 `POST /api/holdings/fetch-prices`
+- **THEN** 系统返回 401
