@@ -15,7 +15,7 @@
 
 ### Requirement: 批量更新页面
 
-系统 SHALL 提供独立的批量更新页面（`/batch-update`），在一个页面内展示当前用户的所有账户及其持仓，支持 inline 编辑持仓市值/股价。页面顶部 SHALL 提供“更新股价”按钮，点击后调用 `POST /api/holdings/fetch-prices` 自动更新可识别 ticker 的 shares 模式持仓价格。调用完成后 MUST 使用结果弹窗按标的逐条显示成功/失败/跳过明细，并刷新页面数据。页面在移动端（<768px）SHALL 使用稳定的单列优先布局，避免输入区、操作区与列表发生重叠、截断或超出屏幕的问题。
+系统 SHALL 提供独立的批量更新页面（`/batch-update`），在一个页面内展示当前用户的所有账户及其持仓，支持 inline 编辑持仓市值/股价。页面顶部 SHALL 提供“更新股价”按钮，点击后调用 `POST /api/holdings/fetch-prices` 自动更新可识别 ticker、当前持有且 shares > 0 的 shares 模式持仓价格；已清仓或 shares 无效的股票 MUST 返回为跳过项且不得触发外部报价请求。调用完成后 MUST 使用结果弹窗按标的逐条显示成功/失败/跳过明细，并刷新页面数据。页面在移动端（<768px）SHALL 使用稳定的单列优先布局，避免输入区、操作区与列表发生重叠、截断或超出屏幕的问题。
 
 #### Scenario: 查看批量更新页面
 
@@ -26,6 +26,11 @@
 
 - **WHEN** 用户在 batch-update 页面点击“更新股价”按钮
 - **THEN** 按钮显示加载状态，完成后弹窗逐条展示结果，其中成功项显示最新股价，失败/跳过项显示原因
+
+#### Scenario: 批量更新页跳过已清仓股票
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us` 且 shares=0，并在 batch-update 页面点击“更新股价”
+- **THEN** 系统不请求该标的报价，不修改该持仓 price 与 marketValue，并在结果弹窗中将该标的显示为跳过
 
 #### Scenario: 编辑持仓市值
 

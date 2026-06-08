@@ -2,7 +2,7 @@
 
 ### Requirement: 自动获取持仓报价 API
 
-系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户所有 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。请求 MUST 支持显式触发来源语义，用于区分 `manual`、`silent-client` 与 `cron` 等模式；不同模式 MUST 复用同一报价同步核心逻辑，并使用统一口径写入报价同步元数据。  
+系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户当前持有的 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。当前持有 MUST 以 shares 模式持仓的 `shares > 0` 判定；shares 为空、无效或小于等于 0 的 shares 模式持仓 MUST NOT 请求任何外部报价源，并 MUST 返回在 `skipped` 列表中。请求 MUST 支持显式触发来源语义，用于区分 `manual`、`silent-client` 与 `cron` 等模式；不同模式 MUST 复用同一报价同步核心逻辑，并使用统一口径写入报价同步元数据。
 报价分发规则 MUST 为：
 
 - `.US` / `.JP` 使用 Stooq（保留原有实现）
@@ -73,6 +73,11 @@
 
 - **WHEN** 当前用户有 amount 模式持仓 ticker=`aapl.us`
 - **THEN** 该持仓不参与自动拉取，返回在 skipped 列表中
+
+#### Scenario: 跳过已清仓 shares 模式持仓
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us`，shares=0，且旧 price=150
+- **THEN** 该持仓不请求任何外部报价源，不修改 price 与 marketValue，并返回在 skipped 列表中
 
 #### Scenario: 返回结果结构
 

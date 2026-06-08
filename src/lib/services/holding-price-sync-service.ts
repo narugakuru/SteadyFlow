@@ -14,6 +14,7 @@ import {
   markQuoteSyncFinished,
   markQuoteSyncStarted,
 } from "@/lib/services/quote-sync-metadata-service";
+import { getQuoteRefreshScopeSkipReason } from "@/lib/services/quote-refresh-scope";
 import { readUserSettingsMap, SETTING_KEYS } from "@/lib/services/settings-service";
 import { roundForStorage } from "@/lib/utils/format";
 import type { QuoteSyncTriggerSource } from "@/lib/utils/quote-sync";
@@ -309,12 +310,13 @@ export async function syncHoldingPricesForUser(
     const asiaHoldings: { holding: HoldingForPrice; profile: AsiaTickerProfile }[] = [];
 
     for (const holding of holdingRows) {
-      if (holding.valuationMode !== "shares") {
+      const scopeSkipReason = getQuoteRefreshScopeSkipReason(holding);
+      if (scopeSkipReason) {
         skipped.push({
           id: holding.id,
           name: holding.name,
           ticker: holding.ticker,
-          reason: "amount 模式",
+          reason: scopeSkipReason,
         });
         continue;
       }
