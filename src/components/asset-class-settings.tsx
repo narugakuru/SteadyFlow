@@ -295,7 +295,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
           <div className="border-t pt-4 space-y-3">
             <p className="text-sm font-medium">股价数据源 API Key（用户自定义）</p>
             <div>
-              <Label className="text-xs mb-2 block">EODHD API Key（次级回退，可选）</Label>
+              <Label className="text-xs mb-2 block">EODHD API Key（个人回退密钥，可选）</Label>
               <Input
                 type="password"
                 autoComplete="off"
@@ -304,8 +304,8 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 placeholder="输入 EODHD API Key"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                美股 Yahoo 或亚洲市场腾讯无可用价格时，自动回退到
-                EODHD（优先实时价，否则前一交易日收盘）。
+                美股 Yahoo 或亚洲市场腾讯无可用价格时，仅使用你在此处保存的个人密钥回退到
+                EODHD；系统不会读取部署环境中的共享 EODHD 密钥。
               </p>
             </div>
             <div>

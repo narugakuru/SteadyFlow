@@ -8,7 +8,7 @@
 
 系统 SHALL 允许登录用户在设置中配置并保存 `EODHD API Key` 与 `Twelve Data API Key`，并按用户维度独立存储在 `settings` 键值中（`quote_api.eodhd_key`、`quote_api.twelvedata_key`）。  
 系统 MUST 将上述 key 视为可选回退供应商凭证，而非自动报价主链路的必填项。
-系统 MAY 支持部署环境变量 `EODHD_API_KEY` 作为全局 EODHD 回退凭证；当用户已保存 `quote_api.eodhd_key` 时，用户级配置 MUST 优先于全局环境变量。
+系统 MUST 只使用当前用户自己设置的供应商密钥；系统 MUST NOT 使用部署环境变量、测试密钥或其他共享密钥代替用户级 EODHD key。
 
 #### Scenario: 保存两个 API Key
 
@@ -27,7 +27,7 @@
 
 ### Requirement: 自动报价接口按用户读取 API Key
 
-系统 SHALL 在执行 `POST /api/holdings/fetch-prices` 时读取当前登录用户的供应商 key，并将 EODHD key 用于美股 Yahoo 失败后的回退流程，以及亚洲市场腾讯主链路失败后的回退流程；Twelve Data 仅用于亚洲市场的最低权重备份。系统 MUST NOT 读取其他用户 key。EODHD 回退 MUST 优先使用 realtime 批量请求，并在单组待回退 symbol 数量不超过 10 时以一次 HTTP 请求提交。
+系统 SHALL 在执行 `POST /api/holdings/fetch-prices` 时读取当前登录用户的供应商 key，并将 EODHD key 用于美股 Yahoo 失败后的回退流程，以及亚洲市场腾讯主链路失败后的回退流程；Twelve Data 仅用于亚洲市场的最低权重备份。系统 MUST NOT 读取其他用户 key，MUST NOT 读取或使用部署环境中的共享 EODHD key。EODHD 回退 MUST 优先使用 realtime 批量请求，并在单组待回退 symbol 数量不超过 10 时以一次 HTTP 请求提交。
 
 #### Scenario: A 用户与 B 用户使用不同 key
 
@@ -39,10 +39,10 @@
 - **WHEN** 用户未配置 EODHD 与 Twelve Data key，且其亚洲市场持仓可由腾讯接口返回价格
 - **THEN** 自动报价请求仍成功更新对应持仓，不因缺少回退 key 被拒绝
 
-#### Scenario: 使用全局 EODHD 环境变量回退
+#### Scenario: 未配置个人 EODHD key 不使用环境变量
 
 - **WHEN** 用户未配置 EODHD key，但部署环境配置了 `EODHD_API_KEY`，且美股 Yahoo 或亚洲腾讯未返回可用价格
-- **THEN** 系统使用全局 EODHD key 尝试回退，不要求用户在设置中重复保存 key
+- **THEN** 系统不使用部署环境中的 EODHD key，不发起 EODHD 回退请求，并返回该用户未配置 EODHD API Key 的失败原因
 
 #### Scenario: EODHD key 用于批量回退
 

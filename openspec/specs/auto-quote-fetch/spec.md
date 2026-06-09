@@ -6,7 +6,7 @@
 报价分发规则 MUST 为：
 
 - `.US` 优先使用 Yahoo Finance（`yahoo-finance2`）
-- Yahoo Finance 无可用价格或请求失败时，若当前用户已配置 `quote_api.eodhd_key` 或部署环境配置 `EODHD_API_KEY`，则回退 EODHD
+- Yahoo Finance 无可用价格或请求失败时，若当前用户已配置 `quote_api.eodhd_key`，则回退 EODHD
 - `.SS` / `.SZ` / `.HK` / `.BJ` 优先使用腾讯简易接口（`qt.gtimg.cn`）
 - 腾讯返回不可用时，若已配置 `quote_api.eodhd_key`，则回退 EODHD
 - 腾讯与 EODHD 均不可用时，若已配置 `quote_api.twelvedata_key`，则回退 Twelve Data（最低权重可选备份）
@@ -18,7 +18,7 @@
 - `.BJ` -> `bj` + 6 位代码
 - `.HK` -> `hk` + 5 位代码（不足 5 位前补零）
 
-系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证；若用户未配置 EODHD key，系统 MAY 使用部署环境变量 `EODHD_API_KEY` 作为全局回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。EODHD 回退请求 MUST 先按最多 10 个 symbol 一组调用实时批量接口；当待回退 symbol 数量不超过 10 且实时批量接口返回全部价格时，系统 MUST 只执行 1 次 EODHD realtime HTTP 请求。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
+系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证；用户只能使用自己设置的供应商密钥，系统 MUST NOT 使用部署环境变量或其他共享密钥代替用户级 EODHD key。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。EODHD 回退请求 MUST 先按最多 10 个 symbol 一组调用实时批量接口；当待回退 symbol 数量不超过 10 且实时批量接口返回全部价格时，系统 MUST 只执行 1 次 EODHD realtime HTTP 请求。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
 
 #### Scenario: 成功更新美股持仓价格（Yahoo Finance）
 
@@ -34,6 +34,11 @@
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`BRK.B.US`，Yahoo Finance 未返回可用价格，且已配置 EODHD key
 - **THEN** 系统将其转换为 EODHD 符号 `BRK-B.US` 并使用 EODHD 获取价格，成功时更新该持仓，`provider` 返回 `eodhd`
+
+#### Scenario: 未配置个人 EODHD key 不使用环境变量回退
+
+- **WHEN** 当前用户未配置 `quote_api.eodhd_key`，但部署环境存在 `EODHD_API_KEY`，且美股 Yahoo 或亚洲腾讯未返回可用价格
+- **THEN** 系统 MUST NOT 使用部署环境中的 EODHD key 发起回退请求，并在对应持仓失败原因中返回 EODHD 未配置 API Key
 
 #### Scenario: 少量 EODHD 美股回退使用单次批量实时请求
 

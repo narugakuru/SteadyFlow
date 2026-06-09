@@ -226,10 +226,7 @@ function summarizeFailureReasons(failed: FailedItem[]): string | null {
 }
 
 function getEodhdApiKey(settingMap: ReadonlyMap<string, string>) {
-  return (
-    (settingMap.get(SETTING_KEYS.eodhdApiKey) ?? "").trim() ||
-    (process.env.EODHD_API_KEY ?? "").trim()
-  );
+  return (settingMap.get(SETTING_KEYS.eodhdApiKey) ?? "").trim();
 }
 
 function buildQuoteSyncSummary(result: Pick<UserQuoteSyncResult, "stats" | "quoteFailureSummary">) {
