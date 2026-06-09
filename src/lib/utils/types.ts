@@ -33,7 +33,7 @@ export interface Holding {
   shares: number;
   /**
    * 现价（最新市场价格）
-   * 更新来源：Stooq/Yahoo 自动拉取、交易成交价、手动修正
+   * 更新来源：Yahoo/EODHD/Tencent/Twelve Data 自动拉取、交易成交价、手动修正
    * shares 模式下 marketValue = shares × price
    */
   price: number;

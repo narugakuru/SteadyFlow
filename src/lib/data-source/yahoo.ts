@@ -1,8 +1,8 @@
 /**
  * Yahoo Finance 数据获取层封装（yahoo-finance2 v3，仅服务端使用）
  *
- * 用于 A 股(.SS/.SZ)、港股(.HK)、恒生科技等 Stooq 不覆盖的市场。
- * 保留 yahoo-finance2 作为补充数据源。
+ * 用于美股持仓报价主路由，以及 A 股(.SS/.SZ)、港股(.HK) 等后续可扩展场景。
+ * 本地网络环境可能触发 Yahoo crumb 403，调用方应准备回退数据源。
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

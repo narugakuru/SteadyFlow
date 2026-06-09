@@ -304,7 +304,8 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
                 placeholder="输入 EODHD API Key"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                腾讯主路由无可用价格时，自动回退到 EODHD（优先实时价，否则前一交易日收盘）。
+                美股 Yahoo 或亚洲市场腾讯无可用价格时，自动回退到
+                EODHD（优先实时价，否则前一交易日收盘）。
               </p>
             </div>
             <div>

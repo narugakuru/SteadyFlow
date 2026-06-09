@@ -11,9 +11,9 @@ const snapshotConfig = {
   symbol: "^spx",
   name: "S&P 500",
   group: "🇺🇸 美股",
-  provider: "stooq-history",
+  provider: "history",
   sourceSymbol: "^spx",
-  externalUrl: "https://stooq.com/q/?s=%5Espx",
+  externalUrl: "",
 };
 
 test("buildIndexSnapshotFromHistory derives latest price and previous-close change", () => {
@@ -32,8 +32,8 @@ test("buildIndexSnapshotFromHistory derives latest price and previous-close chan
     changePercent: 2.9412,
     updatedAt: "2026-03-20T00:00:00",
     group: "🇺🇸 美股",
-    source: "stooq",
-    externalUrl: "https://stooq.com/q/?s=%5Espx",
+    source: "history",
+    externalUrl: "",
   });
 });
 

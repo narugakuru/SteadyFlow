@@ -8,7 +8,7 @@
 - Markdown 渲染：react-markdown（禁用原始 HTML 直出）
 - 认证：Auth.js v5 (next-auth@beta) + bcrypt
 - 数据存储：SQLite 模式 `data/invest.db`，PostgreSQL 模式通过 DATABASE_URL 连接
-- 外部市场数据：Stooq、腾讯简易行情、CBOE VIX 历史 CSV（报价与内部市场数据源代码保留；独立市场页已下线）
+- 外部市场数据：持仓报价为美股 Yahoo Finance（yahoo-finance2）优先、EODHD 回退；A/港/北交所为腾讯简易行情优先、EODHD 回退、Twelve Data 最低权重备份；旧市场页聚合数据读取入口和 Stooq/CBOE 读取适配已移除。
 
 ## 目录结构
 
@@ -38,7 +38,6 @@ src/
 │       ├── asset-classes/          # 资产类别
 │       ├── exchange-rates/         # 汇率
 │       ├── insights/               # 洞察页服务端读模型
-│       ├── market/                 # 市场聚合行情（保留内部代码，独立页面已下线）
 │       ├── discipline-notes/       # 纪律笔记 CRUD
 │       ├── export/portfolio/       # 投资组合 JSON 导出（detail=full|decision）
 │       ├── netvalue/               # 净值（POST 当日 upsert；GET 兼容旧全量读取；子路由含 list/chart）
@@ -105,11 +104,7 @@ src/
 │   │   └── asset-class-colors.ts   # 资产类别标签配色
 │   ├── data-source/                # 数据源适配层（行情/汇率）
 │   │   ├── exchange-rate.ts        # 汇率获取逻辑
-│   │   ├── market-config.ts        # 市场页指数 / VIX / ATH 配置
 │   │   ├── market-helpers.ts       # 市场页快照与 ATH 计算辅助函数
-│   │   ├── market-data.ts          # 市场聚合数据（指数快照 + VIX + ATH）
-│   │   ├── stooq.ts                # Stooq 行情与历史数据
-│   │   ├── cboe-vix.ts             # CBOE VIX 历史 CSV 适配
 │   │   ├── yahoo.ts                # Yahoo Finance 行情
 │   │   ├── tencent-quote.ts        # 腾讯简易行情（持仓 + 市场指数）
 │   │   ├── twelve-data.ts          # Twelve Data 行情

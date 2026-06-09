@@ -11,8 +11,16 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { MarketVixData } from "@/lib/data-source/market-config";
 import { formatNumber } from "@/lib/utils/format";
+
+interface MarketVixData {
+  latest: number | null;
+  latestAt: string | null;
+  series: Array<{
+    date: string;
+    close: number;
+  }>;
+}
 
 interface VixChartCardProps {
   vix: MarketVixData | undefined;

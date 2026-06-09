@@ -4,12 +4,12 @@ import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { getExchangeRates } from "@/lib/data-source/exchange-rate";
 import { fetchEodhdQuote } from "@/lib/data-source/eodhd";
-import { fetchStooqQuote } from "@/lib/data-source/stooq";
 import {
   fetchTencentQuotesInBatches,
   toTencentSimpleQuoteSymbol,
 } from "@/lib/data-source/tencent-quote";
 import { fetchTwelveDataQuotesInBatches } from "@/lib/data-source/twelve-data";
+import { fetchYahooQuote } from "@/lib/data-source/yahoo";
 import {
   markQuoteSyncFinished,
   markQuoteSyncStarted,
@@ -27,8 +27,8 @@ function normalizeTicker(ticker: string) {
   return ticker.trim().toUpperCase();
 }
 
-function getTickerSource(ticker: string): "stooq" | "asia" | null {
-  if (ticker.endsWith(".US") || ticker.endsWith(".JP")) return "stooq";
+function getTickerSource(ticker: string): "us" | "asia" | null {
+  if (ticker.endsWith(".US")) return "us";
   if (
     ticker.endsWith(".SS") ||
     ticker.endsWith(".SZ") ||
@@ -38,6 +38,12 @@ function getTickerSource(ticker: string): "stooq" | "asia" | null {
     return "asia";
   }
   return null;
+}
+
+interface UsTickerProfile {
+  normalizedTicker: string;
+  yahooSymbol: string;
+  eodhdSymbol: string;
 }
 
 interface AsiaTickerProfile {
@@ -50,12 +56,21 @@ interface AsiaTickerProfile {
   eodhdSymbol: string;
 }
 
-function toStooqSymbol(normalizedTicker: string): string {
+function parseUsTicker(ticker: string): UsTickerProfile | null {
+  const normalizedTicker = normalizeTicker(ticker);
   const lastDot = normalizedTicker.lastIndexOf(".");
-  if (lastDot <= 0) return normalizedTicker.toLowerCase();
-  const code = normalizedTicker.slice(0, lastDot).replaceAll(".", "-");
+  if (lastDot <= 0) return null;
+
+  const code = normalizedTicker.slice(0, lastDot);
   const market = normalizedTicker.slice(lastDot + 1);
-  return `${code}.${market}`.toLowerCase();
+  if (market !== "US" || !code) return null;
+
+  const vendorCode = code.replaceAll(".", "-");
+  return {
+    normalizedTicker,
+    yahooSymbol: vendorCode,
+    eodhdSymbol: `${vendorCode}.US`,
+  };
 }
 
 function parseAsiaTicker(ticker: string): AsiaTickerProfile | null {
@@ -209,6 +224,13 @@ function summarizeFailureReasons(failed: FailedItem[]): string | null {
     .join(" | ");
 }
 
+function getEodhdApiKey(settingMap: ReadonlyMap<string, string>) {
+  return (
+    (settingMap.get(SETTING_KEYS.eodhdApiKey) ?? "").trim() ||
+    (process.env.EODHD_API_KEY ?? "").trim()
+  );
+}
+
 function buildQuoteSyncSummary(result: Pick<UserQuoteSyncResult, "stats" | "quoteFailureSummary">) {
   const parts = [
     `成功 ${result.stats.updated} 个`,
@@ -302,10 +324,9 @@ export async function syncHoldingPricesForUser(
     const failed: FailedItem[] = [];
     const skipped: SkippedItem[] = [];
 
-    const stooqHoldings: {
+    const usHoldings: {
       holding: HoldingForPrice;
-      stooqSymbol: string;
-      normalizedTicker: string;
+      profile: UsTickerProfile;
     }[] = [];
     const asiaHoldings: { holding: HoldingForPrice; profile: AsiaTickerProfile }[] = [];
 
@@ -332,12 +353,18 @@ export async function syncHoldingPricesForUser(
 
       const normalizedTicker = normalizeTicker(holding.ticker);
       const source = getTickerSource(normalizedTicker);
-      if (source === "stooq") {
-        stooqHoldings.push({
-          holding,
-          stooqSymbol: toStooqSymbol(normalizedTicker),
-          normalizedTicker,
-        });
+      if (source === "us") {
+        const profile = parseUsTicker(normalizedTicker);
+        if (!profile) {
+          skipped.push({
+            id: holding.id,
+            name: holding.name,
+            ticker: holding.ticker,
+            reason: "代码格式无法识别",
+          });
+          continue;
+        }
+        usHoldings.push({ holding, profile });
         continue;
       }
 
@@ -364,41 +391,65 @@ export async function syncHoldingPricesForUser(
       });
     }
 
-    for (const item of stooqHoldings) {
+    const needsProviderSettings = usHoldings.length > 0 || asiaHoldings.length > 0;
+    const userSettings = needsProviderSettings ? await readUserSettingsMap(userId) : new Map();
+    const eodhdApiKey = getEodhdApiKey(userSettings);
+    const twelveApiKey = (userSettings.get(SETTING_KEYS.twelveDataApiKey) ?? "").trim();
+
+    for (const item of usHoldings) {
+      let yahooError = "无可用价格";
+      let eodhdError = "无可用价格";
+
       try {
-        const quote = await fetchStooqQuote(item.stooqSymbol);
-        if (quote && quote.close > 0) {
+        const quote = await fetchYahooQuote(item.profile.yahooSymbol);
+        if (quote && quote.price > 0) {
           await applyQuoteToHolding(
             item.holding,
-            item.normalizedTicker,
-            quote.close,
-            "stooq",
+            item.profile.normalizedTicker,
+            quote.price,
+            "yahoo-finance2",
             "realtime",
             updated
           );
+          continue;
         } else {
-          failed.push({
-            id: item.holding.id,
-            name: item.holding.name,
-            ticker: item.normalizedTicker,
-            error: "Stooq 无数据",
-          });
+          yahooError = "无可用价格";
         }
       } catch (error) {
-        failed.push({
-          id: item.holding.id,
-          name: item.holding.name,
-          ticker: item.normalizedTicker,
-          error: formatErrorMessage(error, "Stooq 请求失败"),
-        });
+        yahooError = formatErrorMessage(error, "Yahoo Finance 请求失败");
       }
+
+      if (eodhdApiKey) {
+        try {
+          const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
+          if (quote) {
+            await applyQuoteToHolding(
+              item.holding,
+              item.profile.normalizedTicker,
+              quote.price,
+              "eodhd",
+              quote.source,
+              updated
+            );
+            continue;
+          }
+        } catch (error) {
+          eodhdError = formatErrorMessage(error, "EODHD 请求失败");
+        }
+      }
+
+      failed.push({
+        id: item.holding.id,
+        name: item.holding.name,
+        ticker: item.profile.normalizedTicker,
+        error: [
+          `Yahoo Finance: ${yahooError}`,
+          eodhdApiKey ? `EODHD: ${eodhdError}` : "EODHD: 未配置 API Key",
+        ].join("；"),
+      });
     }
 
     if (asiaHoldings.length > 0) {
-      const userSettings = await readUserSettingsMap(userId);
-      const twelveApiKey = (userSettings.get(SETTING_KEYS.twelveDataApiKey) ?? "").trim();
-      const eodhdApiKey = (userSettings.get(SETTING_KEYS.eodhdApiKey) ?? "").trim();
-
       const unresolvedById = new Map(asiaHoldings.map((item) => [item.holding.id, item]));
       const tencentErrorById = new Map<number, string>();
       const eodhdErrorById = new Map<number, string>();

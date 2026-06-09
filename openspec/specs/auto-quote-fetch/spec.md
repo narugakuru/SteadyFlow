@@ -5,7 +5,8 @@
 系统 SHALL 提供 `POST /api/holdings/fetch-prices` 端点，为当前用户当前持有的 shares 模式且 ticker 匹配可识别格式的持仓自动拉取最新价格并更新 `price` 和 `marketValue`。当前持有 MUST 以 shares 模式持仓的 `shares > 0` 判定；shares 为空、无效或小于等于 0 的 shares 模式持仓 MUST NOT 请求任何外部报价源，并 MUST 返回在 `skipped` 列表中。请求 MUST 支持显式触发来源语义，用于区分 `manual`、`silent-client` 与 `cron` 等模式；不同模式 MUST 复用同一报价同步核心逻辑，并使用统一口径写入报价同步元数据。
 报价分发规则 MUST 为：
 
-- `.US` / `.JP` 使用 Stooq（保留原有实现）
+- `.US` 优先使用 Yahoo Finance（`yahoo-finance2`）
+- Yahoo Finance 无可用价格或请求失败时，若当前用户已配置 `quote_api.eodhd_key` 或部署环境配置 `EODHD_API_KEY`，则回退 EODHD
 - `.SS` / `.SZ` / `.HK` / `.BJ` 优先使用腾讯简易接口（`qt.gtimg.cn`）
 - 腾讯返回不可用时，若已配置 `quote_api.eodhd_key`，则回退 EODHD
 - 腾讯与 EODHD 均不可用时，若已配置 `quote_api.twelvedata_key`，则回退 Twelve Data（最低权重可选备份）
@@ -17,12 +18,17 @@
 - `.BJ` -> `bj` + 6 位代码
 - `.HK` -> `hk` + 5 位代码（不足 5 位前补零）
 
-系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
+系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证；若用户未配置 EODHD key，系统 MAY 使用部署环境变量 `EODHD_API_KEY` 作为全局回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
 
-#### Scenario: 成功更新美股持仓价格（Stooq）
+#### Scenario: 成功更新美股持仓价格（Yahoo Finance）
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us`，shares=100，旧 price=150
-- **THEN** 系统从 Stooq 获取最新价格并更新 price 与 marketValue，返回该持仓在 updated 列表中
+- **THEN** 系统将其转换为 Yahoo 符号 `AAPL` 并优先通过 Yahoo Finance 获取最新价格，成功时更新 price 与 marketValue，返回该持仓在 updated 列表中，`provider` 返回 `yahoo-finance2`
+
+#### Scenario: 美股 Yahoo 失败后回退 EODHD
+
+- **WHEN** 当前用户有 shares 模式持仓 ticker=`BRK.B.US`，Yahoo Finance 未返回可用价格，且已配置 EODHD key
+- **THEN** 系统将其转换为 EODHD 符号 `BRK-B.US` 并使用 EODHD 获取价格，成功时更新该持仓，`provider` 返回 `eodhd`
 
 #### Scenario: 成功更新 A 股持仓价格（Tencent）
 
@@ -64,10 +70,10 @@
 - **WHEN** 当前用户有 shares 模式亚洲持仓，腾讯无可用价格，且未配置可用的 EODHD/Twelve Data key
 - **THEN** 该持仓保持原值，并在 `failed` 列表中返回明确失败原因
 
-#### Scenario: Stooq 特殊代码兼容
+#### Scenario: 美股特殊代码兼容
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`BRK.B.US`
-- **THEN** 系统将其转换为 Stooq 兼容符号后拉取报价，并在成功时更新该持仓
+- **THEN** 系统将其转换为 Yahoo/EODHD 兼容符号 `BRK-B` / `BRK-B.US` 后拉取报价，并在成功时更新该持仓
 
 #### Scenario: 跳过 amount 模式持仓
 
@@ -82,7 +88,7 @@
 #### Scenario: 返回结果结构
 
 - **WHEN** 自动报价完成
-- **THEN** API 返回 JSON `{ updated: [{id, name, ticker, oldPrice, newPrice, provider, source}], failed: [{id, name, ticker, error}], skipped: [{id, name, ticker, reason}] }`，且 `provider` 至少可区分 `tencent`、`eodhd`、`twelve-data`
+- **THEN** API 返回 JSON `{ updated: [{id, name, ticker, oldPrice, newPrice, provider, source}], failed: [{id, name, ticker, error}], skipped: [{id, name, ticker, reason}] }`，且 `provider` 至少可区分 `yahoo-finance2`、`tencent`、`eodhd`、`twelve-data`
 
 #### Scenario: 静默模式不改变接口语义
 

@@ -39,7 +39,7 @@ export function buildIndexSnapshotFromHistory(
       changePercent: 0,
       updatedAt: "",
       group: config.group,
-      source: "stooq" as const,
+      source: "history" as const,
       externalUrl: config.externalUrl,
     };
   }
@@ -58,7 +58,7 @@ export function buildIndexSnapshotFromHistory(
     changePercent: roundToStorage(changePercent),
     updatedAt: `${latest.date}T00:00:00`,
     group: config.group,
-    source: "stooq" as const,
+    source: "history" as const,
     externalUrl: config.externalUrl,
   };
 }
