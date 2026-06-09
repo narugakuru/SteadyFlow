@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { NotebookText, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, NotebookText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,194 +86,213 @@ export function HoldingRow({
     setTxOpen(true);
   };
 
-  const pnlDisplay =
-    returnRate !== null ? (
-      <span className={`text-sm ${pnlColorClass(displayPnl, colorMode)}`}>
-        {displayPnl > 0 ? "+" : ""}
-        {amountSymbol}
-        {formatAmount(displayPnl)}
-        <span className="ml-1">
-          ({returnRate > 0 ? "+" : ""}
-          {formatPercent(returnRate)}%)
-        </span>
-      </span>
-    ) : (
-      <span className="text-sm text-muted-foreground">--</span>
-    );
-
   const hasMemo = Boolean(h.memo?.trim());
 
-  const actionButtons = (
-    <>
-      {hasMemo && (
-        <div className="relative flex items-center">
-          {/* 桌面端：hover 提示 */}
-          <span className="hidden md:inline-flex size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm group">
-            <NotebookText className="size-4" />
-            <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
-              {h.memo}
-            </div>
-          </span>
-
-          {/* 移动端：点击展开 */}
-          <button
-            type="button"
-            className="md:hidden inline-flex size-7 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm"
-            onClick={() => setShowMobileMemo((prev) => !prev)}
-            aria-label="查看持仓备注"
-          >
-            <NotebookText className="size-4" />
-          </button>
+  const memoIndicator = hasMemo ? (
+    <div className="relative flex items-center">
+      <span className="hidden size-6 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm group md:inline-flex">
+        <NotebookText className="size-4" />
+        <div className="pointer-events-none absolute left-1/2 top-full z-30 hidden min-w-52 max-w-80 -translate-x-1/2 rounded border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
+          {h.memo}
         </div>
+      </span>
+      <button
+        type="button"
+        className="inline-flex size-7 items-center justify-center rounded-md border border-orange-300 bg-orange-100 text-orange-700 shadow-sm md:hidden"
+        onClick={() => setShowMobileMemo((prev) => !prev)}
+        aria-label="查看持仓备注"
+      >
+        <NotebookText className="size-4" />
+      </button>
+    </div>
+  ) : null;
+
+  const actionMenu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="size-11 text-muted-foreground hover:text-foreground md:size-8"
+          aria-label={`打开${h.name}操作菜单`}
+        >
+          <MoreVertical className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-28">
+        <DropdownMenuItem onSelect={() => openTx("buy")}>买入</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => openTx("sell")}>卖出</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setEditOpen(true)}>编辑</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const deleteAction =
+    actions === "full" && onDelete ? (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-8 text-destructive hover:text-destructive"
+            aria-label="删除持仓"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogDescription>确定删除持仓&ldquo;{h.name}&rdquo;？</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onDelete(h.id)}>确认</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    ) : null;
+
+  const actionArea = (
+    <div className="flex items-center justify-end gap-1">
+      {actionMenu}
+      {deleteAction}
+    </div>
+  );
+
+  const assetInfo = (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="truncate font-semibold text-foreground">{h.name}</span>
+      {h.ticker && <span className="shrink-0 text-xs text-muted-foreground">{h.ticker}</span>}
+      {showAccountName && accountName && (
+        <Badge variant="outline" className="shrink-0 text-xs">
+          {accountName}
+        </Badge>
       )}
-      <Button
-        size="sm"
-        className="h-6 px-3 text-sm font-semibold shadow-sm"
-        onClick={() => openTx("buy")}
-      >
-        交易
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6"
-        onClick={() => setEditOpen(true)}
-        aria-label="编辑持仓"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-      {actions === "full" && (
+      {memoIndicator}
+    </div>
+  );
+
+  const sharesBlock =
+    h.valuationMode === "shares" ? (
+      <span>{formatShares(h.shares)}</span>
+    ) : (
+      <span className="text-muted-foreground">--</span>
+    );
+
+  const priceBlock =
+    h.valuationMode === "shares" ? (
+      <>
+        <span className="font-medium text-foreground">
+          {sourceSymbol}
+          {formatPrice(h.price)}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          成本 {sourceSymbol}
+          {formatPrice(h.cost)}
+        </span>
+      </>
+    ) : (
+      <>
+        <span className="font-medium text-foreground">--</span>
+        <span className="text-xs text-muted-foreground">
+          成本 {sourceSymbol}
+          {formatAmount(h.cost)}
+        </span>
+      </>
+    );
+
+  const valueWeightBlock = (
+    <>
+      <span className="font-semibold text-foreground md:text-base">
+        {amountSymbol}
+        {formatAmount(displayMarketValue)}
+      </span>
+      <span className="text-xs text-muted-foreground">占比 {formatPercent(pctOfTotal)}%</span>
+    </>
+  );
+
+  const pnlBlock = (
+    <>
+      {returnRate !== null ? (
         <>
-          {onDelete && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-destructive"
-                  aria-label="删除持仓"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>确认删除</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    确定删除持仓&ldquo;{h.name}&rdquo;？
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onDelete(h.id)}>确认</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          <span className={`font-medium ${pnlColorClass(displayPnl, colorMode)}`}>
+            {displayPnl > 0 ? "+" : ""}
+            {amountSymbol}
+            {formatAmount(displayPnl)}
+          </span>
+          <span className={`text-xs ${pnlColorClass(displayPnl, colorMode)}`}>
+            {returnRate > 0 ? "+" : ""}
+            {formatPercent(returnRate)}%
+          </span>
         </>
+      ) : (
+        <span className="text-muted-foreground">--</span>
       )}
     </>
   );
 
   return (
     <>
-      <div className="py-2 px-2 rounded hover:bg-accent/30">
-        {/* Desktop: two-row horizontal layout */}
-        <div className="hidden md:block">
-          {/* Row 1: core info */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-semibold truncate">{h.name}</span>
-              {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
-              {showAccountName && accountName && (
-                <Badge variant="outline" className="text-xs shrink-0">
-                  {accountName}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-4 shrink-0">
-              <span className="font-semibold">
+      <div className="rounded-md px-2 py-2 hover:bg-accent/30 md:px-3">
+        <div className="hidden min-h-12 grid-cols-[minmax(9rem,1.7fr)_minmax(4.5rem,0.75fr)_minmax(6rem,0.9fr)_minmax(7rem,1fr)_minmax(7rem,1fr)_minmax(3rem,auto)] items-center gap-4 md:grid">
+          <div className="min-w-0">{assetInfo}</div>
+          <div className="text-right text-sm tabular-nums">{sharesBlock}</div>
+          <div className="flex flex-col items-end gap-0.5 text-right tabular-nums">
+            {priceBlock}
+          </div>
+          <div className="flex flex-col items-end gap-0.5 text-right tabular-nums">
+            {valueWeightBlock}
+          </div>
+          <div className="flex flex-col items-end gap-0.5 text-right tabular-nums">{pnlBlock}</div>
+          {actionArea}
+        </div>
+
+        <div className="space-y-3 rounded-md border bg-card px-3 py-3 md:hidden">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">{assetInfo}</div>
+            {actionArea}
+          </div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <div className="flex min-w-0 flex-col">
+              <span className="text-lg font-semibold leading-tight">
                 {amountSymbol}
                 {formatAmount(displayMarketValue)}
               </span>
-              {pnlDisplay}
+              <span className="text-xs text-muted-foreground">
+                占比 {formatPercent(pctOfTotal)}%
+              </span>
+            </div>
+            <div className="flex flex-col items-end text-right tabular-nums">{pnlBlock}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-md bg-muted/40 px-2 py-1.5">
+              <div className="text-muted-foreground">现价</div>
+              <div className="mt-0.5 font-medium text-foreground tabular-nums">
+                {h.valuationMode === "shares" ? `${sourceSymbol}${formatPrice(h.price)}` : "--"}
+              </div>
+            </div>
+            <div className="rounded-md bg-muted/40 px-2 py-1.5">
+              <div className="text-muted-foreground">成本</div>
+              <div className="mt-0.5 font-medium text-foreground tabular-nums">
+                {sourceSymbol}
+                {h.valuationMode === "shares" ? formatPrice(h.cost) : formatAmount(h.cost)}
+              </div>
+            </div>
+            <div className="rounded-md bg-muted/40 px-2 py-1.5">
+              <div className="text-muted-foreground">份额</div>
+              <div className="mt-0.5 font-medium text-foreground tabular-nums">
+                {h.valuationMode === "shares" ? formatShares(h.shares) : "--"}
+              </div>
+            </div>
+            <div className="rounded-md bg-muted/40 px-2 py-1.5">
+              <div className="text-muted-foreground">模式</div>
+              <div className="mt-0.5 font-medium text-foreground">
+                {h.valuationMode === "shares" ? "份额" : "金额"}
+              </div>
             </div>
           </div>
-          {/* Row 2: details + actions */}
-          <div className="flex items-center justify-between mt-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {h.valuationMode === "shares" && (
-                <>
-                  <span>份额 {formatShares(h.shares)}</span>
-                  <span>·</span>
-                  {h.cost > 0 && (
-                    <>
-                      <span>
-                        成本价 {sourceSymbol}
-                        {formatPrice(h.cost)}
-                      </span>
-                      <span>·</span>
-                    </>
-                  )}
-                  <span>
-                    现价 {sourceSymbol}
-                    {formatPrice(h.price)}
-                  </span>
-                  <span>·</span>
-                </>
-              )}
-              <span>占比 {formatPercent(pctOfTotal)}%</span>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">{actionButtons}</div>
-          </div>
-        </div>
-
-        {/* Mobile: vertical stacked layout */}
-        <div className="md:hidden space-y-1.5">
-          {/* Row 1: name + tags */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-medium truncate">{h.name}</span>
-            {h.ticker && <span className="text-xs text-muted-foreground">{h.ticker}</span>}
-            {showAccountName && accountName && (
-              <Badge variant="outline" className="text-xs shrink-0">
-                {accountName}
-              </Badge>
-            )}
-          </div>
-          {/* Row 2: value + pnl */}
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-sm">
-              {amountSymbol}
-              {formatAmount(displayMarketValue)}
-            </span>
-            {pnlDisplay}
-          </div>
-          {/* Row 3: details */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-            {h.valuationMode === "shares" && (
-              <>
-                <span>份额 {formatShares(h.shares)}</span>
-                <span>·</span>
-                {h.cost > 0 && (
-                  <>
-                    <span>
-                      成本价 {sourceSymbol}
-                      {formatPrice(h.cost)}
-                    </span>
-                    <span>·</span>
-                  </>
-                )}
-                <span>
-                  现价 {sourceSymbol}
-                  {formatPrice(h.price)}
-                </span>
-                <span>·</span>
-              </>
-            )}
-            <span>占比 {formatPercent(pctOfTotal)}%</span>
-          </div>
-          {/* Row 4: actions */}
-          <div className="flex items-center justify-end gap-4 flex-wrap">{actionButtons}</div>
           {hasMemo && showMobileMemo && (
             <div className="rounded border bg-popover px-2 py-1 text-xs text-popover-foreground">
               {h.memo}
