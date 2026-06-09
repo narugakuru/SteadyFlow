@@ -3,7 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, holdings } from "@/db/schema";
 import { getExchangeRates } from "@/lib/data-source/exchange-rate";
-import { fetchEodhdQuote } from "@/lib/data-source/eodhd";
+import { fetchEodhdQuotesInBatches } from "@/lib/data-source/eodhd";
 import {
   fetchTencentQuotesInBatches,
   toTencentSimpleQuoteSymbol,
@@ -22,6 +22,7 @@ import type { QuoteSyncTriggerSource } from "@/lib/utils/quote-sync";
 const TWELVE_BATCH_SIZE = 8;
 const TENCENT_BATCH_SIZE = 30;
 const TENCENT_MAX_RETRIES = 1;
+const EODHD_BATCH_SIZE = 10;
 
 function normalizeTicker(ticker: string) {
   return ticker.trim().toUpperCase();
@@ -396,10 +397,14 @@ export async function syncHoldingPricesForUser(
     const eodhdApiKey = getEodhdApiKey(userSettings);
     const twelveApiKey = (userSettings.get(SETTING_KEYS.twelveDataApiKey) ?? "").trim();
 
-    for (const item of usHoldings) {
-      let yahooError = "无可用价格";
-      let eodhdError = "无可用价格";
+    const unresolvedUsById = new Map<
+      number,
+      { holding: HoldingForPrice; profile: UsTickerProfile }
+    >();
+    const yahooErrorById = new Map<number, string>();
+    const usEodhdErrorById = new Map<number, string>();
 
+    for (const item of usHoldings) {
       try {
         const quote = await fetchYahooQuote(item.profile.yahooSymbol);
         if (quote && quote.price > 0) {
@@ -413,38 +418,58 @@ export async function syncHoldingPricesForUser(
           );
           continue;
         } else {
-          yahooError = "无可用价格";
+          yahooErrorById.set(item.holding.id, "无可用价格");
         }
       } catch (error) {
-        yahooError = formatErrorMessage(error, "Yahoo Finance 请求失败");
+        yahooErrorById.set(item.holding.id, formatErrorMessage(error, "Yahoo Finance 请求失败"));
       }
 
-      if (eodhdApiKey) {
-        try {
-          const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
-          if (quote) {
-            await applyQuoteToHolding(
-              item.holding,
-              item.profile.normalizedTicker,
-              quote.price,
-              "eodhd",
-              quote.source,
-              updated
-            );
-            continue;
-          }
-        } catch (error) {
-          eodhdError = formatErrorMessage(error, "EODHD 请求失败");
+      unresolvedUsById.set(item.holding.id, item);
+    }
+
+    if (unresolvedUsById.size > 0 && eodhdApiKey) {
+      const eodhdResults = await fetchEodhdQuotesInBatches(
+        eodhdApiKey,
+        [...unresolvedUsById.values()].map(({ holding, profile }) => ({
+          requestId: String(holding.id),
+          symbol: profile.eodhdSymbol,
+        })),
+        { batchSize: EODHD_BATCH_SIZE }
+      );
+
+      for (const result of eodhdResults) {
+        const holdingId = Number.parseInt(result.requestId, 10);
+        const item = unresolvedUsById.get(holdingId);
+        if (!item) continue;
+
+        if (!result.quote) {
+          usEodhdErrorById.set(holdingId, result.error ?? "无可用价格");
+          continue;
         }
-      }
 
+        await applyQuoteToHolding(
+          item.holding,
+          item.profile.normalizedTicker,
+          result.quote.price,
+          "eodhd",
+          result.quote.source,
+          updated
+        );
+        unresolvedUsById.delete(holdingId);
+      }
+    }
+
+    for (const item of unresolvedUsById.values()) {
+      const holdingId = item.holding.id;
       failed.push({
         id: item.holding.id,
         name: item.holding.name,
         ticker: item.profile.normalizedTicker,
         error: [
-          `Yahoo Finance: ${yahooError}`,
-          eodhdApiKey ? `EODHD: ${eodhdError}` : "EODHD: 未配置 API Key",
+          `Yahoo Finance: ${yahooErrorById.get(holdingId) ?? "无可用价格"}`,
+          eodhdApiKey
+            ? `EODHD: ${usEodhdErrorById.get(holdingId) ?? "无可用价格"}`
+            : "EODHD: 未配置 API Key",
         ].join("；"),
       });
     }
@@ -494,26 +519,34 @@ export async function syncHoldingPricesForUser(
       }
 
       if (unresolvedById.size > 0 && eodhdApiKey) {
-        for (const [holdingId, item] of unresolvedById.entries()) {
-          try {
-            const quote = await fetchEodhdQuote(eodhdApiKey, item.profile.eodhdSymbol);
-            if (!quote) {
-              eodhdErrorById.set(holdingId, "无可用价格");
-              continue;
-            }
+        const eodhdResults = await fetchEodhdQuotesInBatches(
+          eodhdApiKey,
+          [...unresolvedById.values()].map(({ holding, profile }) => ({
+            requestId: String(holding.id),
+            symbol: profile.eodhdSymbol,
+          })),
+          { batchSize: EODHD_BATCH_SIZE }
+        );
 
-            await applyQuoteToHolding(
-              item.holding,
-              item.profile.normalizedTicker,
-              quote.price,
-              "eodhd",
-              quote.source,
-              updated
-            );
-            unresolvedById.delete(holdingId);
-          } catch (error) {
-            eodhdErrorById.set(holdingId, formatErrorMessage(error, "EODHD 请求失败"));
+        for (const result of eodhdResults) {
+          const holdingId = Number.parseInt(result.requestId, 10);
+          const item = unresolvedById.get(holdingId);
+          if (!item) continue;
+
+          if (!result.quote) {
+            eodhdErrorById.set(holdingId, result.error ?? "无可用价格");
+            continue;
           }
+
+          await applyQuoteToHolding(
+            item.holding,
+            item.profile.normalizedTicker,
+            result.quote.price,
+            "eodhd",
+            result.quote.source,
+            updated
+          );
+          unresolvedById.delete(holdingId);
         }
       }
 

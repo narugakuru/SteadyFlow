@@ -8,7 +8,7 @@
 - Markdown 渲染：react-markdown（禁用原始 HTML 直出）
 - 认证：Auth.js v5 (next-auth@beta) + bcrypt
 - 数据存储：SQLite 模式 `data/invest.db`，PostgreSQL 模式通过 DATABASE_URL 连接
-- 外部市场数据：持仓报价为美股 Yahoo Finance（yahoo-finance2）优先、EODHD 回退；A/港/北交所为腾讯简易行情优先、EODHD 回退、Twelve Data 最低权重备份；旧市场页聚合数据读取入口和 Stooq/CBOE 读取适配已移除。
+- 外部市场数据：持仓报价为美股 Yahoo Finance（yahoo-finance2，`quote` + `quoteSummary` 兜底）优先、EODHD 回退；A/港/北交所为腾讯简易行情优先、EODHD 回退、Twelve Data 最低权重备份；EODHD 回退按最多 10 个 symbol 一组使用 realtime 批量请求；旧市场页聚合数据读取入口和 Stooq/CBOE 读取适配已移除。
 
 ## 目录结构
 

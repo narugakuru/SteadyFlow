@@ -18,17 +18,27 @@
 - `.BJ` -> `bj` + 6 位代码
 - `.HK` -> `hk` + 5 位代码（不足 5 位前补零）
 
-系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证；若用户未配置 EODHD key，系统 MAY 使用部署环境变量 `EODHD_API_KEY` 作为全局回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
+系统 MUST 读取当前用户 settings 中的 `quote_api.eodhd_key` 与 `quote_api.twelvedata_key` 作为回退凭证；若用户未配置 EODHD key，系统 MAY 使用部署环境变量 `EODHD_API_KEY` 作为全局回退凭证。拉取失败时 MUST NOT 修改该持仓的 `price` 和 `marketValue`。系统 MUST 验证所有持仓属于当前登录用户。系统 MUST NOT 在 Tencent、EODHD、Twelve Data 请求链路中引入固定秒级延时（例如 65s 批次等待）。EODHD 回退请求 MUST 先按最多 10 个 symbol 一组调用实时批量接口；当待回退 symbol 数量不超过 10 且实时批量接口返回全部价格时，系统 MUST 只执行 1 次 EODHD realtime HTTP 请求。手动与静默模式返回的结果结构 MUST 保持兼容，至少包含 `updated`、`failed`、`skipped` 三类结果。
 
 #### Scenario: 成功更新美股持仓价格（Yahoo Finance）
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`aapl.us`，shares=100，旧 price=150
 - **THEN** 系统将其转换为 Yahoo 符号 `AAPL` 并优先通过 Yahoo Finance 获取最新价格，成功时更新 price 与 marketValue，返回该持仓在 updated 列表中，`provider` 返回 `yahoo-finance2`
 
+#### Scenario: Yahoo quote 失败后使用 quoteSummary
+
+- **WHEN** yahoo-finance2 的 `quote()` 对美股 symbol 请求失败或遗漏该 symbol
+- **THEN** 系统使用 `quoteSummary(symbol, { modules: ["price"] })` 再尝试获取价格，成功时仍以 `provider=yahoo-finance2` 更新持仓
+
 #### Scenario: 美股 Yahoo 失败后回退 EODHD
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`BRK.B.US`，Yahoo Finance 未返回可用价格，且已配置 EODHD key
 - **THEN** 系统将其转换为 EODHD 符号 `BRK-B.US` 并使用 EODHD 获取价格，成功时更新该持仓，`provider` 返回 `eodhd`
+
+#### Scenario: 少量 EODHD 美股回退使用单次批量实时请求
+
+- **WHEN** 多个 `.US` 持仓均未从 Yahoo Finance 获取到可用价格，且待回退 EODHD symbol 数量不超过 10
+- **THEN** 系统通过一次 EODHD realtime 请求提交主 symbol 和 `s=` 附加 symbol 列表，并按返回数组更新所有可用报价
 
 #### Scenario: 成功更新 A 股持仓价格（Tencent）
 
@@ -49,6 +59,11 @@
 
 - **WHEN** 当前用户有 shares 模式持仓 ticker=`0700.HK`，腾讯未返回可用价格，且已配置 EODHD key
 - **THEN** 系统使用 EODHD 获取价格并更新该持仓，`provider` 返回 `eodhd`
+
+#### Scenario: 少量亚洲 EODHD 回退使用单次批量实时请求
+
+- **WHEN** 多个亚洲市场持仓均未从腾讯获取到可用价格，且待回退 EODHD symbol 数量不超过 10
+- **THEN** 系统通过一次 EODHD realtime 请求批量获取这些 symbol 的价格，并按返回数组更新所有可用报价
 
 #### Scenario: 腾讯与 EODHD 失败后回退 Twelve Data
 

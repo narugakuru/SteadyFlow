@@ -5,6 +5,22 @@ export interface EodhdQuote {
   source: "realtime" | "previous_close";
 }
 
+export interface EodhdQuoteRequest {
+  requestId: string;
+  symbol: string;
+}
+
+export interface EodhdQuoteResult {
+  requestId: string;
+  symbol: string;
+  quote: EodhdQuote | null;
+  error?: string;
+}
+
+interface FetchEodhdQuotesOptions {
+  batchSize?: number;
+}
+
 function toPositiveNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
     return value;
@@ -30,30 +46,58 @@ function toIsoDatetime(value: unknown): string {
   return "";
 }
 
-async function fetchEodhdRealtime(apiKey: string, symbol: string): Promise<EodhdQuote | null> {
+function normalizeSymbol(symbol: string) {
+  return symbol.trim().toUpperCase();
+}
+
+function parseRealtimeQuote(row: Record<string, unknown>, fallbackSymbol: string) {
+  const price = toPositiveNumber(row.close) ?? toPositiveNumber(row.price);
+  if (!price) return null;
+
+  return {
+    symbol: String(row.code ?? row.symbol ?? row.ticker ?? fallbackSymbol),
+    price,
+    updatedAt: toIsoDatetime(row.timestamp ?? row.datetime),
+    source: "realtime" as const,
+  };
+}
+
+async function fetchEodhdRealtimeBatch(
+  apiKey: string,
+  symbols: string[]
+): Promise<Map<string, EodhdQuote>> {
+  const uniqueSymbols = [...new Set(symbols.map(normalizeSymbol).filter(Boolean))];
+  if (uniqueSymbols.length === 0) return new Map();
+
   try {
-    const url = new URL(`https://eodhd.com/api/real-time/${encodeURIComponent(symbol)}`);
+    const [primarySymbol, ...secondarySymbols] = uniqueSymbols;
+    const url = new URL(`https://eodhd.com/api/real-time/${encodeURIComponent(primarySymbol)}`);
     url.searchParams.set("api_token", apiKey);
     url.searchParams.set("fmt", "json");
+    if (secondarySymbols.length > 0) {
+      url.searchParams.set("s", secondarySymbols.join(","));
+    }
 
     const res = await fetch(url.toString(), {
       cache: "no-store",
       signal: AbortSignal.timeout(15000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return new Map();
 
-    const data = (await res.json()) as Record<string, unknown>;
-    const price = toPositiveNumber(data.close) ?? toPositiveNumber(data.price);
-    if (!price) return null;
+    const data = (await res.json()) as unknown;
+    const rows = Array.isArray(data) ? data : [data];
+    const quoteBySymbol = new Map<string, EodhdQuote>();
 
-    return {
-      symbol: String(data.code ?? symbol),
-      price,
-      updatedAt: toIsoDatetime(data.timestamp ?? data.datetime),
-      source: "realtime",
-    };
+    for (const row of rows) {
+      if (!row || typeof row !== "object") continue;
+      const quote = parseRealtimeQuote(row as Record<string, unknown>, primarySymbol);
+      if (!quote) continue;
+      quoteBySymbol.set(normalizeSymbol(quote.symbol), quote);
+    }
+
+    return quoteBySymbol;
   } catch {
-    return null;
+    return new Map();
   }
 }
 
@@ -91,7 +135,52 @@ async function fetchEodhdPreviousClose(apiKey: string, symbol: string): Promise<
 
 export async function fetchEodhdQuote(apiKey: string, symbol: string): Promise<EodhdQuote | null> {
   if (!apiKey) return null;
-  const realtime = await fetchEodhdRealtime(apiKey, symbol);
-  if (realtime) return realtime;
-  return fetchEodhdPreviousClose(apiKey, symbol);
+  const [result] = await fetchEodhdQuotesInBatches(apiKey, [{ requestId: symbol, symbol }], {
+    batchSize: 1,
+  });
+  return result?.quote ?? null;
+}
+
+export async function fetchEodhdQuotesInBatches(
+  apiKey: string,
+  requests: EodhdQuoteRequest[],
+  options: FetchEodhdQuotesOptions = {}
+): Promise<EodhdQuoteResult[]> {
+  if (requests.length === 0) return [];
+
+  const batchSize = Math.max(1, options.batchSize ?? 10);
+  if (!apiKey) {
+    return requests.map((request) => ({
+      ...request,
+      quote: null,
+      error: "未配置 API Key",
+    }));
+  }
+
+  const results: EodhdQuoteResult[] = [];
+
+  for (let start = 0; start < requests.length; start += batchSize) {
+    const batch = requests.slice(start, start + batchSize);
+    const realtimeBySymbol = await fetchEodhdRealtimeBatch(
+      apiKey,
+      batch.map((request) => request.symbol)
+    );
+
+    for (const request of batch) {
+      const realtime = realtimeBySymbol.get(normalizeSymbol(request.symbol));
+      if (realtime) {
+        results.push({ ...request, quote: realtime });
+        continue;
+      }
+
+      const previousClose = await fetchEodhdPreviousClose(apiKey, request.symbol);
+      results.push({
+        ...request,
+        quote: previousClose,
+        error: previousClose ? undefined : "无可用价格",
+      });
+    }
+  }
+
+  return results;
 }

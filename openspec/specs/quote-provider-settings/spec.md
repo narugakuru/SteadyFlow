@@ -27,7 +27,7 @@
 
 ### Requirement: 自动报价接口按用户读取 API Key
 
-系统 SHALL 在执行 `POST /api/holdings/fetch-prices` 时读取当前登录用户的供应商 key，并将 EODHD key 用于美股 Yahoo 失败后的回退流程，以及亚洲市场腾讯主链路失败后的回退流程；Twelve Data 仅用于亚洲市场的最低权重备份。系统 MUST NOT 读取其他用户 key。
+系统 SHALL 在执行 `POST /api/holdings/fetch-prices` 时读取当前登录用户的供应商 key，并将 EODHD key 用于美股 Yahoo 失败后的回退流程，以及亚洲市场腾讯主链路失败后的回退流程；Twelve Data 仅用于亚洲市场的最低权重备份。系统 MUST NOT 读取其他用户 key。EODHD 回退 MUST 优先使用 realtime 批量请求，并在单组待回退 symbol 数量不超过 10 时以一次 HTTP 请求提交。
 
 #### Scenario: A 用户与 B 用户使用不同 key
 
@@ -43,3 +43,8 @@
 
 - **WHEN** 用户未配置 EODHD key，但部署环境配置了 `EODHD_API_KEY`，且美股 Yahoo 或亚洲腾讯未返回可用价格
 - **THEN** 系统使用全局 EODHD key 尝试回退，不要求用户在设置中重复保存 key
+
+#### Scenario: EODHD key 用于批量回退
+
+- **WHEN** 当前用户配置了 EODHD key，且多个持仓同时进入 EODHD 回退路径
+- **THEN** 系统复用该 key 发起批量 realtime 请求，而不是对每个持仓独立发起 realtime 请求

@@ -14,7 +14,7 @@
 - 独立“市场”和“股价更新”页面已下线，直接访问 `/market` 与 `/batch-update` 会重定向到总览；旧市场聚合 API 已移除，不再为市场页读取外部数据；报价 API、Dashboard 手动刷新、静默刷新与 Cron 刷新保留。
 - 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`7d/30d/90d -> day`，`1y -> week`，`3y/all -> month`），总览与净值图表默认 `30d`。
 - 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）。
-- 自动报价路由已升级：美股默认走 Yahoo Finance（yahoo-finance2）并以 EODHD 兜底；港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份；Stooq 适配已移除。
+- 自动报价路由已升级：美股默认走 Yahoo Finance（yahoo-finance2，`quote` + `quoteSummary` 兜底）并以 EODHD 兜底；港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份；EODHD 回退按最多 10 个 symbol 一组使用 realtime 批量请求，Stooq 适配已移除。
 - 已提供参数化投资组合 JSON 导出接口（`/api/export/portfolio?detail=full|decision`）：设置面板可导出全部数据，Dashboard 资产配置纪律区可导出精简决策快照。
 - 已落地“每日 Cron 保底 + Dashboard 静默兜底”的股价刷新策略，并在总资产卡片显示最近股价同步时间。
 - 净值快照持久化已瘦身：新写入 `netvalue.dataJson` 仅保留 `allocation + rates`；历史旧记录通过运行时维护与脚本回填兼容清理，SQLite 与 PostgreSQL 双模式均覆盖。
@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-09] 优化 Yahoo/EODHD 报价兜底：Yahoo Finance 封装新增 `quoteSummary(price)` 内部兜底，减少偶发 `quote()` 失败后直接消耗 EODHD；EODHD 回退改为最多 10 个 symbol 一组走 realtime 批量请求，少量 symbol 可单次 HTTP 返回多只价格。同步更新主 specs。
 - [2026-06-09] 调整美股自动报价数据源：移除 Stooq 适配与持仓报价路由，`.US` 改为 Yahoo Finance 优先、EODHD 回退，并支持全局 `EODHD_API_KEY`；删除旧 `/api/market` 市场聚合入口及 Stooq/CBOE 市场读取模块，独立市场页不再触发外部市场数据读取。同步更新主 specs 与 `openspec/project.md`。
 - [2026-06-09] 完成 `add-chart-range-persistence-and-netvalue-cards` 实装：总览/净值图表新增 `7D` 范围并默认 `30D`，总览范围选择持久化到本地；净值页两个图表改为浅色卡片风格，隐藏 Y 轴/轴线并移除总资产走势明显数据点。同步更新主 specs。
 - [2026-06-09] 继续微调 `refactor-wealthfolio-style-ui` 图表配色：洞察占比图切换为更清透明亮的组合色，持仓热力图改为柔和红/绿三档强度；总览资产曲线仅加深绿色线条与填充，明确不加入收益 0 水平线。同步更新 OpenSpec change 与主 specs。
