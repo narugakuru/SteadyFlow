@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-09] 调整净值页总资产走势图：由纯绿色折线改为与总览一致的绿色渐变填充面积图，保留隐藏 Y 轴、无常驻数据点与 Tooltip 读数能力。同步更新 `visualization-charts` 主 spec。
 - [2026-06-09] 优化 Yahoo/EODHD 报价兜底：Yahoo Finance 封装新增 `quoteSummary(price)` 内部兜底，减少偶发 `quote()` 失败后直接消耗 EODHD；EODHD 回退改为最多 10 个 symbol 一组走 realtime 批量请求，少量 symbol 可单次 HTTP 返回多只价格。同步更新主 specs。
 - [2026-06-09] 调整美股自动报价数据源：移除 Stooq 适配与持仓报价路由，`.US` 改为 Yahoo Finance 优先、EODHD 回退，并支持全局 `EODHD_API_KEY`；删除旧 `/api/market` 市场聚合入口及 Stooq/CBOE 市场读取模块，独立市场页不再触发外部市场数据读取。同步更新主 specs 与 `openspec/project.md`。
 - [2026-06-09] 完成 `add-chart-range-persistence-and-netvalue-cards` 实装：总览/净值图表新增 `7D` 范围并默认 `30D`，总览范围选择持久化到本地；净值页两个图表改为浅色卡片风格，隐藏 Y 轴/轴线并移除总资产走势明显数据点。同步更新主 specs。
