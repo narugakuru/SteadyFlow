@@ -283,6 +283,7 @@ export function AccountList({
     defaultExpandId ? new Set([defaultExpandId]) : new Set()
   );
   const [createOpen, setCreateOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
   const [showZeroMarketHoldings, setShowZeroMarketHoldings] = useState(false);
   const [priceMsg, setPriceMsg] = useState("");
@@ -417,6 +418,9 @@ export function AccountList({
             <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>
               + 新建持仓
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>
+              编辑账户
+            </Button>
           </div>
         </div>
         <AccountHoldingTable
@@ -522,6 +526,17 @@ export function AccountList({
       )}
 
       <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />
+      {editAccount && (
+        <AccountForm
+          account={editAccount}
+          open={!!editAccount}
+          onOpenChange={(open) => !open && setEditAccount(null)}
+          onSaved={() => {
+            setEditAccount(null);
+            onRefresh();
+          }}
+        />
+      )}
       {addHoldingFor && (
         <HoldingForm
           accountId={addHoldingFor.id}

@@ -414,51 +414,190 @@ export function DisciplineTable({
     );
   };
 
-  const renderHoldings = (item: AllocationItem) => {
+  const getHoldingDisplayValues = (ah: AllocationHolding) => {
+    const displayAmountCurrency = getDisplayCurrency(ah.currency);
+    const symbol = getCurrencySymbol(displayAmountCurrency);
+    const sourceSymbol = getCurrencySymbol(ah.currency);
+    const marketValue = getDisplayAmount(ah.marketValue, ah.currency);
+    const pnlAmount = getDisplayAmount(ah.pnlAmount, ah.currency);
+    const weight = totalAssetCny > 0 ? (ah.marketValueCny / totalAssetCny) * 100 : 0;
+
+    return {
+      symbol,
+      sourceSymbol,
+      marketValue,
+      pnlAmount,
+      weight,
+    };
+  };
+
+  const renderPnl = (ah: AllocationHolding, compact = false) => {
+    const { symbol, pnlAmount } = getHoldingDisplayValues(ah);
+
+    if (ah.returnRate === null) {
+      return <span className="text-muted-foreground">--</span>;
+    }
+
+    return (
+      <span className={pnlColorClass(pnlAmount, colorMode)}>
+        {pnlAmount > 0 ? "+" : ""}
+        {symbol}
+        {formatAmount(pnlAmount)}
+        <span className={compact ? "ml-1" : "ml-1 text-xs"}>
+          ({ah.returnRate > 0 ? "+" : ""}
+          {formatPercent(ah.returnRate)}%)
+        </span>
+      </span>
+    );
+  };
+
+  const renderDesktopHoldingTable = (item: AllocationItem) => {
     if (item.holdings.length === 0) {
       return <p className="text-muted-foreground text-sm py-2">暂无持仓</p>;
     }
 
     return (
-      <div className="divide-y rounded-md border bg-background">
+      <div className="overflow-x-auto rounded-md border bg-background">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="border-b bg-muted/30 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium">标的</th>
+              <th className="px-3 py-2 text-right font-medium">份额</th>
+              <th className="px-3 py-2 text-right font-medium">现价</th>
+              <th className="px-3 py-2 text-right font-medium">成本价</th>
+              <DesktopSortHeader
+                label="市值"
+                sortKey="amount"
+                activeSort={detailSort}
+                onToggle={handleDetailSortToggle}
+              />
+              <DesktopSortHeader
+                label="盈亏"
+                sortKey="pnl"
+                activeSort={detailSort}
+                onToggle={handleDetailSortToggle}
+              />
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {item.holdings.map((ah) => {
+              const { symbol, sourceSymbol, marketValue } = getHoldingDisplayValues(ah);
+
+              if (ah.id < 0) {
+                return (
+                  <tr key={ah.id}>
+                    <td className="px-3 py-3">
+                      <div className="font-medium">{ah.name}</div>
+                      <Badge variant="outline" className="mt-1 text-xs">
+                        {ah.accountName}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-3 text-right text-muted-foreground">--</td>
+                    <td className="px-3 py-3 text-right text-muted-foreground">--</td>
+                    <td className="px-3 py-3 text-right text-muted-foreground">--</td>
+                    <td className="px-3 py-3 text-right text-base font-semibold tabular-nums">
+                      {symbol}
+                      {formatAmount(marketValue)}
+                    </td>
+                    <td className="px-3 py-3 text-right text-muted-foreground">--</td>
+                  </tr>
+                );
+              }
+
+              const full = getFullHolding(ah);
+              if (!full || !dataLoaded) {
+                return (
+                  <tr key={ah.id}>
+                    <td colSpan={6} className="px-3 py-3 text-sm text-muted-foreground">
+                      {ah.name} - 加载中...
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <tr
+                  key={ah.id}
+                  className="cursor-pointer transition-colors hover:bg-accent/40"
+                  onClick={() => setSelectedHolding({ allocationHolding: ah, holding: full })}
+                >
+                  <td className="px-3 py-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-base font-semibold text-foreground">
+                        {ah.name}
+                      </div>
+                      <div className="mt-1 flex min-w-0 items-center gap-2">
+                        {full.ticker ? (
+                          <span className="truncate text-xs text-muted-foreground">
+                            {full.ticker}
+                          </span>
+                        ) : null}
+                        <Badge variant="outline" className="shrink-0 text-xs">
+                          {ah.accountName}
+                        </Badge>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {full.valuationMode === "shares" ? formatShares(full.shares) : "--"}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {full.valuationMode === "shares"
+                      ? `${sourceSymbol}${formatPrice(full.price)}`
+                      : "--"}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums">
+                    {sourceSymbol}
+                    {full.valuationMode === "shares"
+                      ? formatPrice(full.cost)
+                      : formatAmount(full.cost)}
+                  </td>
+                  <td className="px-3 py-3 text-right text-base font-semibold tabular-nums">
+                    {symbol}
+                    {formatAmount(marketValue)}
+                  </td>
+                  <td className="px-3 py-3 text-right text-base font-semibold tabular-nums">
+                    {renderPnl(ah)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderMobileHoldingCards = (item: AllocationItem) => {
+    if (item.holdings.length === 0) {
+      return <p className="text-muted-foreground text-sm py-2">暂无持仓</p>;
+    }
+
+    return (
+      <div className="space-y-2">
         {item.holdings.map((ah) => {
-          const displayAmountCurrency = getDisplayCurrency(ah.currency);
-          const symbol = getCurrencySymbol(displayAmountCurrency);
-          const marketValue = getDisplayAmount(ah.marketValue, ah.currency);
-          const pnlAmount = getDisplayAmount(ah.pnlAmount, ah.currency);
-          const pnlText =
-            ah.returnRate === null ? (
-              <span className="text-muted-foreground">--</span>
-            ) : (
-              <span className={pnlColorClass(pnlAmount, colorMode)}>
-                {pnlAmount > 0 ? "+" : ""}
-                {symbol}
-                {formatAmount(pnlAmount)}
-                <span className="ml-1 text-xs">
-                  ({ah.returnRate > 0 ? "+" : ""}
-                  {formatPercent(ah.returnRate)}%)
-                </span>
-              </span>
-            );
+          const { symbol, sourceSymbol, marketValue, weight } = getHoldingDisplayValues(ah);
 
           if (ah.id < 0) {
             return (
-              <div
-                key={ah.id}
-                className="grid grid-cols-[minmax(12rem,1.5fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] items-center gap-4 px-3 py-3 text-sm"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium">{ah.name}</div>
-                  <Badge variant="outline" className="mt-1 text-xs">
-                    {ah.accountName}
-                  </Badge>
+              <div key={ah.id} className="rounded-lg border bg-background p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold">{ah.name}</div>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {ah.accountName}
+                    </Badge>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-semibold tabular-nums">
+                      {symbol}
+                      {formatAmount(marketValue)}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {formatPercent(weight)}%
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right text-muted-foreground">--</div>
-                <div className="text-right font-semibold tabular-nums">
-                  {symbol}
-                  {formatAmount(marketValue)}
-                </div>
-                <div className="text-right text-muted-foreground">--</div>
               </div>
             );
           }
@@ -466,8 +605,11 @@ export function DisciplineTable({
           const full = getFullHolding(ah);
           if (!full || !dataLoaded) {
             return (
-              <div key={ah.id} className="px-3 py-3 text-sm text-muted-foreground">
-                {ah.name} — 加载中...
+              <div
+                key={ah.id}
+                className="rounded-lg border bg-background px-3 py-3 text-sm text-muted-foreground"
+              >
+                {ah.name} - 加载中...
               </div>
             );
           }
@@ -476,35 +618,59 @@ export function DisciplineTable({
             <button
               key={ah.id}
               type="button"
-              className="grid w-full grid-cols-[minmax(12rem,1.5fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] items-center gap-4 px-3 py-3 text-left text-sm transition-colors hover:bg-accent/40"
+              className="block w-full rounded-lg border bg-background p-3 text-left transition-colors hover:bg-accent/40"
               onClick={() => setSelectedHolding({ allocationHolding: ah, holding: full })}
             >
-              <div className="min-w-0">
-                <div className="truncate text-base font-semibold text-foreground">{ah.name}</div>
-                <div className="mt-1 flex min-w-0 items-center gap-2">
-                  {full.ticker ? (
-                    <span className="truncate text-xs text-muted-foreground">{full.ticker}</span>
-                  ) : null}
-                  <Badge variant="outline" className="shrink-0 text-xs">
-                    {ah.accountName}
-                  </Badge>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-base font-semibold">{ah.name}</div>
+                  <div className="mt-1 flex min-w-0 items-center gap-2">
+                    {full.ticker ? (
+                      <span className="truncate text-xs text-muted-foreground">{full.ticker}</span>
+                    ) : null}
+                    <Badge variant="outline" className="shrink-0 text-xs">
+                      {ah.accountName}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-xl font-semibold leading-tight tabular-nums">
+                    {symbol}
+                    {formatAmount(marketValue)}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{formatPercent(weight)}%</div>
                 </div>
               </div>
-              <div className="text-right tabular-nums">
-                {full.valuationMode === "shares" ? (
-                  <>
-                    {getCurrencySymbol(ah.currency)}
-                    {formatPrice(full.price)}
-                  </>
-                ) : (
-                  <span className="text-muted-foreground">--</span>
-                )}
+
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">盈亏</div>
+                  <div className="mt-0.5 font-semibold tabular-nums">{renderPnl(ah, true)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">现价</div>
+                  <div className="mt-0.5 tabular-nums">
+                    {full.valuationMode === "shares"
+                      ? `${sourceSymbol}${formatPrice(full.price)}`
+                      : "--"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">成本价</div>
+                  <div className="mt-0.5 tabular-nums">
+                    {sourceSymbol}
+                    {full.valuationMode === "shares"
+                      ? formatPrice(full.cost)
+                      : formatAmount(full.cost)}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">份额</div>
+                  <div className="mt-0.5 tabular-nums">
+                    {full.valuationMode === "shares" ? formatShares(full.shares) : "--"}
+                  </div>
+                </div>
               </div>
-              <div className="text-right font-semibold tabular-nums">
-                {symbol}
-                {formatAmount(marketValue)}
-              </div>
-              <div className="text-right tabular-nums">{pnlText}</div>
             </button>
           );
         })}
@@ -517,24 +683,6 @@ export function DisciplineTable({
       {/* Desktop: table layout */}
       <div className="hidden md:block border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left p-3 font-medium">资产类别</th>
-              <th className="text-right p-3 font-medium">参考指标</th>
-              <DesktopSortHeader
-                label="市值"
-                sortKey="amount"
-                activeSort={detailSort}
-                onToggle={handleDetailSortToggle}
-              />
-              <DesktopSortHeader
-                label="持仓盈亏"
-                sortKey="pnl"
-                activeSort={detailSort}
-                onToggle={handleDetailSortToggle}
-              />
-            </tr>
-          </thead>
           <tbody>
             {displayedAllocation.map((item) => {
               const isExpanded = expanded.has(item.id);
@@ -603,7 +751,7 @@ export function DisciplineTable({
                   {isExpanded && (
                     <tr key={`${item.id}-detail`}>
                       <td colSpan={4} className="bg-muted/20 px-4 py-2">
-                        {renderHoldings(item)}
+                        {renderDesktopHoldingTable(item)}
                       </td>
                     </tr>
                   )}
@@ -693,7 +841,9 @@ export function DisciplineTable({
                 </div>
               </div>
               {isExpanded && (
-                <div className="border-t bg-muted/20 px-3 py-2">{renderHoldings(item)}</div>
+                <div className="border-t bg-muted/20 px-3 py-2">
+                  {renderMobileHoldingCards(item)}
+                </div>
               )}
             </div>
           );
