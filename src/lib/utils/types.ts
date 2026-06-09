@@ -164,7 +164,7 @@ export interface NetvalueListResponse {
   records: NetvalueRecord[];
 }
 
-export type NetvalueChartRange = "30d" | "90d" | "1y" | "3y" | "all";
+export type NetvalueChartRange = "7d" | "30d" | "90d" | "1y" | "3y" | "all";
 export type NetvalueChartGrain = "day" | "week" | "month";
 
 export interface NetvalueChartPoint {

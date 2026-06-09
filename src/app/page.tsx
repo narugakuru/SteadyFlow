@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { useDashboardTrendRangePreference } from "@/lib/services/dashboard-trend-range-preference";
 import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
 import { getNetvalueChartGrain } from "@/lib/services/netvalue-history-helpers";
 import {
@@ -37,7 +38,6 @@ import {
   type AllocationData,
   type DisplayCurrencyMode,
   type Holding,
-  type NetvalueChartRange,
   type NetvalueChartResponse,
 } from "@/lib/utils/types";
 
@@ -73,7 +73,7 @@ export default function Dashboard() {
   const [resultOpen, setResultOpen] = useState(false);
   const [txOpen, setTxOpen] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useDisplayCurrencyPreference();
-  const [trendRange, setTrendRange] = useState<NetvalueChartRange>("90d");
+  const [trendRange, setTrendRange] = useDashboardTrendRangePreference();
   const netvalueTriggeredRef = useRef(false);
   const silentQuoteTriggeredRef = useRef(false);
   const trendGrain = getNetvalueChartGrain(trendRange);

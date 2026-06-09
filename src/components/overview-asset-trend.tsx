@@ -10,6 +10,7 @@ import { formatAmount, formatNumber } from "@/lib/utils/format";
 import type { NetvalueChartRange, NetvalueChartResponse } from "@/lib/utils/types";
 
 const RANGE_LABELS: Record<NetvalueChartRange, string> = {
+  "7d": "7D",
   "30d": "30D",
   "90d": "90D",
   "1y": "1Y",

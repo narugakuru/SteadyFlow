@@ -21,6 +21,15 @@ import type {
   NetvalueListResponse,
 } from "@/lib/utils/types";
 
+const RANGE_LABELS: Record<NetvalueChartRange, string> = {
+  "7d": "7D",
+  "30d": "30D",
+  "90d": "90D",
+  "1y": "1Y",
+  "3y": "3Y",
+  all: "ALL",
+};
+
 function formatFixed2(value: number): string {
   const safeValue = Number.isFinite(value) ? value : 0;
   return safeValue.toLocaleString("en-US", {
@@ -31,7 +40,7 @@ function formatFixed2(value: number): string {
 
 export default function NetvaluePage() {
   const [page, setPage] = useState(1);
-  const [range, setRange] = useState<NetvalueChartRange>("90d");
+  const [range, setRange] = useState<NetvalueChartRange>("30d");
   const chartGrain = getNetvalueChartGrain(range);
 
   const listQuery = useUserScopedQuery<NetvalueListResponse>({
@@ -87,7 +96,7 @@ export default function NetvaluePage() {
                 onClick={() => setRange(option)}
                 disabled={chartQuery.isFetching && option === range}
               >
-                {option}
+                {RANGE_LABELS[option]}
               </Button>
             ))}
           </div>

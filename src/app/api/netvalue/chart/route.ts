@@ -6,7 +6,7 @@ import { getNetvalueChart } from "@/lib/services/netvalue-history-service";
 import { isNetvalueChartRange } from "@/lib/services/netvalue-history-helpers";
 import type { NetvalueChartRange } from "@/lib/utils/types";
 
-const DEFAULT_RANGE: NetvalueChartRange = "90d";
+const DEFAULT_RANGE: NetvalueChartRange = "30d";
 
 export async function GET(request: Request) {
   const { userId, response } = await requireUser();

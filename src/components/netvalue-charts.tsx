@@ -3,7 +3,6 @@
 import {
   Area,
   AreaChart,
-  CartesianGrid,
   Legend,
   Line,
   LineChart,
@@ -56,69 +55,82 @@ export function NetvalueCharts({ chart }: NetvalueChartsProps) {
   });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold mb-3">总资产走势</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={trendData} margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-            <YAxis
-              tick={{ fontSize: 12 }}
-              tickFormatter={(value) => `¥${formatNumber(Number(value) / 10000, 0)}万`}
-            />
-            <Tooltip
-              formatter={(value: number | string | undefined) => [
-                `¥${formatAmount(Number(value ?? 0))}`,
-                "总资产",
-              ]}
-              labelFormatter={(label) => `日期: ${label}`}
-            />
-            <Line
-              type="monotone"
-              dataKey="total"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-3">资产占比趋势</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <AreaChart data={areaData} margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-            <YAxis
-              tick={{ fontSize: 12 }}
-              tickFormatter={(value) => `${value}%`}
-              domain={[0, 100]}
-            />
-            <Tooltip
-              formatter={(value: number | string | undefined, name: string | undefined) => [
-                `${formatPercent(Number(value ?? 0))}%`,
-                name ?? "",
-              ]}
-              labelFormatter={(label) => `日期: ${label}`}
-            />
-            <Legend />
-            {classNames.map((name) => (
-              <Area
-                key={name}
-                type="monotone"
-                dataKey={name}
-                stackId="1"
-                fill={CLASS_COLORS[name] || FALLBACK_COLOR}
-                stroke={CLASS_COLORS[name] || FALLBACK_COLOR}
-                fillOpacity={0.6}
+    <div className="space-y-4">
+      <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold">总资产走势</h2>
+        <div className="h-[260px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "rgba(107, 114, 128, 0.85)", fontSize: 11 }}
+                minTickGap={28}
               />
-            ))}
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+              <YAxis
+                hide
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={(value) => `¥${formatNumber(Number(value) / 10000, 0)}万`}
+              />
+              <Tooltip
+                formatter={(value: number | string | undefined) => [
+                  `¥${formatAmount(Number(value ?? 0))}`,
+                  "总资产",
+                ]}
+                labelFormatter={(label) => `日期: ${label}`}
+                cursor={{ stroke: "rgba(15,23,42,0.12)" }}
+              />
+              <Line
+                type="monotone"
+                dataKey="total"
+                stroke="#168a56"
+                strokeWidth={2.25}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0, fill: "#0f7f4d" }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold">资产占比趋势</h2>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={areaData} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "rgba(107, 114, 128, 0.85)", fontSize: 11 }}
+                minTickGap={28}
+              />
+              <YAxis hide domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+              <Tooltip
+                formatter={(value: number | string | undefined, name: string | undefined) => [
+                  `${formatPercent(Number(value ?? 0))}%`,
+                  name ?? "",
+                ]}
+                labelFormatter={(label) => `日期: ${label}`}
+                cursor={{ stroke: "rgba(15,23,42,0.12)" }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+              {classNames.map((name) => (
+                <Area
+                  key={name}
+                  type="monotone"
+                  dataKey={name}
+                  stackId="1"
+                  fill={CLASS_COLORS[name] || FALLBACK_COLOR}
+                  stroke={CLASS_COLORS[name] || FALLBACK_COLOR}
+                  fillOpacity={0.6}
+                />
+              ))}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
     </div>
   );
 }

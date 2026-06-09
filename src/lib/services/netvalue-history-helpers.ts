@@ -11,9 +11,17 @@ import type {
 
 export const DEFAULT_NETVALUE_PAGE_SIZE = 30;
 export const MAX_NETVALUE_PAGE_SIZE = 200;
-export const NETVALUE_CHART_RANGE_ORDER: NetvalueChartRange[] = ["30d", "90d", "1y", "3y", "all"];
+export const NETVALUE_CHART_RANGE_ORDER: NetvalueChartRange[] = [
+  "7d",
+  "30d",
+  "90d",
+  "1y",
+  "3y",
+  "all",
+];
 
 export const NETVALUE_CHART_GRAIN_BY_RANGE: Record<NetvalueChartRange, NetvalueChartGrain> = {
+  "7d": "day",
   "30d": "day",
   "90d": "day",
   "1y": "week",
@@ -90,6 +98,8 @@ export function getNetvalueChartStartDate(range: NetvalueChartRange, now = new D
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   switch (range) {
+    case "7d":
+      return formatIsoDate(subtractDays(today, 6));
     case "30d":
       return formatIsoDate(subtractDays(today, 29));
     case "90d":
