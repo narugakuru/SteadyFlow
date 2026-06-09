@@ -73,7 +73,6 @@ function AccountsContent() {
       />
       <AccountList
         accounts={accounts}
-        totalAssetCny={allocation.totalAssetCny}
         rates={allocation.rates.rates}
         colorMode={allocation.settings.colorMode}
         defaultExpandId={defaultExpandId}

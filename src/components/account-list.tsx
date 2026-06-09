@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, Fragment, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -15,17 +14,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Account,
   Holding,
   AssetClass,
@@ -34,10 +22,7 @@ import {
   type CurrencyCode,
   type DisplayCurrencyMode,
 } from "@/lib/utils/types";
-import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Trash2 } from "lucide-react";
-import { HoldingRow } from "@/components/holding-row";
-import { HoldingSortDialog } from "@/components/holding-sort-dialog";
-import { AccountSortDialog } from "@/components/account-sort-dialog";
+import { AccountHoldingTable } from "@/components/account-holding-table";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
@@ -45,25 +30,8 @@ import { convertCurrency, getCurrencySymbol } from "@/lib/utils/display-currency
 
 // ─── Account Form (create/edit) ───
 
-type AccountColumnSortKey = "accountValue" | "holdingsPnl" | "cashBalance" | "holdingsCount";
-type AccountColumnSortState = {
-  key: AccountColumnSortKey;
-  direction: "desc" | "asc";
-} | null;
-
-const ACCOUNT_COLUMN_SORT_LABELS: Array<{ key: AccountColumnSortKey; label: string }> = [
-  { key: "accountValue", label: "总价值" },
-  { key: "holdingsPnl", label: "持仓盈亏" },
-  { key: "cashBalance", label: "现金" },
-  { key: "holdingsCount", label: "持仓数" },
-];
-
 function compareAccountsByDefaultOrder(left: Account, right: Account) {
   return left.sortOrder - right.sortOrder || left.id - right.id;
-}
-
-function getAccountSortValue(account: Account, key: AccountColumnSortKey) {
-  return account[key];
 }
 
 function convertAccountAmount(
@@ -77,53 +45,6 @@ function convertAccountAmount(
   }
 
   return convertCurrency(amount, sourceCurrency, displayCurrency, rates);
-}
-
-function SortIndicator({
-  activeSort,
-  sortKey,
-}: {
-  activeSort: AccountColumnSortState;
-  sortKey: AccountColumnSortKey;
-}) {
-  if (activeSort?.key !== sortKey) {
-    return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />;
-  }
-
-  return activeSort.direction === "desc" ? (
-    <ArrowDown className="h-3.5 w-3.5" />
-  ) : (
-    <ArrowUp className="h-3.5 w-3.5" />
-  );
-}
-
-function SortableHeader({
-  label,
-  sortKey,
-  activeSort,
-  onToggle,
-}: {
-  label: string;
-  sortKey: AccountColumnSortKey;
-  activeSort: AccountColumnSortState;
-  onToggle: (sortKey: AccountColumnSortKey) => void;
-}) {
-  const isActive = activeSort?.key === sortKey;
-
-  return (
-    <th className="p-3 font-medium text-right">
-      <button
-        type="button"
-        className={`inline-flex w-full items-center justify-end gap-1 transition-colors ${
-          isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-        }`}
-        onClick={() => onToggle(sortKey)}
-      >
-        <span>{label}</span>
-        <SortIndicator activeSort={activeSort} sortKey={sortKey} />
-      </button>
-    </th>
-  );
 }
 
 interface AccountFormProps {
@@ -345,7 +266,6 @@ function HoldingForm({ accountId, open, onOpenChange, onSaved }: HoldingFormProp
 
 interface AccountListProps {
   accounts: Account[];
-  totalAssetCny: number;
   rates: Record<string, number>;
   colorMode: "cn" | "us";
   defaultExpandId?: number;
@@ -354,7 +274,6 @@ interface AccountListProps {
 
 export function AccountList({
   accounts,
-  totalAssetCny,
   rates,
   colorMode,
   defaultExpandId,
@@ -363,12 +282,8 @@ export function AccountList({
   const [expanded, setExpanded] = useState<Set<number>>(
     defaultExpandId ? new Set([defaultExpandId]) : new Set()
   );
-  const [accountSortOpen, setAccountSortOpen] = useState(false);
-  const [columnSort, setColumnSort] = useState<AccountColumnSortState>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [addHoldingFor, setAddHoldingFor] = useState<Account | null>(null);
-  const [sortHoldingFor, setSortHoldingFor] = useState<Account | null>(null);
   const [showZeroMarketHoldings, setShowZeroMarketHoldings] = useState(false);
   const [priceMsg, setPriceMsg] = useState("");
   const [displayCurrency] = useDisplayCurrencyPreference();
@@ -385,43 +300,27 @@ export function AccountList({
   const mutation = useMutationJson<unknown, unknown>();
   const allHoldings = holdingsQuery.data ?? [];
   const fetchingPrices = mutation.isPending;
-  const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
-  const defaultOrderedAccounts = useMemo(
-    () => [...accounts].sort(compareAccountsByDefaultOrder),
-    [accounts]
-  );
   const displayedAccounts = useMemo(() => {
-    if (!columnSort) {
-      return defaultOrderedAccounts;
-    }
-
-    return [...defaultOrderedAccounts].sort((left, right) => {
-      const leftValue =
-        columnSort.key === "holdingsCount"
-          ? getAccountSortValue(left, columnSort.key)
-          : convertAccountAmount(
-              getAccountSortValue(left, columnSort.key),
-              left.currency,
-              displayCurrency,
-              rates
-            );
-      const rightValue =
-        columnSort.key === "holdingsCount"
-          ? getAccountSortValue(right, columnSort.key)
-          : convertAccountAmount(
-              getAccountSortValue(right, columnSort.key),
-              right.currency,
-              displayCurrency,
-              rates
-            );
-
+    return [...accounts].sort((left, right) => {
+      const leftValue = convertAccountAmount(
+        left.accountValue,
+        left.currency,
+        displayCurrency,
+        rates
+      );
+      const rightValue = convertAccountAmount(
+        right.accountValue,
+        right.currency,
+        displayCurrency,
+        rates
+      );
       if (leftValue !== rightValue) {
-        return columnSort.direction === "desc" ? rightValue - leftValue : leftValue - rightValue;
+        return rightValue - leftValue;
       }
 
       return compareAccountsByDefaultOrder(left, right);
     });
-  }, [columnSort, defaultOrderedAccounts, displayCurrency, rates]);
+  }, [accounts, displayCurrency, rates]);
 
   const handleFetchPrices = async () => {
     setPriceMsg("");
@@ -457,41 +356,9 @@ export function AccountList({
     });
   };
 
-  const handleDeleteAccount = async (id: number) => {
-    await mutation.mutateAsync({
-      path: `/api/accounts/${id}`,
-      method: "DELETE",
-      mutationName: "accounts-write",
-    });
-    onRefresh();
-    await holdingsQuery.refetch();
-  };
-
-  const handleDeleteHolding = async (id: number) => {
-    await mutation.mutateAsync({
-      path: `/api/holdings/${id}`,
-      method: "DELETE",
-      mutationName: "holdings-write",
-    });
-    await holdingsQuery.refetch();
-    onRefresh();
-  };
-
   const handleDataChange = () => {
     void holdingsQuery.refetch();
     onRefresh();
-  };
-
-  const handleColumnSortToggle = (sortKey: AccountColumnSortKey) => {
-    setColumnSort((prev) => {
-      if (!prev || prev.key !== sortKey) {
-        return { key: sortKey, direction: "desc" };
-      }
-      if (prev.direction === "desc") {
-        return { key: sortKey, direction: "asc" };
-      }
-      return null;
-    });
   };
 
   // Shared expanded detail content
@@ -522,9 +389,8 @@ export function AccountList({
     );
 
     return (
-      <div className="bg-muted/20 px-3 md:px-4 py-3">
-        {/* Account summary */}
-        <div className="flex flex-wrap items-center gap-3 md:gap-6 text-sm mb-3">
+      <div className="bg-muted/20">
+        <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3 text-sm md:gap-6">
           <span>
             总价值{" "}
             <span className="font-semibold">
@@ -548,46 +414,18 @@ export function AccountList({
           </span>
           <div className="flex-1 hidden md:block" />
           <div className="flex gap-2 w-full md:w-auto">
-            <Button variant="outline" size="sm" onClick={() => setEditAccount(a)}>
-              ✏️ 编辑账户
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setAddHoldingFor(a)}>
               + 新建持仓
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSortHoldingFor(a)}
-              disabled={accountHoldings.length <= 1}
-            >
-              ↕ 排序持仓
-            </Button>
           </div>
         </div>
-        {/* Holdings list */}
-        {accountHoldings.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-2">暂无持仓</p>
-        ) : (
-          <div className="space-y-0.5">
-            {accountHoldings.map((h) => (
-              <HoldingRow
-                key={h.id}
-                holding={h}
-                currency={a.currency}
-                totalAssetCny={totalAssetCny}
-                rates={rates}
-                colorMode={colorMode}
-                displayCurrency={displayCurrency}
-                actions="full"
-                accountId={a.id}
-                accounts={accounts}
-                allHoldings={allHoldings}
-                onDataChange={handleDataChange}
-                onDelete={handleDeleteHolding}
-              />
-            ))}
-          </div>
-        )}
+        <AccountHoldingTable
+          account={a}
+          holdings={accountHoldings}
+          rates={rates}
+          displayCurrency={displayCurrency}
+          colorMode={colorMode}
+        />
       </div>
     );
   };
@@ -598,18 +436,6 @@ export function AccountList({
         <h2 className="text-lg font-semibold">账户列表</h2>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {priceMsg && <span className="text-xs text-muted-foreground">{priceMsg}</span>}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground"
-            onClick={() => setAccountSortOpen(true)}
-            disabled={defaultOrderedAccounts.length <= 1}
-            aria-label="排序账户"
-            title="排序账户"
-          >
-            <ArrowUpDown className="h-4 w-4" />
-          </Button>
           <label className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-xs text-muted-foreground">
             <span>显示未持仓标的</span>
             <Switch
@@ -628,326 +454,74 @@ export function AccountList({
         </div>
       </div>
 
-      {defaultOrderedAccounts.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-end gap-2 md:hidden">
-          {ACCOUNT_COLUMN_SORT_LABELS.map((item) => {
-            const isActive = columnSort?.key === item.key;
-            return (
-              <Button
-                key={item.key}
-                type="button"
-                size="xs"
-                variant={isActive ? "secondary" : "outline"}
-                onClick={() => handleColumnSortToggle(item.key)}
-              >
-                {item.label}
-                <SortIndicator activeSort={columnSort} sortKey={item.key} />
-              </Button>
-            );
-          })}
-        </div>
-      ) : null}
-
       {accounts.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">暂无账户，点击上方添加</p>
       ) : (
-        <>
-          {/* Desktop: table layout */}
-          <div className="hidden md:block border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left p-3 font-medium w-8"></th>
-                  <th className="text-left p-3 font-medium">账户</th>
-                  <SortableHeader
-                    label="总价值"
-                    sortKey="accountValue"
-                    activeSort={columnSort}
-                    onToggle={handleColumnSortToggle}
-                  />
-                  <SortableHeader
-                    label="持仓盈亏"
-                    sortKey="holdingsPnl"
-                    activeSort={columnSort}
-                    onToggle={handleColumnSortToggle}
-                  />
-                  <SortableHeader
-                    label="现金"
-                    sortKey="cashBalance"
-                    activeSort={columnSort}
-                    onToggle={handleColumnSortToggle}
-                  />
-                  <SortableHeader
-                    label="持仓数"
-                    sortKey="holdingsCount"
-                    activeSort={columnSort}
-                    onToggle={handleColumnSortToggle}
-                  />
-                  <th className="text-center p-3 font-medium w-20">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedAccounts.map((a) => {
-                  const amountCurrency =
-                    displayCurrency === "default" ? a.currency : displayCurrency;
-                  const sym = getCurrencySymbol(amountCurrency);
-                  const rawPnl = a.holdingsPnl;
-                  const pnl = convertAccountAmount(rawPnl, a.currency, displayCurrency, rates);
-                  const holdingsCost = a.holdingsValue - rawPnl;
-                  const pnlPct = holdingsCost > 0 ? (rawPnl / holdingsCost) * 100 : null;
-                  const hasPnl = a.holdingsCount > 0;
-                  const isExpanded = expanded.has(a.id);
-                  const displayAccountValue = convertAccountAmount(
-                    a.accountValue,
-                    a.currency,
-                    displayCurrency,
-                    rates
-                  );
-                  const displayCashBalance = convertAccountAmount(
-                    a.cashBalance,
-                    a.currency,
-                    displayCurrency,
-                    rates
-                  );
+        <div className="space-y-3">
+          {displayedAccounts.map((a) => {
+            const amountCurrency = displayCurrency === "default" ? a.currency : displayCurrency;
+            const sym = getCurrencySymbol(amountCurrency);
+            const rawPnl = a.holdingsPnl;
+            const pnl = convertAccountAmount(rawPnl, a.currency, displayCurrency, rates);
+            const holdingsCost = a.holdingsValue - rawPnl;
+            const pnlPct = holdingsCost > 0 ? (rawPnl / holdingsCost) * 100 : null;
+            const hasPnl = a.holdingsCount > 0;
+            const isExpanded = expanded.has(a.id);
+            const displayAccountValue = convertAccountAmount(
+              a.accountValue,
+              a.currency,
+              displayCurrency,
+              rates
+            );
 
-                  return (
-                    <Fragment key={a.id}>
-                      <tr
-                        className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
-                        onClick={() => toggleExpand(a.id)}
-                      >
-                        <td className="p-3 text-muted-foreground">{isExpanded ? "▼" : "▶"}</td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{a.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {a.currency}
-                            </Badge>
-                          </div>
-                        </td>
-                        <td className="p-3 text-right font-semibold">
-                          {sym}
-                          {formatAmount(displayAccountValue)}
-                        </td>
-                        <td
-                          className={`p-3 text-right ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}
-                        >
-                          {hasPnl ? (
-                            <>
-                              {pnl > 0 ? "+" : ""}
-                              {sym}
-                              {formatAmount(pnl)}
-                              {pnlPct !== null && (
-                                <span className="text-xs ml-1">
-                                  ({pnl > 0 ? "+" : ""}
-                                  {formatPercent(pnlPct)}%)
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            "--"
-                          )}
-                        </td>
-                        <td className="p-3 text-right">
-                          {sym}
-                          {formatAmount(displayCashBalance)}
-                        </td>
-                        <td className="p-3 text-right">{a.holdingsCount}</td>
-                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex justify-center gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setEditAccount(a)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>确认删除</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    将同时删除&ldquo;{a.name}
-                                    &rdquo;下的所有持仓和交易记录，此操作不可撤销。
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>取消</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteAccount(a.id)}>
-                                    确认删除
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr key={`${a.id}-detail`}>
-                          <td colSpan={7}>{renderExpandedDetail(a)}</td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: card layout */}
-          <div className="md:hidden space-y-3">
-            {displayedAccounts.map((a) => {
-              const amountCurrency = displayCurrency === "default" ? a.currency : displayCurrency;
-              const sym = getCurrencySymbol(amountCurrency);
-              const rawPnl = a.holdingsPnl;
-              const pnl = convertAccountAmount(rawPnl, a.currency, displayCurrency, rates);
-              const holdingsCost = a.holdingsValue - rawPnl;
-              const pnlPct = holdingsCost > 0 ? (rawPnl / holdingsCost) * 100 : null;
-              const hasPnl = a.holdingsCount > 0;
-              const isExpanded = expanded.has(a.id);
-              const displayAccountValue = convertAccountAmount(
-                a.accountValue,
-                a.currency,
-                displayCurrency,
-                rates
-              );
-              const displayCashBalance = convertAccountAmount(
-                a.cashBalance,
-                a.currency,
-                displayCurrency,
-                rates
-              );
-
-              return (
-                <div key={a.id} className="border rounded-lg overflow-hidden">
-                  <div
-                    className="p-3 cursor-pointer hover:bg-accent/50 transition-colors"
-                    onClick={() => toggleExpand(a.id)}
-                  >
-                    {/* Header: name + currency + expand */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{a.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          {a.currency}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div onClick={(e) => e.stopPropagation()} className="flex gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => setEditAccount(a)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>确认删除</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  将同时删除&ldquo;{a.name}
-                                  &rdquo;下的所有持仓和交易记录，此操作不可撤销。
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>取消</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteAccount(a.id)}>
-                                  确认删除
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                        <span className="text-muted-foreground text-sm ml-1">
-                          {isExpanded ? "▼" : "▶"}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Value row */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold">
+            return (
+              <div key={a.id} className="overflow-hidden rounded-lg border bg-card">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition-colors hover:bg-accent/40"
+                  onClick={() => toggleExpand(a.id)}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-lg font-semibold">{a.name}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{a.currency}</div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-4 text-right">
+                    <div>
+                      <div className="text-lg font-semibold tabular-nums">
                         {sym}
                         {formatAmount(displayAccountValue)}
-                      </span>
-                      <span
-                        className={`text-xs ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}
+                      </div>
+                      <div
+                        className={`mt-1 text-sm tabular-nums ${hasPnl ? pnlColorClass(pnl, colorMode) : "text-muted-foreground"}`}
                       >
                         {hasPnl ? (
                           <>
                             {pnl > 0 ? "+" : ""}
                             {sym}
                             {formatAmount(pnl)}
-                            {pnlPct !== null && (
-                              <span className="ml-1">
-                                ({pnl > 0 ? "+" : ""}
-                                {formatPercent(pnlPct)}%)
+                            {pnlPct !== null ? (
+                              <span className="ml-2">
+                                {pnlPct > 0 ? "+" : ""}
+                                {formatPercent(pnlPct)}%
                               </span>
-                            )}
+                            ) : null}
                           </>
                         ) : (
                           "--"
                         )}
-                      </span>
+                      </div>
                     </div>
-                    {/* Sub info */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      <span>
-                        现金 {sym}
-                        {formatAmount(displayCashBalance)}
-                      </span>
-                      <span>持仓 {a.holdingsCount} 个</span>
-                    </div>
+                    <span className="text-xl text-muted-foreground">{isExpanded ? "⌃" : "›"}</span>
                   </div>
-                  {isExpanded && <div className="border-t">{renderExpandedDetail(a)}</div>}
-                </div>
-              );
-            })}
-          </div>
-        </>
+                </button>
+                {isExpanded ? <div className="border-t">{renderExpandedDetail(a)}</div> : null}
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />
-      <AccountSortDialog
-        open={accountSortOpen}
-        onOpenChange={setAccountSortOpen}
-        accounts={defaultOrderedAccounts}
-        onSaved={() => {
-          setColumnSort(null);
-          onRefresh();
-        }}
-      />
-      {editAccount && (
-        <AccountForm
-          account={editAccount}
-          open={!!editAccount}
-          onOpenChange={(open) => !open && setEditAccount(null)}
-          onSaved={() => {
-            setEditAccount(null);
-            handleDataChange();
-          }}
-        />
-      )}
       {addHoldingFor && (
         <HoldingForm
           accountId={addHoldingFor.id}
@@ -955,20 +529,6 @@ export function AccountList({
           onOpenChange={(open) => !open && setAddHoldingFor(null)}
           onSaved={() => {
             setAddHoldingFor(null);
-            handleDataChange();
-          }}
-        />
-      )}
-      {sortHoldingFor && (
-        <HoldingSortDialog
-          open={!!sortHoldingFor}
-          onOpenChange={(open) => !open && setSortHoldingFor(null)}
-          scope="account"
-          accountId={sortHoldingFor.id}
-          accountNameById={accountNameById}
-          holdings={allHoldings.filter((h) => h.accountId === sortHoldingFor.id)}
-          onSaved={() => {
-            setSortHoldingFor(null);
             handleDataChange();
           }}
         />

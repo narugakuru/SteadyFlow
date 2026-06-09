@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-09] 重构总览纪律表与账户页：纪律表桌面端简化为“资产类别 / 参考指标 / 市值 / 持仓盈亏”四列并移除状态操作列，标的点击进入详情 Drawer；账户页改为无表头极简账户列表，默认按折算总价值降序，展开后使用专用 AccountHoldingTable 展示单行持仓明细。同步更新 `dashboard`、`account-management` 与 `mobile-responsive` 主 spec。
 - [2026-06-09] 重构共享持仓信息条：Dashboard 资产配置纪律表与账户页持仓明细统一改为桌面单行数据网格、移动端高密度信息卡片；买入/卖出/编辑收纳进 `...` 菜单，账户页删除继续保留独立垃圾桶入口。同步更新 `dashboard`、`account-management` 与 `mobile-responsive` 主 spec。
 - [2026-06-09] 修复 EODHD 报价凭证安全边界：自动报价只读取当前用户设置中的 `quote_api.eodhd_key`，删除部署环境 `EODHD_API_KEY` 全局回退能力，并在设置文案、env 示例与主 specs 中明确用户只能使用自己设置的供应商密钥。
 - [2026-06-09] 调整净值页总资产走势图：由纯绿色折线改为与总览一致的绿色渐变填充面积图，保留隐藏 Y 轴、无常驻数据点与 Tooltip 读数能力。同步更新 `visualization-charts` 主 spec。

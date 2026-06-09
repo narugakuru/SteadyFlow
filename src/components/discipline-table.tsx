@@ -18,8 +18,9 @@ import {
 } from "@/lib/utils/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { HoldingRow } from "@/components/holding-row";
-import { HoldingSortDialog } from "@/components/holding-sort-dialog";
+import { HoldingEditDialog } from "@/components/holding-edit-dialog";
+import { TransactionForm } from "@/components/transaction-form";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   getNextDisciplineDetailSortState,
   readDisciplineDetailSortState,
@@ -27,8 +28,7 @@ import {
   type DisciplineDetailSortKey,
   type DisciplineDetailSortState,
 } from "@/lib/services/discipline-table-sort-state";
-import { normalizeAssetClassName } from "@/lib/utils/asset-class";
-import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/utils";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 
@@ -42,9 +42,14 @@ interface DisciplineTableProps {
 }
 
 const DISCIPLINE_DETAIL_SORT_LABELS: Array<{ key: DisciplineDetailSortKey; label: string }> = [
-  { key: "amount", label: "金额" },
+  { key: "amount", label: "市值" },
   { key: "pnl", label: "持仓盈亏" },
 ];
+
+type SelectedDisciplineHolding = {
+  allocationHolding: AllocationHolding;
+  holding: Holding;
+};
 
 function getDisciplineDetailSortMetric(
   holding: AllocationHolding,
@@ -145,6 +150,159 @@ function DesktopSortHeader({
   );
 }
 
+function DetailMetric({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="rounded-md border bg-muted/30 px-3 py-2">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn("mt-1 font-semibold tabular-nums", valueClassName)}>{value}</div>
+    </div>
+  );
+}
+
+function DisciplineHoldingDrawer({
+  selected,
+  currency,
+  displayCurrency,
+  totalAssetCny,
+  rates,
+  colorMode,
+  onOpenChange,
+  onBuy,
+  onSell,
+  onEdit,
+}: {
+  selected: SelectedDisciplineHolding | null;
+  currency: string;
+  displayCurrency: DisplayCurrencyMode;
+  totalAssetCny: number;
+  rates: Record<string, number>;
+  colorMode: "cn" | "us";
+  onOpenChange: (open: boolean) => void;
+  onBuy: () => void;
+  onSell: () => void;
+  onEdit: () => void;
+}) {
+  const holding = selected?.holding;
+  const allocationHolding = selected?.allocationHolding;
+  const displayAmountCurrency = displayCurrency === "default" ? currency : displayCurrency;
+  const displaySymbol = getCurrencySymbol(displayAmountCurrency);
+  const sourceSymbol = getCurrencySymbol(currency);
+
+  const displayMarketValue =
+    allocationHolding && displayCurrency !== "default"
+      ? convertCurrency(allocationHolding.marketValue, currency, displayCurrency, rates)
+      : (allocationHolding?.marketValue ?? 0);
+  const displayPnl =
+    allocationHolding && displayCurrency !== "default"
+      ? convertCurrency(allocationHolding.pnlAmount, currency, displayCurrency, rates)
+      : (allocationHolding?.pnlAmount ?? 0);
+  const weight =
+    allocationHolding && totalAssetCny > 0
+      ? (allocationHolding.marketValueCny / totalAssetCny) * 100
+      : 0;
+  const totalCost =
+    holding?.valuationMode === "shares" ? holding.cost * holding.shares : (holding?.cost ?? 0);
+  const pnlClassName = pnlColorClass(displayPnl, colorMode);
+
+  return (
+    <Sheet open={!!selected} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="w-[min(92vw,32rem)] gap-0 overflow-y-auto sm:max-w-none md:w-[clamp(24rem,32vw,34rem)]"
+      >
+        {holding && allocationHolding ? (
+          <>
+            <SheetHeader className="border-b px-5 py-5">
+              <SheetTitle className="pr-8 text-xl">{holding.name}</SheetTitle>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                {holding.ticker ? <span>{holding.ticker}</span> : null}
+                <Badge variant="outline">{allocationHolding.accountName}</Badge>
+              </div>
+            </SheetHeader>
+            <div className="space-y-5 px-5 py-5">
+              <div>
+                <div className="text-xs text-muted-foreground">市值</div>
+                <div className="mt-1 text-3xl font-semibold tabular-nums">
+                  {displaySymbol}
+                  {formatAmount(displayMarketValue)}
+                </div>
+                {allocationHolding.returnRate === null ? (
+                  <div className="mt-1 text-sm text-muted-foreground">--</div>
+                ) : (
+                  <div className={cn("mt-1 text-sm tabular-nums", pnlClassName)}>
+                    {displayPnl > 0 ? "+" : ""}
+                    {displaySymbol}
+                    {formatAmount(displayPnl)}
+                    <span className="ml-1">
+                      ({allocationHolding.returnRate > 0 ? "+" : ""}
+                      {formatPercent(allocationHolding.returnRate)}%)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <DetailMetric
+                  label="份额"
+                  value={holding.valuationMode === "shares" ? formatShares(holding.shares) : "--"}
+                />
+                <DetailMetric label="占总资产比" value={`${formatPercent(weight)}%`} />
+                <DetailMetric
+                  label="现价"
+                  value={
+                    holding.valuationMode === "shares"
+                      ? `${sourceSymbol}${formatPrice(holding.price)}`
+                      : "--"
+                  }
+                />
+                <DetailMetric
+                  label={holding.valuationMode === "shares" ? "成本价" : "成本"}
+                  value={`${sourceSymbol}${
+                    holding.valuationMode === "shares"
+                      ? formatPrice(holding.cost)
+                      : formatAmount(holding.cost)
+                  }`}
+                />
+                <DetailMetric label="总成本" value={`${sourceSymbol}${formatAmount(totalCost)}`} />
+                <DetailMetric
+                  label="估值模式"
+                  value={holding.valuationMode === "shares" ? "份额" : "金额"}
+                />
+              </div>
+
+              {holding.memo?.trim() ? (
+                <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+                  <div className="text-xs text-muted-foreground">备注</div>
+                  <div className="mt-1 whitespace-pre-wrap">{holding.memo}</div>
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-auto grid grid-cols-3 gap-2 border-t px-5 py-4">
+              <Button type="button" onClick={onBuy}>
+                买入
+              </Button>
+              <Button type="button" variant="outline" onClick={onSell}>
+                卖出
+              </Button>
+              <Button type="button" variant="outline" onClick={onEdit}>
+                编辑
+              </Button>
+            </div>
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function DisciplineTable({
   allocation,
   totalAssetCny,
@@ -156,10 +314,10 @@ export function DisciplineTable({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [detailSort, setDetailSort] = useState<DisciplineDetailSortState>(null);
   const [sortPreferenceReady, setSortPreferenceReady] = useState(false);
-  const [sortHoldingFor, setSortHoldingFor] = useState<{
-    assetClass: string;
-    title: string;
-  } | null>(null);
+  const [selectedHolding, setSelectedHolding] = useState<SelectedDisciplineHolding | null>(null);
+  const [editHoldingOpen, setEditHoldingOpen] = useState(false);
+  const [txOpen, setTxOpen] = useState(false);
+  const [txType, setTxType] = useState<"buy" | "sell">("buy");
   const holdingsQuery = useUserScopedQuery<Holding[]>({
     name: "holdings",
     path: "/api/holdings",
@@ -168,20 +326,9 @@ export function DisciplineTable({
     name: "accounts",
     path: "/api/accounts",
   });
-  const sortableHoldingsQuery = useUserScopedQuery<Holding[]>({
-    name: "holdings",
-    path: sortHoldingFor
-      ? `/api/holdings?scope=discipline&assetClass=${encodeURIComponent(sortHoldingFor.assetClass)}`
-      : "/api/holdings?scope=discipline",
-    params: sortHoldingFor
-      ? { scope: "discipline", assetClass: sortHoldingFor.assetClass }
-      : { scope: "discipline" },
-    enabled: !!sortHoldingFor,
-  });
   const allHoldings = holdingsQuery.data ?? [];
   const accounts = accountsQuery.data ?? [];
   const dataLoaded = !holdingsQuery.isLoading && !accountsQuery.isLoading;
-  const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
   const summaryCurrency = getSummaryCurrency(displayCurrency);
   const summarySymbol = getCurrencySymbol(summaryCurrency);
   const displayedAllocation = allocation.map((item) => ({
@@ -221,26 +368,23 @@ export function DisciplineTable({
     setDetailSort((prev) => getNextDisciplineDetailSortState(prev, sortKey));
   };
 
+  const openTx = (type: "buy" | "sell") => {
+    if (!selectedHolding) return;
+    setTxType(type);
+    setTxOpen(true);
+  };
+
   const getFullHolding = (ah: AllocationHolding): Holding | null => {
     return allHoldings.find((h) => h.id === ah.id) || null;
   };
 
-  const getStatusStyle = (status: string) =>
-    status === "danger"
-      ? "bg-red-100 text-red-800 border-red-200"
-      : status === "warning"
-        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-        : "bg-green-100 text-green-800 border-green-200";
+  const getDisplayAmount = (value: number, currency: string) =>
+    displayCurrency === "default"
+      ? value
+      : convertCurrency(value, currency, displayCurrency, rates);
 
-  const getStatusIcon = (status: string) =>
-    status === "danger" ? "🔴" : status === "warning" ? "⚠️" : "✅";
-
-  const getDeviationLabel = (deviation: number) =>
-    deviation > 0
-      ? `超配 +${formatPercent(deviation)}%`
-      : deviation < 0
-        ? `低配 ${formatPercent(deviation)}%`
-        : "正常";
+  const getDisplayCurrency = (currency: string) =>
+    displayCurrency === "default" ? currency : displayCurrency;
 
   const renderMobileSortButton = ({
     label,
@@ -276,63 +420,94 @@ export function DisciplineTable({
     }
 
     return (
-      <div className="space-y-2">
-        <div className="space-y-0.5">
-          {item.holdings.map((ah) => {
-            const isCash = ah.id < 0;
-            if (isCash) {
-              const cashCurrency = displayCurrency === "default" ? ah.currency : displayCurrency;
-              const cashValue =
-                displayCurrency === "default"
-                  ? ah.marketValue
-                  : convertCurrency(ah.marketValue, ah.currency, displayCurrency, rates);
-              const cashSymbol = getCurrencySymbol(cashCurrency);
-              return (
-                <div
-                  key={ah.id}
-                  className="flex items-center justify-between text-sm py-2 px-2 text-muted-foreground"
-                >
-                  <div className="flex items-center gap-2">
-                    <span>{ah.name}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {ah.accountName}
-                    </Badge>
-                  </div>
-                  <span>
-                    {cashSymbol}
-                    {formatAmount(cashValue)}
-                  </span>
-                </div>
-              );
-            }
-            const full = getFullHolding(ah);
-            if (!full || !dataLoaded) {
-              return (
-                <div key={ah.id} className="text-sm py-2 px-2 text-muted-foreground">
-                  {ah.name} — 加载中...
-                </div>
-              );
-            }
-            return (
-              <HoldingRow
-                key={ah.id}
-                holding={full}
-                currency={ah.currency}
-                totalAssetCny={totalAssetCny}
-                rates={rates}
-                colorMode={colorMode}
-                displayCurrency={displayCurrency}
-                showAccountName
-                accountName={ah.accountName}
-                actions="compact"
-                accountId={full.accountId}
-                accounts={accounts}
-                allHoldings={allHoldings}
-                onDataChange={handleDataChange}
-              />
+      <div className="divide-y rounded-md border bg-background">
+        {item.holdings.map((ah) => {
+          const displayAmountCurrency = getDisplayCurrency(ah.currency);
+          const symbol = getCurrencySymbol(displayAmountCurrency);
+          const marketValue = getDisplayAmount(ah.marketValue, ah.currency);
+          const pnlAmount = getDisplayAmount(ah.pnlAmount, ah.currency);
+          const pnlText =
+            ah.returnRate === null ? (
+              <span className="text-muted-foreground">--</span>
+            ) : (
+              <span className={pnlColorClass(pnlAmount, colorMode)}>
+                {pnlAmount > 0 ? "+" : ""}
+                {symbol}
+                {formatAmount(pnlAmount)}
+                <span className="ml-1 text-xs">
+                  ({ah.returnRate > 0 ? "+" : ""}
+                  {formatPercent(ah.returnRate)}%)
+                </span>
+              </span>
             );
-          })}
-        </div>
+
+          if (ah.id < 0) {
+            return (
+              <div
+                key={ah.id}
+                className="grid grid-cols-[minmax(12rem,1.5fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] items-center gap-4 px-3 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium">{ah.name}</div>
+                  <Badge variant="outline" className="mt-1 text-xs">
+                    {ah.accountName}
+                  </Badge>
+                </div>
+                <div className="text-right text-muted-foreground">--</div>
+                <div className="text-right font-semibold tabular-nums">
+                  {symbol}
+                  {formatAmount(marketValue)}
+                </div>
+                <div className="text-right text-muted-foreground">--</div>
+              </div>
+            );
+          }
+
+          const full = getFullHolding(ah);
+          if (!full || !dataLoaded) {
+            return (
+              <div key={ah.id} className="px-3 py-3 text-sm text-muted-foreground">
+                {ah.name} — 加载中...
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={ah.id}
+              type="button"
+              className="grid w-full grid-cols-[minmax(12rem,1.5fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] items-center gap-4 px-3 py-3 text-left text-sm transition-colors hover:bg-accent/40"
+              onClick={() => setSelectedHolding({ allocationHolding: ah, holding: full })}
+            >
+              <div className="min-w-0">
+                <div className="truncate text-base font-semibold text-foreground">{ah.name}</div>
+                <div className="mt-1 flex min-w-0 items-center gap-2">
+                  {full.ticker ? (
+                    <span className="truncate text-xs text-muted-foreground">{full.ticker}</span>
+                  ) : null}
+                  <Badge variant="outline" className="shrink-0 text-xs">
+                    {ah.accountName}
+                  </Badge>
+                </div>
+              </div>
+              <div className="text-right tabular-nums">
+                {full.valuationMode === "shares" ? (
+                  <>
+                    {getCurrencySymbol(ah.currency)}
+                    {formatPrice(full.price)}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">--</span>
+                )}
+              </div>
+              <div className="text-right font-semibold tabular-nums">
+                {symbol}
+                {formatAmount(marketValue)}
+              </div>
+              <div className="text-right tabular-nums">{pnlText}</div>
+            </button>
+          );
+        })}
       </div>
     );
   };
@@ -344,11 +519,10 @@ export function DisciplineTable({
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr>
-              <th className="text-left p-3 font-medium w-8"></th>
               <th className="text-left p-3 font-medium">资产类别</th>
-              <th className="text-right p-3 font-medium">实际 / 目标</th>
+              <th className="text-right p-3 font-medium">参考指标</th>
               <DesktopSortHeader
-                label={`金额 (${summarySymbol})`}
+                label="市值"
                 sortKey="amount"
                 activeSort={detailSort}
                 onToggle={handleDetailSortToggle}
@@ -359,7 +533,6 @@ export function DisciplineTable({
                 activeSort={detailSort}
                 onToggle={handleDetailSortToggle}
               />
-              <th className="text-center p-3 font-medium">状态</th>
             </tr>
           </thead>
           <tbody>
@@ -375,8 +548,12 @@ export function DisciplineTable({
                     className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
                     onClick={() => toggleExpand(item.id)}
                   >
-                    <td className="p-3 text-muted-foreground">{isExpanded ? "▼" : "▶"}</td>
-                    <td className="p-3 font-medium">{item.name}</td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">{isExpanded ? "▼" : "▶"}</span>
+                        <span className="font-semibold">{item.name}</span>
+                      </div>
+                    </td>
                     <td className="p-3">
                       <div className="flex items-center justify-end">
                         <div className="relative w-24 h-4 bg-muted rounded overflow-hidden flex-shrink-0 mr-3 border border-black/5">
@@ -422,53 +599,10 @@ export function DisciplineTable({
                         </span>
                       )}
                     </td>
-                    <td className="p-3">
-                      {/* 状态列容器：右对齐，确保与表头对齐 */}
-                      <div className="flex items-center justify-end gap-2 pr-1">
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            "w-32 justify-start py-1 px-3 font-normal overflow-hidden",
-                            getStatusStyle(item.status)
-                          )}
-                        >
-                          {/* 1. 图标层：固定宽度，确保后面的文字起点一致 */}
-                          <span className="w-5 flex-shrink-0 flex items-center justify-center">
-                            {getStatusIcon(item.status)}
-                          </span>
-
-                          {/* 2. 标签层：固定起点 */}
-                          <span className="flex-1 ml-1 text-left whitespace-nowrap tabular-nums">
-                            {getDeviationLabel(item.deviation)}
-                          </span>
-                        </Badge>
-
-                        {/* 3. 排序按钮/占位符：确保宽度一致 */}
-                        {item.name !== "现金" ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground flex-shrink-0"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSortHoldingFor({
-                                assetClass: item.name,
-                                title: `排序持仓 - ${item.name}`,
-                              });
-                            }}
-                          >
-                            <ArrowUpDown className="h-3.5 w-3.5" />
-                          </Button>
-                        ) : (
-                          <div className="h-6 w-6 flex-shrink-0" />
-                        )}
-                      </div>
-                    </td>
                   </tr>
                   {isExpanded && (
                     <tr key={`${item.id}-detail`}>
-                      <td colSpan={6} className="bg-muted/20 px-4 py-2">
+                      <td colSpan={4} className="bg-muted/20 px-4 py-2">
                         {renderHoldings(item)}
                       </td>
                     </tr>
@@ -557,37 +691,6 @@ export function DisciplineTable({
                     </span>
                   )}
                 </div>
-                <div className="mt-2 flex items-center justify-end gap-2">
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "max-w-[11rem] justify-start gap-1 text-[10px] py-0.5 font-normal overflow-hidden",
-                      getStatusStyle(item.status)
-                    )}
-                  >
-                    <span className="flex-shrink-0">{getStatusIcon(item.status)}</span>
-                    <span className="truncate">{getDeviationLabel(item.deviation)}</span>
-                  </Badge>
-                  {item.name !== "现金" ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground flex-shrink-0"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setSortHoldingFor({
-                          assetClass: item.name,
-                          title: `排序持仓 - ${item.name}`,
-                        });
-                      }}
-                    >
-                      <ArrowUpDown className="h-3.5 w-3.5" />
-                    </Button>
-                  ) : (
-                    <div className="h-7 w-7 flex-shrink-0" />
-                  )}
-                </div>
               </div>
               {isExpanded && (
                 <div className="border-t bg-muted/20 px-3 py-2">{renderHoldings(item)}</div>
@@ -597,21 +700,51 @@ export function DisciplineTable({
         })}
       </div>
 
-      {sortHoldingFor && (
-        <HoldingSortDialog
-          open={!!sortHoldingFor}
-          onOpenChange={(open) => !open && setSortHoldingFor(null)}
-          title={sortHoldingFor.title}
-          scope="discipline"
-          assetClass={sortHoldingFor.assetClass}
-          accountNameById={accountNameById}
-          holdings={(sortableHoldingsQuery.data ?? []).filter(
-            (holding) => normalizeAssetClassName(holding.assetClass) === sortHoldingFor.assetClass
-          )}
+      <DisciplineHoldingDrawer
+        selected={selectedHolding}
+        currency={selectedHolding?.allocationHolding.currency ?? summaryCurrency}
+        displayCurrency={displayCurrency}
+        totalAssetCny={totalAssetCny}
+        rates={rates}
+        colorMode={colorMode}
+        onOpenChange={(open) => {
+          if (!open) setSelectedHolding(null);
+        }}
+        onBuy={() => openTx("buy")}
+        onSell={() => openTx("sell")}
+        onEdit={() => setEditHoldingOpen(true)}
+      />
+      {selectedHolding && editHoldingOpen && (
+        <HoldingEditDialog
+          holdingId={selectedHolding.holding.id}
+          name={selectedHolding.holding.name}
+          ticker={selectedHolding.holding.ticker}
+          memo={selectedHolding.holding.memo}
+          cost={selectedHolding.holding.cost}
+          marketValue={selectedHolding.holding.marketValue}
+          valuationMode={selectedHolding.holding.valuationMode}
+          shares={selectedHolding.holding.shares}
+          price={selectedHolding.holding.price}
+          assetClass={selectedHolding.holding.assetClass}
+          currency={selectedHolding.allocationHolding.currency}
+          open={editHoldingOpen}
+          onClose={() => setEditHoldingOpen(false)}
           onSaved={() => {
-            setSortHoldingFor(null);
+            setEditHoldingOpen(false);
             handleDataChange();
           }}
+        />
+      )}
+      {selectedHolding && (
+        <TransactionForm
+          open={txOpen}
+          onOpenChange={setTxOpen}
+          onSaved={handleDataChange}
+          accounts={accounts}
+          holdings={allHoldings}
+          defaultType={txType}
+          defaultAccountId={selectedHolding.holding.accountId}
+          defaultHoldingId={selectedHolding.holding.id}
         />
       )}
     </>
