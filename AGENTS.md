@@ -28,10 +28,10 @@
 只提交你本次任务修改的文件改动，和本次任务无关的直接忽略，不提交不删除,继续任务即可
 每一阶段任务完成后都要自动进行git commit方便管理进度，下面是必需commit情况：
 
-- 编写完成了一个change的所有文件
-- apply完成了一个change
-- 修改了某个功能模块的代码/文档
+- opsx:new编写完成了一个change的所有文件
+- opsx:apply完成了一个change
 - opsx:ff模式下写好change文档要commit一次，写好代码再一次commit
+- 不经过openspec工作流，直接修改了某个功能模块的代码/文档
 
 ```
 <类型>: <简要描述>
