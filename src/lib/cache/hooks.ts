@@ -5,8 +5,14 @@ import { useSession } from "next-auth/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { publishInvalidateBroadcast } from "@/lib/cache/broadcast";
-import { emitInvalidate } from "@/lib/cache/events";
+import { emitInvalidate, emitSyncFailure } from "@/lib/cache/events";
 import { fetchJson } from "@/lib/cache/http";
+import {
+  restoreOptimisticSnapshots,
+  type MutationJsonVariables,
+  type OptimisticMutationConfig,
+  type OptimisticSnapshot,
+} from "@/lib/cache/optimistic";
 import {
   buildUserQueryKey,
   buildUserQueryScope,
@@ -73,25 +79,82 @@ export function useInvalidateMutation() {
   return { invalidateByMutation, userId };
 }
 
-interface MutationJsonOptions<TBody> {
-  path: string;
-  method: "POST" | "PUT" | "DELETE" | "PATCH";
-  body?: TBody;
-  mutationName: CacheMutationName;
+interface MutationContext {
+  snapshots: OptimisticSnapshot[];
+}
+
+function createTempId() {
+  return -Math.max(1, Math.floor(Date.now() + Math.random() * 1000));
 }
 
 export function useMutationJson<TBody = unknown, TResult = unknown>() {
-  const { invalidateByMutation } = useInvalidateMutation();
+  const { invalidateByMutation, userId } = useInvalidateMutation();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ path, method, body }: MutationJsonOptions<TBody>) =>
+    mutationFn: async ({ path, method, body }: MutationJsonVariables<TBody>) =>
       fetchJson<TResult>(path, {
         method,
         headers: { "Content-Type": "application/json" },
         body: body == null ? undefined : JSON.stringify(body),
       }),
+    onMutate: async (variables): Promise<MutationContext> => {
+      const optimistic = variables.optimistic as OptimisticMutationConfig<TBody> | undefined;
+      if (!userId || !optimistic) return { snapshots: [] };
+
+      const targets = optimistic.queries ?? MUTATION_INVALIDATES[variables.mutationName] ?? [];
+      const snapshots: OptimisticSnapshot[] = [];
+      const queryEntriesByName = new Map<CacheQueryName, Array<[readonly unknown[], unknown]>>();
+      const tempId = createTempId();
+
+      const readQueryData = <TData>(queryName: CacheQueryName) => {
+        const match = queryEntriesByName.get(queryName)?.[0];
+        return match?.[1] as TData | undefined;
+      };
+
+      for (const queryName of targets) {
+        const scope = buildUserQueryScope(userId, queryName);
+        await queryClient.cancelQueries({ queryKey: scope });
+        queryEntriesByName.set(queryName, queryClient.getQueriesData({ queryKey: scope }));
+      }
+
+      for (const queryName of targets) {
+        const queryEntries = queryEntriesByName.get(queryName) ?? [];
+        for (const [queryKey, previous] of queryEntries) {
+          snapshots.push({ queryKey, data: previous });
+          const next = optimistic.update({
+            queryName,
+            queryKey,
+            previous,
+            variables,
+            tempId,
+            readQueryData,
+          });
+          if (next !== previous) {
+            queryClient.setQueryData(queryKey, next);
+          }
+        }
+      }
+
+      return { snapshots };
+    },
+    onError: (_error, variables, context) => {
+      restoreOptimisticSnapshots(context?.snapshots ?? [], (queryKey, data) =>
+        queryClient.setQueryData(queryKey, data)
+      );
+      if (variables.optimistic) {
+        emitSyncFailure("操作未保存，已回滚到本地缓存");
+      }
+    },
     onSuccess: async (_, variables) => {
-      await invalidateByMutation(variables.mutationName);
+      if (!variables.optimistic) {
+        await invalidateByMutation(variables.mutationName);
+      }
+    },
+    onSettled: async (_data, _error, variables) => {
+      if (variables.optimistic) {
+        await invalidateByMutation(variables.mutationName);
+      }
     },
   });
 }

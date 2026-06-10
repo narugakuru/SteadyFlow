@@ -13,7 +13,7 @@
 - 核心页面已调整为左侧边栏应用外壳：总览、洞察、账户、活动、净值、管理（admin only）与设置入口；登录/注册不渲染应用外壳。
 - 独立“市场”和“股价更新”页面已下线，直接访问 `/market` 与 `/batch-update` 会重定向到总览；旧市场聚合 API 已移除，不再为市场页读取外部数据；报价 API、Dashboard 手动刷新、静默刷新与 Cron 刷新保留。
 - 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`7d/30d/90d -> day`，`1y -> week`，`3y/all -> month`），总览与净值图表默认 `30d`。
-- 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）。
+- 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）；账户/持仓/交易核心写操作支持乐观更新、失败快照回滚与 settled 后统一失效校准。
 - 自动报价路由已升级：美股默认走 Yahoo Finance（yahoo-finance2，`quote` + `quoteSummary` 兜底）并以用户个人 EODHD key 兜底；港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份；用户只能使用自己在设置中保存的报价供应商密钥，系统不再使用全局 `EODHD_API_KEY` 回退；EODHD 回退按最多 10 个 symbol 一组使用 realtime 批量请求，Stooq 适配已移除。
 - 已提供参数化投资组合 JSON 导出接口（`/api/export/portfolio?detail=full|decision`）：设置面板可导出全部数据，Dashboard 资产配置纪律区可导出精简决策快照。
 - 已落地“每日 Cron 保底 + Dashboard 静默兜底”的股价刷新策略，并在总资产卡片显示最近股价同步时间。
@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-10] 完成 `add-optimistic-mutation-update` 实装：`useMutationJson` 新增可选乐观更新生命周期，账户/持仓/交易写操作可即时更新本地缓存，失败后按快照回滚并复用全局失败通知，settled 后继续按统一失效映射校准服务端数据；新增乐观更新聚焦测试并同步 `client-cache-layer` 主 spec。
 - [2026-06-10] 新增账户原始资金与费用台账：账户可设置 `principal`，入金/出金自动增减本金，账户展开摘要新增累计盈亏金额/比例；交易新增费用扣除 `fee` 类型并计入 realizedPnl，交易写入记录现金/本金/持仓 delta，删除交易可按 delta 回滚副作用；SQLite/PG 均生成迁移，历史账户本金迁移为当前现金余额。同步更新 `account-principal-ledger`、`account-management`、`transaction-management`、`realized-pnl-ledger` 与 `dashboard` 主 spec。
 - [2026-06-10] 统一账户页展开持仓表与 Dashboard 纪律表标的数据表：AccountHoldingTable 改为同款六列单行布局，标的名称/代码/账户标签同行展示，数值列右对齐并向右聚集；账户持仓表头支持降序、升序、默认三态排序且仅作用于当前账户明细。同步更新 `account-management` 主 spec。
 - [2026-06-10] 微调 Dashboard 纪律表移动端持仓卡片与详情侧栏：移动端标的卡片明细首行改为左侧现价、右侧盈亏；双端点击标的打开的持仓详情 Drawer 关闭入口改为大号红色 X。同步更新 `dashboard` 与 `mobile-responsive` 主 spec。

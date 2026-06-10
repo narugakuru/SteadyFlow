@@ -31,6 +31,8 @@ import { getAssetClassColor } from "@/lib/visualization/asset-class-colors";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { TransactionForm } from "@/components/transaction-form";
 import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/utils/format";
+import { useMutationJson } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 
 interface HoldingFormProps {
   holding?: Holding;
@@ -62,6 +64,7 @@ function HoldingForm({
   const [saving, setSaving] = useState(false);
   const isEdit = !!holding;
   const sym = CURRENCY_SYMBOLS[currency];
+  const mutation = useMutationJson<unknown, unknown>();
 
   // Tri-field linked editing for shares mode in edit mode
   const tri = useTriFieldLinked({
@@ -111,23 +114,27 @@ function HoldingForm({
         if (mvVal !== undefined) payload.marketValue = mvVal;
       }
 
-      await fetch(`/api/holdings/${holding.id}`, {
+      await mutation.mutateAsync({
+        path: `/api/holdings/${holding.id}`,
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        mutationName: "holdings-write",
+        optimistic: entityOptimisticUpdate,
+        body: payload,
       });
     } else {
       // Create mode: only basic fields
-      await fetch("/api/holdings", {
+      await mutation.mutateAsync({
+        path: "/api/holdings",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        mutationName: "holdings-write",
+        optimistic: entityOptimisticUpdate,
+        body: {
           accountId,
           name,
           ticker: ticker || null,
           valuationMode,
           assetClass,
-        }),
+        },
       });
     }
 
@@ -285,6 +292,7 @@ export function HoldingsPanel({
   const [txDefaultType, setTxDefaultType] = useState<string>("buy");
   const [txDefaultHoldingId, setTxDefaultHoldingId] = useState<number | undefined>();
   const [txAccounts, setTxAccounts] = useState<Account[]>([]);
+  const mutation = useMutationJson<never, unknown>();
 
   const holdings = (allHoldings ?? []).filter((h) => h.accountId === account.id);
   const sym = CURRENCY_SYMBOLS[account.currency];
@@ -311,7 +319,12 @@ export function HoldingsPanel({
   };
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/holdings/${id}`, { method: "DELETE" });
+    await mutation.mutateAsync({
+      path: `/api/holdings/${id}`,
+      method: "DELETE",
+      mutationName: "holdings-write",
+      optimistic: entityOptimisticUpdate,
+    });
     handleSaved();
   };
 

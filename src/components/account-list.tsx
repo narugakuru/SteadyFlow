@@ -26,6 +26,7 @@ import { AccountHoldingTable } from "@/components/account-holding-table";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
 import { calculateCumulativePnl, calculateCumulativePnlPct } from "@/lib/utils/account-principal";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
 import { convertCurrency, getCurrencySymbol } from "@/lib/utils/display-currency";
 
@@ -74,6 +75,7 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
       path: url,
       method: isEdit ? "PUT" : "POST",
       mutationName: "accounts-write",
+      optimistic: entityOptimisticUpdate,
       body: {
         name,
         currency,
@@ -192,6 +194,7 @@ function HoldingForm({ accountId, open, onOpenChange, onSaved }: HoldingFormProp
       path: "/api/holdings",
       method: "POST",
       mutationName: "holdings-write",
+      optimistic: entityOptimisticUpdate,
       body: {
         accountId,
         name,

@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
 import { convertCurrency, getCurrencySymbol } from "@/lib/utils/display-currency";
 import {
@@ -149,6 +150,7 @@ function TransactionsContent() {
       path: `/api/transactions/${id}`,
       method: "DELETE",
       mutationName: "transactions-write",
+      optimistic: entityOptimisticUpdate,
     });
     await txQuery.refetch();
   };

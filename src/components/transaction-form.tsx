@@ -17,6 +17,7 @@ import { Account, Holding, AssetClass, CURRENCY_SYMBOLS } from "@/lib/utils/type
 import { formatAmount, roundForStorage } from "@/lib/utils/format";
 import { fetchJson } from "@/lib/cache/http";
 import { useMutationJson } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 
 export interface TransactionFormProps {
   open: boolean;
@@ -178,6 +179,7 @@ export function TransactionForm({
         path: "/api/transactions",
         method: "POST",
         mutationName: "transactions-write",
+        optimistic: entityOptimisticUpdate,
         body: payload,
       });
     } catch (err) {
@@ -407,6 +409,7 @@ export function TransactionForm({
                       path: "/api/holdings",
                       method: "POST",
                       mutationName: "holdings-write",
+                      optimistic: entityOptimisticUpdate,
                       body: {
                         accountId: Number(accountId),
                         name: newHoldingName,

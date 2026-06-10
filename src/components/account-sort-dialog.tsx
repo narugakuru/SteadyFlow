@@ -17,6 +17,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMutationJson } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 import {
   SORTABLE_DRAG_HANDLE_CLASS_NAME,
   SORTABLE_MOUSE_ACTIVATION_DISTANCE,
@@ -176,6 +177,7 @@ export function AccountSortDialog({
         path: "/api/accounts/reorder",
         method: "POST",
         mutationName: "accounts-write",
+        optimistic: entityOptimisticUpdate,
         body: {
           accountIds: items.map((item) => item.id),
         },

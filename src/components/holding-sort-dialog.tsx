@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMutationJson } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 import { Holding } from "@/lib/utils/types";
 import {
   SORTABLE_DRAG_HANDLE_CLASS_NAME,
@@ -104,6 +106,15 @@ export function HoldingSortDialog({
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   const wasOpenRef = useRef(false);
+  const mutation = useMutationJson<
+    {
+      scope: "account" | "discipline";
+      accountId?: number;
+      assetClass?: string;
+      holdingIds: number[];
+    },
+    { success: boolean }
+  >();
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -173,20 +184,18 @@ export function HoldingSortDialog({
     setError("");
     const previousConfirmed = confirmedItems;
     try {
-      const res = await fetch("/api/holdings/reorder", {
+      await mutation.mutateAsync({
+        path: "/api/holdings/reorder",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        mutationName: "holdings-write",
+        optimistic: entityOptimisticUpdate,
+        body: {
           scope,
           ...(scope === "account" && accountId ? { accountId } : {}),
           ...(scope === "discipline" && assetClass ? { assetClass } : {}),
           holdingIds: items.map((item) => item.id),
-        }),
+        },
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "保存排序失败");
-      }
       setConfirmedItems(items);
       setDirty(false);
       onOpenChange(false);

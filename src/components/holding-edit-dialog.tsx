@@ -16,6 +16,7 @@ import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { AssetClass, CURRENCY_SYMBOLS } from "@/lib/utils/types";
 import { useTriFieldLinked } from "@/lib/utils/hooks";
 import { useMutationJson } from "@/lib/cache/hooks";
+import { entityOptimisticUpdate } from "@/lib/cache/optimistic";
 
 interface HoldingEditDialogProps {
   holdingId: number;
@@ -105,6 +106,7 @@ export function HoldingEditDialog({
       path: `/api/holdings/${holdingId}`,
       method: "PUT",
       mutationName: "holdings-write",
+      optimistic: entityOptimisticUpdate,
       body: payload,
     });
     setSaving(false);
