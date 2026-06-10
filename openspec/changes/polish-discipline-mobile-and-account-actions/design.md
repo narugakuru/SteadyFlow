@@ -53,9 +53,16 @@ This change is presentation-only. It must preserve existing data loading, curren
 
    The discipline holding side panel will hide the default small Sheet close affordance and render an explicit close button styled as a large red X, matching the visual emphasis used by buy/sell dialogs.
 
+7. **Reuse the dashboard holding table language for account expanded holdings.**
+
+   The account expanded holding table will use the same single-line row density, fixed six-column layout, and right-aligned numeric column treatment as the dashboard expanded holding table. Because the account page has no holding Drawer in this flow, row click behavior will remain non-interactive; the change is visual and sorting-focused.
+
+   Header sorting will be local to each `AccountHoldingTable` instance and cycle `desc -> asc -> default`. Numeric comparisons will use the currently displayed amount currency for market value and PnL, while text sorting will use the rendered holding identity.
+
 ## Risks / Trade-offs
 
 - [Risk] Separate desktop/mobile discipline renderers can duplicate formatting code. → Keep shared helper functions for currency, PnL color, and holding lookup, and keep duplicated markup small and local.
 - [Risk] Removing the top-level discipline header can make sorting controls less obvious on desktop. → Put subtle labels and sort affordances directly above expanded holding rows so sorting is scoped to the data users are viewing.
 - [Risk] Reintroducing account edit UI could accidentally restore old row-level actions. → Add the edit action only in the expanded detail action strip and keep the main account row unchanged.
 - [Risk] Custom Drawer close controls can duplicate Radix default close behavior. → Hide the built-in close button for this Drawer and wire the explicit red X to the same open-state callback.
+- [Risk] Account table sorting can conflict with account-level value sorting. → Scope sorting only to holdings inside the expanded account; account list order remains unchanged.

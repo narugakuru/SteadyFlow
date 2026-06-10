@@ -33,3 +33,9 @@
 - [x] 6.1 Adjust mobile discipline holding card detail grid so current price is first row left and PnL is first row right.
 - [x] 6.2 Replace the discipline holding side panel close affordance with a large red X matching buy/sell dialog close styling.
 - [x] 6.3 Sync corrected mobile/card Drawer requirements to main specs and project overview, then run lint and typecheck.
+
+## 7. Account Holding Table Alignment
+
+- [ ] 7.1 Replace AccountHoldingTable row layout with the dashboard expanded holding table's six-column single-line style.
+- [ ] 7.2 Add clickable AccountHoldingTable headers with desc/asc/default sorting scoped to the expanded account.
+- [ ] 7.3 Sync account holding table requirements to main specs and project overview, then run lint and typecheck.

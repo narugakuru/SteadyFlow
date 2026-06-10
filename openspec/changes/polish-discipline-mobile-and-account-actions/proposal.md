@@ -12,6 +12,7 @@ The recent discipline table and account list refactor improved information densi
 - Refine dashboard discipline desktop layout so category summary rows are the only two-line rows, while holding rows remain single-line and visually gather their numeric columns to the right.
 - Adjust mobile discipline holding card detail grid so current price is first row left and PnL is first row right.
 - Make the discipline holding detail side panel close affordance a large red X consistent with buy/sell dialog close styling.
+- Replace the account page expanded holding table with the same single-line data-table style used by dashboard expanded holdings, including clickable header sorting.
 
 ## Capabilities
 
@@ -22,7 +23,7 @@ The recent discipline table and account list refactor improved information densi
 ### Modified Capabilities
 
 - `dashboard`: Discipline table top-level header and expanded holding presentation requirements change.
-- `account-management`: Expanded account detail actions must include account editing.
+- `account-management`: Expanded account detail actions must include account editing, and expanded holding details must match the dashboard holding table with header sorting.
 - `mobile-responsive`: Mobile discipline expanded holdings must remain card-based and separate from desktop data-table rendering.
 
 ## Impact
