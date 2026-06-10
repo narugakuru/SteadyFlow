@@ -45,8 +45,17 @@ This change is presentation-only. It must preserve existing data loading, curren
 
    The account list remains headerless and minimal. Clicking an account expands details, where "编辑账户" appears after "新建持仓". This keeps the main row visually quiet while restoring the account edit workflow.
 
+5. **Align mobile holding detail priority with the requested scan order.**
+
+   Mobile discipline holding cards will keep the independent card renderer, but the detail grid will prioritize current price and PnL on the first row: current price on the left, PnL on the right. Cost price and shares move to the second row.
+
+6. **Use an explicit large red close control in the holding Drawer.**
+
+   The discipline holding side panel will hide the default small Sheet close affordance and render an explicit close button styled as a large red X, matching the visual emphasis used by buy/sell dialogs.
+
 ## Risks / Trade-offs
 
 - [Risk] Separate desktop/mobile discipline renderers can duplicate formatting code. → Keep shared helper functions for currency, PnL color, and holding lookup, and keep duplicated markup small and local.
 - [Risk] Removing the top-level discipline header can make sorting controls less obvious on desktop. → Put subtle labels and sort affordances directly above expanded holding rows so sorting is scoped to the data users are viewing.
 - [Risk] Reintroducing account edit UI could accidentally restore old row-level actions. → Add the edit action only in the expanded detail action strip and keep the main account row unchanged.
+- [Risk] Custom Drawer close controls can duplicate Radix default close behavior. → Hide the built-in close button for this Drawer and wire the explicit red X to the same open-state callback.

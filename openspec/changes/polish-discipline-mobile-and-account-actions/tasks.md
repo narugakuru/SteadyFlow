@@ -27,3 +27,9 @@
 - [x] 5.2 Update desktop expanded holding rows so stock name, ticker, and account badge are on the same line.
 - [x] 5.3 Adjust desktop expanded holding columns so numeric data stays single-line, right-aligned, and visually gathered toward the right.
 - [x] 5.4 Sync corrected layout requirements to main specs and project overview, then run lint and typecheck.
+
+## 6. Mobile Detail Order And Drawer Close
+
+- [ ] 6.1 Adjust mobile discipline holding card detail grid so current price is first row left and PnL is first row right.
+- [ ] 6.2 Replace the discipline holding side panel close affordance with a large red X matching buy/sell dialog close styling.
+- [ ] 6.3 Sync corrected mobile/card Drawer requirements to main specs and project overview, then run lint and typecheck.

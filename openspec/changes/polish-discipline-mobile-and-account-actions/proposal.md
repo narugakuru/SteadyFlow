@@ -10,6 +10,8 @@ The recent discipline table and account list refactor improved information densi
 - Add a subtle per-category holding header inside each expanded discipline category before the holding rows.
 - Restore mobile discipline holding details to independent card-style UI and keep mobile sorting/header affordances, instead of rendering desktop-like data rows on narrow screens.
 - Refine dashboard discipline desktop layout so category summary rows are the only two-line rows, while holding rows remain single-line and visually gather their numeric columns to the right.
+- Adjust mobile discipline holding card detail grid so current price is first row left and PnL is first row right.
+- Make the discipline holding detail side panel close affordance a large red X consistent with buy/sell dialog close styling.
 
 ## Capabilities
 
