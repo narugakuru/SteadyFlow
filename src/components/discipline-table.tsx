@@ -133,12 +133,12 @@ function DesktopSortHeader({
     <th className="p-0 text-right">
       <button
         type="button"
-        className="group flex w-full cursor-pointer items-center justify-end gap-1 px-3 py-3 hover:bg-slate-50 transition-colors"
+        className="group flex w-full cursor-pointer items-center justify-end gap-1 px-3 py-2 transition-colors hover:bg-slate-50"
         onClick={() => onToggle(sortKey)}
       >
         <span
           className={cn(
-            "text-sm font-medium",
+            "text-xs font-medium",
             isActive ? "font-bold text-blue-600" : "text-slate-500"
           )}
         >
@@ -458,7 +458,15 @@ export function DisciplineTable({
 
     return (
       <div className="overflow-x-auto rounded-md border bg-background">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[860px] table-fixed text-sm">
+          <colgroup>
+            <col className="w-[42%]" />
+            <col className="w-[9%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
+            <col className="w-[13%]" />
+            <col className="w-[16%]" />
+          </colgroup>
           <thead className="border-b bg-muted/30 text-xs text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left font-medium">标的</th>
@@ -485,12 +493,14 @@ export function DisciplineTable({
 
               if (ah.id < 0) {
                 return (
-                  <tr key={ah.id}>
+                  <tr key={ah.id} className="whitespace-nowrap">
                     <td className="px-3 py-3">
-                      <div className="font-medium">{ah.name}</div>
-                      <Badge variant="outline" className="mt-1 text-xs">
-                        {ah.accountName}
-                      </Badge>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-medium">{ah.name}</span>
+                        <Badge variant="outline" className="shrink-0 text-xs">
+                          {ah.accountName}
+                        </Badge>
+                      </div>
                     </td>
                     <td className="px-3 py-3 text-right text-muted-foreground">--</td>
                     <td className="px-3 py-3 text-right text-muted-foreground">--</td>
@@ -518,24 +528,22 @@ export function DisciplineTable({
               return (
                 <tr
                   key={ah.id}
-                  className="cursor-pointer transition-colors hover:bg-accent/40"
+                  className="cursor-pointer whitespace-nowrap transition-colors hover:bg-accent/40"
                   onClick={() => setSelectedHolding({ allocationHolding: ah, holding: full })}
                 >
                   <td className="px-3 py-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-base font-semibold text-foreground">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-base font-semibold text-foreground">
                         {ah.name}
-                      </div>
-                      <div className="mt-1 flex min-w-0 items-center gap-2">
-                        {full.ticker ? (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {full.ticker}
-                          </span>
-                        ) : null}
-                        <Badge variant="outline" className="shrink-0 text-xs">
-                          {ah.accountName}
-                        </Badge>
-                      </div>
+                      </span>
+                      {full.ticker ? (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {full.ticker}
+                        </span>
+                      ) : null}
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        {ah.accountName}
+                      </Badge>
                     </div>
                   </td>
                   <td className="px-3 py-3 text-right tabular-nums">
@@ -693,59 +701,65 @@ export function DisciplineTable({
               return (
                 <Fragment key={item.id}>
                   <tr
-                    className="border-t cursor-pointer hover:bg-accent/50 transition-colors"
+                    className="cursor-pointer border-t transition-colors first:border-t-0 hover:bg-accent/50"
                     onClick={() => toggleExpand(item.id)}
                   >
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">{isExpanded ? "▼" : "▶"}</span>
-                        <span className="font-semibold">{item.name}</span>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center justify-end">
-                        <div className="relative w-24 h-4 bg-muted rounded overflow-hidden flex-shrink-0 mr-3 border border-black/5">
-                          <div
-                            className="absolute inset-y-0 left-0 rounded"
-                            style={{
-                              width: `${Math.min(item.actualPct, 100)}%`,
-                              backgroundColor:
-                                item.status === "danger"
-                                  ? "#ef4444"
-                                  : item.status === "warning"
-                                    ? "#eab308"
-                                    : "#22c55e",
-                              opacity: 0.6,
-                            }}
-                          />
-                          <div
-                            className="absolute inset-y-0 w-0.5 bg-foreground/70"
-                            style={{ left: `${Math.min(item.targetPct, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-sm tabular-nums whitespace-nowrap min-w-[90px] text-right">
-                          {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right">
-                      {summarySymbol}
-                      {formatAmount(displayActualValue)}
-                    </td>
-                    <td className="p-3 text-right">
-                      {item.name === "现金" || totalPnlPct === null ? (
-                        <span className="text-muted-foreground">--</span>
-                      ) : (
-                        <span className={pnlColorClass(displayTotalPnl, colorMode)}>
-                          {displayTotalPnl > 0 ? "+" : ""}
-                          {summarySymbol}
-                          {formatAmount(displayTotalPnl)}
-                          <span className="ml-1 text-xs">
-                            ({totalPnlPct > 0 ? "+" : ""}
-                            {formatPercent(totalPnlPct)}%)
+                    <td colSpan={4} className="px-4 py-4">
+                      <div className="grid grid-cols-[minmax(12rem,16rem)_minmax(22rem,1fr)_minmax(14rem,18rem)] items-center gap-6">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="shrink-0 text-muted-foreground">
+                            {isExpanded ? "▼" : "▶"}
                           </span>
-                        </span>
-                      )}
+                          <span className="truncate text-lg font-semibold">{item.name}</span>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="relative h-6 overflow-hidden rounded bg-muted border border-black/5">
+                            <div
+                              className="absolute inset-y-0 left-0 rounded"
+                              style={{
+                                width: `${Math.min(item.actualPct, 100)}%`,
+                                backgroundColor:
+                                  item.status === "danger"
+                                    ? "#ef4444"
+                                    : item.status === "warning"
+                                      ? "#eab308"
+                                      : "#22c55e",
+                                opacity: 0.6,
+                              }}
+                            />
+                            <div
+                              className="absolute inset-y-0 w-0.5 bg-foreground/70"
+                              style={{ left: `${Math.min(item.targetPct, 100)}%` }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center text-xs font-medium tabular-nums text-foreground/75">
+                              {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-xl font-semibold tabular-nums">
+                            {summarySymbol}
+                            {formatAmount(displayActualValue)}
+                          </div>
+                          <div className="mt-1 text-sm tabular-nums">
+                            {item.name === "现金" || totalPnlPct === null ? (
+                              <span className="text-muted-foreground">--</span>
+                            ) : (
+                              <span className={pnlColorClass(displayTotalPnl, colorMode)}>
+                                {displayTotalPnl > 0 ? "+" : ""}
+                                {summarySymbol}
+                                {formatAmount(displayTotalPnl)}
+                                <span className="ml-1 text-xs">
+                                  ({totalPnlPct > 0 ? "+" : ""}
+                                  {formatPercent(totalPnlPct)}%)
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                   {isExpanded && (
