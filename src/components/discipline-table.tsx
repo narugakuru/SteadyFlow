@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Fragment } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, XIcon } from "lucide-react";
 import {
   convertCurrency,
   convertFromCny,
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HoldingEditDialog } from "@/components/holding-edit-dialog";
 import { TransactionForm } from "@/components/transaction-form";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   getNextDisciplineDetailSortState,
   readDisciplineDetailSortState,
@@ -217,9 +217,14 @@ function DisciplineHoldingDrawer({
       <SheetContent
         side="right"
         className="w-[min(92vw,32rem)] gap-0 overflow-y-auto sm:max-w-none md:w-[clamp(24rem,32vw,34rem)]"
+        showCloseButton={false}
       >
         {holding && allocationHolding ? (
           <>
+            <SheetClose className="ring-offset-background absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-md text-red-800 transition-colors hover:text-red-900 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none md:top-4 md:right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0">
+              <XIcon className="size-7 stroke-[2.75]" />
+              <span className="sr-only">Close</span>
+            </SheetClose>
             <SheetHeader className="border-b px-5 py-5">
               <SheetTitle className="pr-8 text-xl">{holding.name}</SheetTitle>
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -652,16 +657,16 @@ export function DisciplineTable({
 
               <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm">
                 <div>
-                  <div className="text-xs text-muted-foreground">盈亏</div>
-                  <div className="mt-0.5 font-semibold tabular-nums">{renderPnl(ah, true)}</div>
-                </div>
-                <div className="text-right">
                   <div className="text-xs text-muted-foreground">现价</div>
                   <div className="mt-0.5 tabular-nums">
                     {full.valuationMode === "shares"
                       ? `${sourceSymbol}${formatPrice(full.price)}`
                       : "--"}
                   </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">盈亏</div>
+                  <div className="mt-0.5 font-semibold tabular-nums">{renderPnl(ah, true)}</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">成本价</div>

@@ -30,6 +30,6 @@
 
 ## 6. Mobile Detail Order And Drawer Close
 
-- [ ] 6.1 Adjust mobile discipline holding card detail grid so current price is first row left and PnL is first row right.
-- [ ] 6.2 Replace the discipline holding side panel close affordance with a large red X matching buy/sell dialog close styling.
-- [ ] 6.3 Sync corrected mobile/card Drawer requirements to main specs and project overview, then run lint and typecheck.
+- [x] 6.1 Adjust mobile discipline holding card detail grid so current price is first row left and PnL is first row right.
+- [x] 6.2 Replace the discipline holding side panel close affordance with a large red X matching buy/sell dialog close styling.
+- [x] 6.3 Sync corrected mobile/card Drawer requirements to main specs and project overview, then run lint and typecheck.
