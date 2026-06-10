@@ -36,7 +36,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await request.json();
-  const { name, currency, cashBalance } = body;
+  const { name, currency, cashBalance, principal } = body;
 
   return runMutationWithNetvalue(userId, async () => {
     const [result] = await db
@@ -46,6 +46,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         ...(currency !== undefined && { currency }),
         ...(cashBalance !== undefined && {
           cashBalance: roundForStorage(parseFloat(cashBalance) || 0, "amount"),
+        }),
+        ...(principal !== undefined && {
+          principal: roundForStorage(parseFloat(principal) || 0, "amount"),
         }),
         updatedAt: new Date().toISOString(),
       })

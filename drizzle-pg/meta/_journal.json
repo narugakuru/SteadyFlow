@@ -50,6 +50,13 @@
       "when": 1774612793266,
       "tag": "0006_add_account_sort_order",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781097356086,
+      "tag": "0007_even_magneto",
+      "breakpoints": true
     }
   ]
 }

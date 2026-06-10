@@ -16,6 +16,7 @@ import {
   type PublicUserSettings,
 } from "@/lib/services/settings-service";
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/utils/asset-class";
+import { calculateCumulativePnl, calculateCumulativePnlPct } from "@/lib/utils/account-principal";
 import { roundForStorage } from "@/lib/utils/format";
 import type { AllocationData, AllocationHolding, AllocationItem } from "@/lib/utils/types";
 import type { QuoteSyncMetadata } from "@/lib/utils/quote-sync";
@@ -27,10 +28,15 @@ export interface PortfolioAccountBreakdown {
   sortOrder: number;
   cashBalance: number;
   cashCny: number;
+  principal: number;
+  principalCny: number;
   holdingsValue: number;
   holdingsValueCny: number;
   accountValue: number;
   accountValueCny: number;
+  cumulativePnl: number;
+  cumulativePnlCny: number;
+  cumulativePnlPct: number | null;
   realizedPnl: number;
   realizedPnlCny: number;
   holdingsPnl: number;
@@ -347,6 +353,14 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
       convertToCNY(account.cashBalance, account.currency, rates) + holdingsValueCny,
       "amount"
     );
+    const principal = roundForStorage(account.principal || 0, "amount");
+    const principalCny = roundForStorage(
+      convertToCNY(principal, account.currency, rates),
+      "amount"
+    );
+    const cumulativePnl = calculateCumulativePnl(accountValue, principal);
+    const cumulativePnlCny = calculateCumulativePnl(accountValueCny, principalCny);
+    const cumulativePnlPct = calculateCumulativePnlPct(cumulativePnl, principal);
 
     return {
       id: account.id,
@@ -358,10 +372,15 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
         convertToCNY(account.cashBalance, account.currency, rates),
         "amount"
       ),
+      principal,
+      principalCny,
       holdingsValue,
       holdingsValueCny,
       accountValue,
       accountValueCny,
+      cumulativePnl,
+      cumulativePnlCny,
+      cumulativePnlPct,
       realizedPnl: roundForStorage(account.realizedPnl || 0, "amount"),
       realizedPnlCny: roundForStorage(
         convertToCNY(account.realizedPnl || 0, account.currency, rates),
@@ -394,6 +413,7 @@ export async function buildPortfolioSnapshot(userId: string): Promise<PortfolioE
         currency: account.currency,
         sortOrder: account.sortOrder,
         cashBalance: account.cashBalance,
+        principal: account.principal,
         realizedPnl: account.realizedPnl,
         createdAt: account.createdAt,
         updatedAt: account.updatedAt,

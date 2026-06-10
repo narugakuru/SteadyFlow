@@ -84,19 +84,20 @@ npm run db:backfill:netvalue
 
 ### 场景 C：生产部署（Vercel + Neon）
 
-1. Vercel 环境变量至少包含：
+1. 在生产部署前，先使用 Neon development 数据库执行并验证同一批 PG 迁移，确认数据回填、启动自动迁移和核心写路径无误后，再迁移 production 数据库。
+2. Vercel 环境变量至少包含：
    - `DB_TYPE=postgres`
    - `DATABASE_URL`
    - 认证相关变量（`AUTH_SECRET` 等）
-2. Vercel 构建阶段会自动执行：
+3. Vercel 构建阶段会自动执行：
    - `npm run db:migrate:pg`
    - `npm run db:backfill:netvalue`
-3. 线上启动时自动迁移与历史净值回填仍作为兜底，不建议长期只依赖“首次请求触发迁移”。
-4. 如果要在部署前显式验证，可在 CI 或本地先执行：
+4. 线上启动时自动迁移与历史净值回填仍作为兜底，不建议长期只依赖“首次请求触发迁移”。
+5. 如果要在部署前显式验证，可在 CI 或本地先对 Neon development 数据库执行：
    - `npm run db:check:pg`
    - `npm run db:migrate:pg`
    - `npm run db:backfill:netvalue`
-5. 破坏性迁移（重命名/删列/类型变更）前先备份数据库。
+6. 破坏性迁移（重命名/删列/类型变更）前先备份数据库。
 
 ### 场景 D：新增一个 schema 变更（推荐标准流程）
 
@@ -152,6 +153,7 @@ npm run db:backfill:netvalue
 - `npm run db:check:sqlite`
 - `npm run db:check:pg`
 - SQLite 与 PG 都能本地启动并自动 migrate
+- PG 迁移已先在 Neon development 数据库验证，再计划应用到 production
 - 若涉及净值历史瘦身，确认 `npm run db:backfill:netvalue` 在目标环境可执行且可重复运行
 - 新增迁移是否同时覆盖 `drizzle/` 与 `drizzle-pg/`
 - 破坏性变更是否有备份和回滚方案

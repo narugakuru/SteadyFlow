@@ -24,6 +24,7 @@ import {
 } from "@/lib/utils/types";
 import { AccountHoldingTable } from "@/components/account-holding-table";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { calculateCumulativePnl, calculateCumulativePnlPct } from "@/lib/utils/account-principal";
 import { useMutationJson, useUserScopedQuery } from "@/lib/cache/hooks";
 import { useDisplayCurrencyPreference } from "@/lib/services/display-currency-preference";
 import { convertCurrency, getCurrencySymbol } from "@/lib/utils/display-currency";
@@ -58,10 +59,11 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
   const [name, setName] = useState(account?.name ?? "");
   const [currency, setCurrency] = useState<string>(account?.currency ?? "CNY");
   const [cashBalance, setCashBalance] = useState(account?.cashBalance?.toString() ?? "");
+  const [principal, setPrincipal] = useState(account?.principal?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const isEdit = !!account;
   const mutation = useMutationJson<
-    { name: string; currency: string; cashBalance: number },
+    { name: string; currency: string; cashBalance: number; principal: number },
     Account
   >();
 
@@ -76,6 +78,7 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
         name,
         currency,
         cashBalance: parseFloat(cashBalance) || 0,
+        principal: parseFloat(principal || cashBalance) || 0,
       },
     });
     setSaving(false);
@@ -119,6 +122,15 @@ function AccountForm({ account, open, onOpenChange, onSaved }: AccountFormProps)
               type="number"
               value={cashBalance}
               onChange={(e) => setCashBalance(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div>
+            <Label>原始资金 ({CURRENCY_SYMBOLS[currency]})</Label>
+            <Input
+              type="number"
+              value={principal}
+              onChange={(e) => setPrincipal(e.target.value)}
               placeholder="0"
             />
           </div>
@@ -388,6 +400,14 @@ export function AccountList({
       displayCurrency,
       rates
     );
+    const cumulativePnlRaw = calculateCumulativePnl(a.accountValue, a.principal);
+    const displayCumulativePnl = convertAccountAmount(
+      cumulativePnlRaw,
+      a.currency,
+      displayCurrency,
+      rates
+    );
+    const cumulativePnlPct = calculateCumulativePnlPct(cumulativePnlRaw, a.principal);
 
     return (
       <div className="bg-muted/20">
@@ -411,6 +431,19 @@ export function AccountList({
             <span className="font-semibold">
               {sym}
               {formatAmount(displayCashBalance)}
+            </span>
+          </span>
+          <span>
+            累计盈亏{" "}
+            <span className={`font-semibold ${pnlColorClass(displayCumulativePnl, colorMode)}`}>
+              {displayCumulativePnl > 0 ? "+" : ""}
+              {sym}
+              {formatAmount(displayCumulativePnl)}
+              <span className="ml-1">
+                {cumulativePnlPct === null
+                  ? "--"
+                  : `${cumulativePnlPct > 0 ? "+" : ""}${formatPercent(cumulativePnlPct)}%`}
+              </span>
             </span>
           </span>
           <div className="flex-1 hidden md:block" />
@@ -525,9 +558,15 @@ export function AccountList({
         </div>
       )}
 
-      <AccountForm open={createOpen} onOpenChange={setCreateOpen} onSaved={onRefresh} />
+      <AccountForm
+        key={`create-account-${createOpen}`}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSaved={onRefresh}
+      />
       {editAccount && (
         <AccountForm
+          key={`edit-account-${editAccount.id}`}
           account={editAccount}
           open={!!editAccount}
           onOpenChange={(open) => !open && setEditAccount(null)}

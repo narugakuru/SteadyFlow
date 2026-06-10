@@ -1,6 +1,6 @@
 ## Purpose
 
-定义 dashboard 能力的业务约束与验收标准。
+定义 dashboard 能力的业务约束与验收标准，覆盖总览资产趋势、纪律表、再平衡、缓存刷新和展示边界。
 
 ## Requirements
 
@@ -117,6 +117,15 @@
 
 - **WHEN** 用户在 Dashboard 将货币下拉切换到 HKD，然后进入账户页
 - **THEN** 账户页金额展示按 HKD 实时换算显示，无需用户再次设置
+
+### Requirement: Dashboard 累计盈亏范围
+
+Dashboard SHALL NOT 在账户本金与费用台账变更中新增账户原始资金、费用扣除或账户级累计盈亏的次级指标。Dashboard SHALL 保持现有总览核心区的信息范围，账户级累计盈亏展示归属账户管理页展开摘要。
+
+#### Scenario: Dashboard 总览不新增本金次级指标
+
+- **WHEN** 用户在账户本金功能上线后打开 Dashboard
+- **THEN** 总览核心区不新增原始资金、费用扣除或账户级累计盈亏次级指标
 
 ### Requirement: 资产配置纪律表
 

@@ -8,6 +8,7 @@ export interface Account {
   name: string;
   currency: CurrencyCode;
   cashBalance: number;
+  principal: number;
   realizedPnl: number;
   holdingsPnl: number;
   sortOrder: number;
@@ -60,10 +61,15 @@ export interface Transaction {
   id: number;
   accountId: number;
   holdingId: number | null;
-  type: "buy" | "sell" | "dividend" | "deposit" | "withdraw";
+  type: "buy" | "sell" | "dividend" | "deposit" | "withdraw" | "fee";
   date: string;
   amount: number;
   realizedPnl: number;
+  cashDelta: number;
+  principalDelta: number;
+  holdingSharesDelta: number;
+  holdingCostDelta: number;
+  holdingMarketValueDelta: number;
   shares: number | null;
   price: number | null;
   fee: number;

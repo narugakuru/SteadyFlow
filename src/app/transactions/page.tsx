@@ -55,6 +55,7 @@ const TX_TYPE_LABELS: Record<string, string> = {
   dividend: "股息",
   deposit: "现金存入",
   withdraw: "现金取出",
+  fee: "费用扣除",
 };
 
 const TX_TYPE_COLORS: Record<string, string> = {
@@ -63,6 +64,7 @@ const TX_TYPE_COLORS: Record<string, string> = {
   dividend: "bg-green-100 text-green-800",
   deposit: "bg-emerald-100 text-emerald-800",
   withdraw: "bg-red-100 text-red-800",
+  fee: "bg-rose-100 text-rose-800",
 };
 
 function normalizeCurrencyCode(value: string | undefined): CurrencyCode {
@@ -190,6 +192,7 @@ function TransactionsContent() {
               <SelectItem value="dividend">股息</SelectItem>
               <SelectItem value="deposit">现金存入</SelectItem>
               <SelectItem value="withdraw">现金取出</SelectItem>
+              <SelectItem value="fee">费用扣除</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -232,7 +235,11 @@ function TransactionsContent() {
 
                   return convertCurrency(amount, sourceCurrency, displayCurrency, rates);
                 };
-                const hasRealizedPnl = tx.type === "sell" && tx.affectHolding;
+                const hasRealizedPnl =
+                  (tx.type === "sell" && tx.affectHolding) ||
+                  tx.type === "dividend" ||
+                  tx.type === "fee" ||
+                  tx.realizedPnl !== 0;
                 const displayPrice = tx.price != null ? convertAmountForDisplay(tx.price) : null;
                 const displayAmount = convertAmountForDisplay(tx.amount);
                 const displayFee = tx.fee > 0 ? convertAmountForDisplay(tx.fee) : null;

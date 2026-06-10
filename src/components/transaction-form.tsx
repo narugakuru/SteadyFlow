@@ -134,6 +134,7 @@ export function TransactionForm({
 
   const needsHolding = type === "buy" || type === "sell";
   const optionalHolding = type === "dividend";
+  const isFeeTransaction = type === "fee";
   const accountHoldings = localHoldings.filter((h) => h.accountId === Number(accountId));
   const selectedHolding = localHoldings.find((h) => h.id === Number(holdingId));
   const isSharesMode = selectedHolding?.valuationMode === "shares";
@@ -217,6 +218,12 @@ export function TransactionForm({
               value={type}
               onValueChange={(v) => {
                 setType(v);
+                if (v === "fee") {
+                  setHoldingId("");
+                  setFee("");
+                  setAffectCash(true);
+                  setAffectHolding(false);
+                }
               }}
             >
               <SelectTrigger>
@@ -228,6 +235,7 @@ export function TransactionForm({
                 <SelectItem value="dividend">股息</SelectItem>
                 <SelectItem value="deposit">现金存入</SelectItem>
                 <SelectItem value="withdraw">现金取出</SelectItem>
+                <SelectItem value="fee">费用扣除</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -255,7 +263,7 @@ export function TransactionForm({
             </Select>
           </div>
 
-          {accountId && (
+          {accountId && !isFeeTransaction && (
             <div className="flex items-center justify-between pl-1">
               <Label htmlFor="affect-cash" className="cursor-pointer text-sm text-muted-foreground">
                 影响账户现金
@@ -263,7 +271,7 @@ export function TransactionForm({
               <Switch id="affect-cash" checked={affectCash} onCheckedChange={setAffectCash} />
             </div>
           )}
-          {accountId && !affectCash && (
+          {accountId && !isFeeTransaction && !affectCash && (
             <p className="text-xs text-muted-foreground pl-1">
               不扣减/增加账户现金（适用于录入已有持仓）
             </p>
@@ -474,15 +482,17 @@ export function TransactionForm({
             </div>
           )}
 
-          <div>
-            <Label>手续费 ({sym})（选填）</Label>
-            <Input
-              type="number"
-              value={fee}
-              onChange={(e) => setFee(e.target.value)}
-              placeholder="0"
-            />
-          </div>
+          {!isFeeTransaction && (
+            <div>
+              <Label>手续费 ({sym})（选填）</Label>
+              <Input
+                type="number"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+          )}
 
           <div>
             <Label>交易日期</Label>

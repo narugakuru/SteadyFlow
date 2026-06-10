@@ -44,7 +44,7 @@ openspec/       # 需求规格与变更流程
 ## 数据模型（核心表）
 
 - 认证与用户：`users`, `authAccounts`, `sessions`, `verificationTokens`
-- 投资域：`accounts`（含账户默认排序 `sortOrder`）, `holdings`, `transactions`, `assetClasses`
+- 投资域：`accounts`（含原始资金 `principal`、累计了结盈亏 `realizedPnl` 与账户默认排序 `sortOrder`）, `holdings`, `transactions`（含费用扣除 `fee` 与副作用 delta）, `assetClasses`
 - 指标与辅助：`exchangeRates`, `netvalue`, `disciplineNotes`, `settings`
 
 ## 关键文档入口
@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-10] 新增账户原始资金与费用台账：账户可设置 `principal`，入金/出金自动增减本金，账户展开摘要新增累计盈亏金额/比例；交易新增费用扣除 `fee` 类型并计入 realizedPnl，交易写入记录现金/本金/持仓 delta，删除交易可按 delta 回滚副作用；SQLite/PG 均生成迁移，历史账户本金迁移为当前现金余额。同步更新 `account-principal-ledger`、`account-management`、`transaction-management`、`realized-pnl-ledger` 与 `dashboard` 主 spec。
 - [2026-06-10] 统一账户页展开持仓表与 Dashboard 纪律表标的数据表：AccountHoldingTable 改为同款六列单行布局，标的名称/代码/账户标签同行展示，数值列右对齐并向右聚集；账户持仓表头支持降序、升序、默认三态排序且仅作用于当前账户明细。同步更新 `account-management` 主 spec。
 - [2026-06-10] 微调 Dashboard 纪律表移动端持仓卡片与详情侧栏：移动端标的卡片明细首行改为左侧现价、右侧盈亏；双端点击标的打开的持仓详情 Drawer 关闭入口改为大号红色 X。同步更新 `dashboard` 与 `mobile-responsive` 主 spec。
 - [2026-06-10] 纠偏 Dashboard 纪律表桌面布局：资产类别汇总条改为大行高两行结构，左侧显示大字类别、中间加大进度条、右侧显示大字市值与次行盈亏；展开标的行保持单行，股票名称/代码/账户标签同行展示，数值列右对齐并向右聚集。同步更新 `dashboard` 主 spec。

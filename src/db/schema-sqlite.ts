@@ -76,6 +76,7 @@ export const accounts = sqliteTable("accounts", {
   name: text("name").notNull(),
   currency: text("currency", { enum: ["CNY", "USD", "HKD"] }).notNull(),
   cashBalance: real("cash_balance").notNull().default(0),
+  principal: real("principal").notNull().default(0),
   realizedPnl: real("realized_pnl").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(999),
   createdAt: text("created_at")
@@ -203,10 +204,17 @@ export const transactions = sqliteTable("transactions", {
     .notNull()
     .references(() => accounts.id, { onDelete: "cascade" }),
   holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
-  type: text("type", { enum: ["buy", "sell", "dividend", "deposit", "withdraw"] }).notNull(),
+  type: text("type", {
+    enum: ["buy", "sell", "dividend", "deposit", "withdraw", "fee"],
+  }).notNull(),
   date: text("date").notNull(),
   amount: real("amount").notNull(),
   realizedPnl: real("realized_pnl").notNull().default(0),
+  cashDelta: real("cash_delta").notNull().default(0),
+  principalDelta: real("principal_delta").notNull().default(0),
+  holdingSharesDelta: real("holding_shares_delta").notNull().default(0),
+  holdingCostDelta: real("holding_cost_delta").notNull().default(0),
+  holdingMarketValueDelta: real("holding_market_value_delta").notNull().default(0),
   shares: real("shares"),
   price: real("price"),
   fee: real("fee").notNull().default(0),
