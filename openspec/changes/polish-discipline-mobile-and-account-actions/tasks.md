@@ -20,3 +20,10 @@
 - [x] 4.1 Sync implemented behavior into `openspec/specs/dashboard`, `openspec/specs/account-management`, and `openspec/specs/mobile-responsive`.
 - [x] 4.2 Update `project_overview.md` progress log.
 - [x] 4.3 Run lint and typecheck.
+
+## 5. Discipline Desktop Layout Correction
+
+- [ ] 5.1 Update desktop category summary rows to a taller two-line layout with large category name, enlarged center progress bar, and right-side market value plus PnL.
+- [ ] 5.2 Update desktop expanded holding rows so stock name, ticker, and account badge are on the same line.
+- [ ] 5.3 Adjust desktop expanded holding columns so numeric data stays single-line, right-aligned, and visually gathered toward the right.
+- [ ] 5.4 Sync corrected layout requirements to main specs and project overview, then run lint and typecheck.

@@ -35,7 +35,13 @@ This change is presentation-only. It must preserve existing data loading, curren
 
    Alternative considered: keep a visually hidden or low-contrast top header. The user explicitly requested deleting the top header, so the visible UI should not retain it.
 
-3. **Restore account editing as an expanded-detail action, not a row-level icon.**
+3. **Separate summary row hierarchy from holding row density.**
+
+   Category summary rows will use a taller two-line composition: large bold category name on the left, enlarged progress bar in the center, and right-aligned market value with PnL on the second line. Expanded holding rows stay strictly single-line on desktop; the first column places stock name, ticker, and account badge on one horizontal line, while the remaining numeric columns use compact right alignment and are biased toward the right side of the row.
+
+   Alternative considered: make holding identity two-line like the account table. That makes the expanded area feel taller and conflicts with the user's intended single-line scan pattern for holdings.
+
+4. **Restore account editing as an expanded-detail action, not a row-level icon.**
 
    The account list remains headerless and minimal. Clicking an account expands details, where "编辑账户" appears after "新建持仓". This keeps the main row visually quiet while restoring the account edit workflow.
 

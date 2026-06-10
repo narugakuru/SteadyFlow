@@ -9,6 +9,7 @@ The recent discipline table and account list refactor improved information densi
 - Change expanded dashboard discipline holdings on desktop to use the same six-column information model as the account holding table: 标的、份额、现价、成本价、市值、盈亏.
 - Add a subtle per-category holding header inside each expanded discipline category before the holding rows.
 - Restore mobile discipline holding details to independent card-style UI and keep mobile sorting/header affordances, instead of rendering desktop-like data rows on narrow screens.
+- Refine dashboard discipline desktop layout so category summary rows are the only two-line rows, while holding rows remain single-line and visually gather their numeric columns to the right.
 
 ## Capabilities
 
