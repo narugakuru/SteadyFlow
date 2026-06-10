@@ -36,6 +36,6 @@
 
 ## 7. Account Holding Table Alignment
 
-- [ ] 7.1 Replace AccountHoldingTable row layout with the dashboard expanded holding table's six-column single-line style.
-- [ ] 7.2 Add clickable AccountHoldingTable headers with desc/asc/default sorting scoped to the expanded account.
-- [ ] 7.3 Sync account holding table requirements to main specs and project overview, then run lint and typecheck.
+- [x] 7.1 Replace AccountHoldingTable row layout with the dashboard expanded holding table's six-column single-line style.
+- [x] 7.2 Add clickable AccountHoldingTable headers with desc/asc/default sorting scoped to the expanded account.
+- [x] 7.3 Sync account holding table requirements to main specs and project overview, then run lint and typecheck.
