@@ -73,7 +73,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-md text-red-800 transition-colors hover:text-red-900 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none md:top-4 md:right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+            className="ring-offset-background absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-md text-status-danger transition-colors hover:text-status-danger/85 focus:ring-2 focus:ring-status-danger focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none md:top-4 md:right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
           >
             <XIcon className="size-7 stroke-[2.75]" />
             <span className="sr-only">Close</span>

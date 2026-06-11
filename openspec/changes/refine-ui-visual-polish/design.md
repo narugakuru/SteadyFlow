@@ -8,7 +8,7 @@ InvestManage 当前使用 Next.js 16 + React 19 + Tailwind CSS 4 + shadcn/ui。`
 - `.dark` 变量虽已定义但无切换入口，且硬编码浅色会让暗色模式实际错乱——等于"半成品暗色"。
 - 展开/收起用 `▼ / ▶` 文本字符（项目已依赖 `lucide-react`）。
 - 页面级加载统一是 `LoadingSpinner` 全屏占位，配合缓存优先会出现布局跳动。
-- 总览操作区"更新股价/交易/导出"全是同款主按钮，缺视觉重心。
+- 总览操作区"更新股价/交易/导出"需要统一延续既有主按钮黑底白字配色，避免不同主题下出现低对比按钮。
 
 约束：本次为纯前端展示层重构，MUST NOT 触碰后端、API、数据模型与数据库迁移；MUST NOT 改变现有信息架构与业务交互流程（展开逻辑、排序三态、Drawer 行为等保持不变）。
 
@@ -20,7 +20,7 @@ InvestManage 当前使用 Next.js 16 + React 19 + Tailwind CSS 4 + shadcn/ui。`
 - 让 `.dark` 主题真正可用，并提供无闪烁的主题切换入口。
 - 用 lucide 图标替换文本箭头，展开/收起加过渡动效。
 - 用骨架屏替换页面级全屏 spinner，消除首屏布局跳动。
-- 规范按钮层级（每区至多一个主按钮）与排版刻度。
+- 规范全局主按钮配色与排版刻度。
 
 **Non-Goals:**
 
@@ -78,7 +78,7 @@ InvestManage 当前使用 Next.js 16 + React 19 + Tailwind CSS 4 + shadcn/ui。`
 纯前端变更，无数据迁移。建议实施顺序（低风险 → 体感升级）：
 
 1. 在 `globals.css` 新增语义色 token（亮/暗），不改组件——无视觉变化，安全打底。
-2. 替换组件硬编码色为 token + 图标替换 + 按钮层级（`discipline-table`、`account-list`、`overview-asset-trend`、总览页）。
+2. 替换组件硬编码色为 token + 图标替换 + 统一主按钮配色（`discipline-table`、`account-list`、`overview-asset-trend`、总览页）。
 3. 引入 `next-themes` 与主题切换入口，亮/暗双主题走查。
 4. 新增 skeleton，替换页面级 spinner。
 5. 排版刻度统一与展开过渡动效收尾。

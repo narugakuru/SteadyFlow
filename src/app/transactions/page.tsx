@@ -60,12 +60,12 @@ const TX_TYPE_LABELS: Record<string, string> = {
 };
 
 const TX_TYPE_COLORS: Record<string, string> = {
-  buy: "bg-blue-100 text-blue-800",
-  sell: "bg-orange-100 text-orange-800",
-  dividend: "bg-green-100 text-green-800",
-  deposit: "bg-emerald-100 text-emerald-800",
-  withdraw: "bg-red-100 text-red-800",
-  fee: "bg-rose-100 text-rose-800",
+  buy: "bg-chart-1/15 text-foreground",
+  sell: "bg-status-warning/15 text-foreground",
+  dividend: "bg-status-success/15 text-foreground",
+  deposit: "bg-status-success/15 text-foreground",
+  withdraw: "bg-status-danger/15 text-foreground",
+  fee: "bg-status-danger/15 text-foreground",
 };
 
 function normalizeCurrencyCode(value: string | undefined): CurrencyCode {

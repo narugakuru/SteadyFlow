@@ -11,6 +11,7 @@
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
 - 核心页面已调整为左侧边栏应用外壳：总览、洞察、账户、活动、净值、管理（admin only）与设置入口；登录/注册不渲染应用外壳。
+- 视觉系统已补充语义色 token、light/dark/system 主题切换（next-themes）、页面级骨架屏与统一主按钮黑底白字配色；核心图表/纪律表/账户表颜色改为引用主题 token。
 - 独立“市场”和“股价更新”页面已下线，直接访问 `/market` 与 `/batch-update` 会重定向到总览；旧市场聚合 API 已移除，不再为市场页读取外部数据；报价 API、Dashboard 手动刷新、静默刷新与 Cron 刷新保留。
 - 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`7d/30d/90d -> day`，`1y -> week`，`3y/all -> month`），总览与净值图表默认 `30d`。
 - 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）；账户/持仓/交易核心写操作支持乐观更新、失败快照回滚与 settled 后统一失效校准。
@@ -22,7 +23,7 @@
 
 ## 技术栈（摘要）
 
-- 前端：Next.js 16 (App Router)、React 19、TypeScript、Tailwind CSS 4、shadcn/ui（主按钮默认样式由共享 Button 组件 + 全局 CSS 变量统一维护，基准为 Dashboard“更新股价”按钮）
+- 前端：Next.js 16 (App Router)、React 19、TypeScript、Tailwind CSS 4、shadcn/ui、next-themes（主按钮默认样式由共享 Button 组件 + 全局 CSS 变量统一维护，基准为 Dashboard“更新股价”按钮）
 - 客户端数据层：TanStack Query + Persist Client + Async Storage Persister + IndexedDB (`idb-keyval`)
 - 后端：Next.js Route Handlers、Drizzle ORM
 - 数据库：SQLite (`better-sqlite3`) / PostgreSQL (Neon serverless)
@@ -68,6 +69,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-11] 完成 `refine-ui-visual-polish` 实装：新增语义色 token 与图表色 helper，接入 next-themes 的 light/dark/system 主题切换；纪律表/账户表/洞察图/净值图去除硬编码浅色与文本箭头，改用主题 token 与 lucide 展开图标；总览/洞察/账户/净值页改用结构骨架屏，净值空态升级为图标说明；总览“更新股价/交易/导出持仓”统一保持全局黑底白字主按钮配色。同步新增 `ui-design-system` 主 spec，并更新 `dashboard`、`mobile-responsive`、`loading-spinner`、`visualization-charts` 主 spec。
 - [2026-06-10] 完成 `add-optimistic-mutation-update` 实装：`useMutationJson` 新增可选乐观更新生命周期，账户/持仓/交易写操作可即时更新本地缓存，失败后按快照回滚并复用全局失败通知，settled 后继续按统一失效映射校准服务端数据；新增乐观更新聚焦测试并同步 `client-cache-layer` 主 spec。
 - [2026-06-10] 新增账户原始资金与费用台账：账户可设置 `principal`，入金/出金自动增减本金，账户展开摘要新增累计盈亏金额/比例；交易新增费用扣除 `fee` 类型并计入 realizedPnl，交易写入记录现金/本金/持仓 delta，删除交易可按 delta 回滚副作用；SQLite/PG 均生成迁移，历史账户本金迁移为当前现金余额。同步更新 `account-principal-ledger`、`account-management`、`transaction-management`、`realized-pnl-ledger` 与 `dashboard` 主 spec。
 - [2026-06-10] 统一账户页展开持仓表与 Dashboard 纪律表标的数据表：AccountHoldingTable 改为同款六列单行布局，标的名称/代码/账户标签同行展示，数值列右对齐并向右聚集；账户持仓表头支持降序、升序、默认三态排序且仅作用于当前账户明细。同步更新 `account-management` 主 spec。

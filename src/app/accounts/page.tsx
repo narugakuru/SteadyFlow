@@ -8,9 +8,26 @@ import { AccountList } from "@/components/account-list";
 import { DataFreshness } from "@/components/data-freshness";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 import { Account, AllocationData } from "@/lib/utils/types";
+
+function AccountsSkeleton() {
+  return (
+    <PageContainer className="space-y-3 py-4 md:py-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-24" />
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-28" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+      </div>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Skeleton key={index} className="h-24 w-full rounded-lg" />
+      ))}
+    </PageContainer>
+  );
+}
 
 function AccountsContent() {
   const searchParams = useSearchParams();
@@ -43,7 +60,7 @@ function AccountsContent() {
   };
 
   if (loading) {
-    return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
+    return <AccountsSkeleton />;
   }
 
   if (error || !allocation) {
@@ -84,7 +101,7 @@ function AccountsContent() {
 
 export default function AccountsPage() {
   return (
-    <Suspense fallback={<LoadingSpinner text="加载中..." className="min-h-[50vh]" />}>
+    <Suspense fallback={<AccountsSkeleton />}>
       <AccountsContent />
     </Suspense>
   );

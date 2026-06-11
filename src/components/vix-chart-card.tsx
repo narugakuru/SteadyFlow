@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils/format";
+import { STATUS_COLOR_VARS } from "@/lib/visualization/theme-colors";
 
 interface MarketVixData {
   latest: number | null;
@@ -77,8 +78,8 @@ export function VixChartCard({ vix, loading }: VixChartCardProps) {
             <AreaChart data={series} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
               <defs>
                 <linearGradient id="vixArea" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#ef4444" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#ef4444" stopOpacity={0.03} />
+                  <stop offset="0%" stopColor={STATUS_COLOR_VARS.danger} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={STATUS_COLOR_VARS.danger} stopOpacity={0.03} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={0.18} />
@@ -100,7 +101,7 @@ export function VixChartCard({ vix, loading }: VixChartCardProps) {
               <Area
                 type="monotone"
                 dataKey="close"
-                stroke="#ef4444"
+                stroke={STATUS_COLOR_VARS.danger}
                 strokeWidth={2}
                 fill="url(#vixArea)"
                 activeDot={{ r: 4 }}

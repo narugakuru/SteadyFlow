@@ -430,7 +430,7 @@ export function HoldingsPanel({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-blue-600"
+                    className="text-sort-active"
                     onClick={() => openQuickTx("buy", h.id)}
                   >
                     买入
@@ -438,7 +438,7 @@ export function HoldingsPanel({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-orange-600"
+                    className="text-status-warning"
                     onClick={() => openQuickTx("sell", h.id)}
                   >
                     卖出

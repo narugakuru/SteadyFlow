@@ -7,9 +7,32 @@ import { InsightsCompositionChart } from "@/components/insights-composition-char
 import { InsightsHeatmap } from "@/components/insights-heatmap";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 import type { PortfolioInsightsData } from "@/lib/utils/types";
+
+function InsightsSkeleton() {
+  return (
+    <PageContainer className="space-y-6 py-4 md:py-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+        <Skeleton className="h-4 w-32" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Skeleton key={index} className="h-80 rounded-lg" />
+        ))}
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-[440px] rounded-lg md:h-[520px]" />
+      </div>
+    </PageContainer>
+  );
+}
 
 export default function InsightsPage() {
   const insightsQuery = useUserScopedQuery<PortfolioInsightsData>({
@@ -23,7 +46,7 @@ export default function InsightsPage() {
   const insights = insightsQuery.data;
 
   if (loading) {
-    return <LoadingSpinner text="加载中..." className="min-h-[60vh]" />;
+    return <InsightsSkeleton />;
   }
 
   if (error || !insights) {

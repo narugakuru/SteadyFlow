@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Clock3, List } from "lucide-react";
 
 import { DataFreshness } from "@/components/data-freshness";
 import { NetvalueCharts } from "@/components/netvalue-charts";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
 import {
   DEFAULT_NETVALUE_PAGE_SIZE,
@@ -38,6 +38,34 @@ function formatFixed2(value: number): string {
   });
 }
 
+function NetvalueSkeleton() {
+  return (
+    <PageContainer className="space-y-6 py-4 md:py-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-32" />
+      </div>
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex gap-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-9 w-14" />
+            ))}
+          </div>
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-[300px] rounded-lg" />
+      </section>
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-[280px] rounded-lg" />
+      </section>
+    </PageContainer>
+  );
+}
+
 export default function NetvaluePage() {
   const [page, setPage] = useState(1);
   const [range, setRange] = useState<NetvalueChartRange>("30d");
@@ -66,7 +94,7 @@ export default function NetvaluePage() {
     (listQuery.isLoading && !listQuery.data && chartQuery.isLoading && !chartQuery.data);
 
   if (loading) {
-    return <LoadingSpinner text="加载中..." className="min-h-screen" />;
+    return <NetvalueSkeleton />;
   }
 
   const records = listQuery.data?.records ?? [];
@@ -104,7 +132,7 @@ export default function NetvaluePage() {
         </div>
 
         {chartQuery.isLoading && !chart ? (
-          <LoadingSpinner text="图表加载中..." className="min-h-[240px]" />
+          <Skeleton className="min-h-[240px] rounded-lg" />
         ) : chartError ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm">
             <p className="inline-flex items-center gap-2 text-destructive">
@@ -120,7 +148,11 @@ export default function NetvaluePage() {
         ) : hasChartData && chart ? (
           <NetvalueCharts chart={chart} />
         ) : (
-          <p className="text-muted-foreground text-center py-8">暂无足够的图表数据</p>
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center">
+            <Clock3 className="size-7 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium">暂无足够的图表数据</p>
+            <p className="mt-1 text-xs text-muted-foreground">积累至少两条净值记录后显示走势。</p>
+          </div>
         )}
       </section>
 
@@ -131,7 +163,7 @@ export default function NetvaluePage() {
         </div>
 
         {listQuery.isLoading && !listQuery.data ? (
-          <LoadingSpinner text="列表加载中..." className="min-h-[240px]" />
+          <Skeleton className="min-h-[240px] rounded-lg" />
         ) : listError ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm">
             <p className="inline-flex items-center gap-2 text-destructive">
@@ -214,7 +246,13 @@ export default function NetvaluePage() {
             </div>
           </>
         ) : (
-          <p className="text-muted-foreground text-center py-8">暂无净值记录</p>
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center">
+            <List className="size-7 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium">暂无净值记录</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              完成每日净值记录后将在这里查看历史清单。
+            </p>
+          </div>
         )}
       </section>
     </PageContainer>

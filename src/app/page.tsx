@@ -14,6 +14,7 @@ import { RebalancePanel } from "@/components/rebalance-panel";
 import { TransactionForm } from "@/components/transaction-form";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -40,6 +41,46 @@ import {
   type Holding,
   type NetvalueChartResponse,
 } from "@/lib/utils/types";
+
+function DashboardSkeleton() {
+  return (
+    <PageContainer className="space-y-6 py-4 md:py-6">
+      <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="min-h-[420px] p-5 md:p-7">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-3">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-12 w-56 md:h-14 md:w-72" />
+              <Skeleton className="h-5 w-44" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-9 w-24" />
+            </div>
+          </div>
+          <Skeleton className="mt-16 h-56 w-full rounded-lg" />
+        </div>
+        <div className="flex justify-center gap-2 border-t border-border px-4 py-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-7 w-12" />
+          ))}
+        </div>
+      </section>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-8 w-20" />
+          </div>
+        </div>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={index} className="h-20 w-full rounded-lg" />
+        ))}
+      </div>
+    </PageContainer>
+  );
+}
 
 function formatRelativeTime(isoString: string) {
   const deltaMs = Math.max(0, Date.now() - Date.parse(isoString));
@@ -186,7 +227,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return <LoadingSpinner text="加载中..." className="min-h-[50vh]" />;
+    return <DashboardSkeleton />;
   }
 
   if (error || !allocation) {
@@ -255,7 +296,7 @@ export default function Dashboard() {
             <Button size="sm" onClick={handleFetchPrices} disabled={fetchingPrices}>
               {fetchingPrices ? (
                 <span className="flex items-center gap-1">
-                  <LoadingSpinner className="w-3 h-3 text-white" /> 更新中...
+                  <LoadingSpinner className="w-3 h-3 text-primary-foreground" /> 更新中...
                 </span>
               ) : (
                 "更新股价"

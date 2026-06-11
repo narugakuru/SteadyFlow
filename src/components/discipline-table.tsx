@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Fragment } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, XIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, XIcon } from "lucide-react";
 import {
   convertCurrency,
   convertFromCny,
@@ -31,6 +31,7 @@ import {
 import { formatAmount, formatPercent, formatPrice, formatShares } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/utils";
 import { useUserScopedQuery } from "@/lib/cache/hooks";
+import { getStatusColor } from "@/lib/visualization/theme-colors";
 
 interface DisciplineTableProps {
   allocation: AllocationItem[];
@@ -106,13 +107,13 @@ function SortIndicator({
   const iconClassName = cn("h-3 w-3", className);
 
   if (!isActive) {
-    return <ArrowUpDown className={cn(iconClassName, "text-slate-300")} />;
+    return <ArrowUpDown className={cn(iconClassName, "text-muted-foreground/50")} />;
   }
 
   return activeSort.direction === "desc" ? (
-    <ArrowDown className={cn(iconClassName, "text-blue-600")} />
+    <ArrowDown className={cn(iconClassName, "text-sort-active")} />
   ) : (
-    <ArrowUp className={cn(iconClassName, "text-blue-600")} />
+    <ArrowUp className={cn(iconClassName, "text-sort-active")} />
   );
 }
 
@@ -133,13 +134,13 @@ function DesktopSortHeader({
     <th className="p-0 text-right">
       <button
         type="button"
-        className="group flex w-full cursor-pointer items-center justify-end gap-1 px-3 py-2 transition-colors hover:bg-slate-50"
+        className="group flex w-full cursor-pointer items-center justify-end gap-1 px-3 py-2 transition-colors hover:bg-muted/60"
         onClick={() => onToggle(sortKey)}
       >
         <span
           className={cn(
             "text-xs font-medium",
-            isActive ? "font-bold text-blue-600" : "text-slate-500"
+            isActive ? "font-bold text-sort-active" : "text-muted-foreground"
           )}
         >
           {label}
@@ -221,7 +222,7 @@ function DisciplineHoldingDrawer({
       >
         {holding && allocationHolding ? (
           <>
-            <SheetClose className="ring-offset-background absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-md text-red-800 transition-colors hover:text-red-900 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none md:top-4 md:right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0">
+            <SheetClose className="ring-offset-background absolute top-2 right-2 inline-flex size-9 items-center justify-center rounded-md text-status-danger transition-colors hover:text-status-danger/85 focus:ring-2 focus:ring-status-danger focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none md:top-4 md:right-4 [&_svg]:pointer-events-none [&_svg]:shrink-0">
               <XIcon className="size-7 stroke-[2.75]" />
               <span className="sr-only">Close</span>
             </SheetClose>
@@ -408,7 +409,7 @@ export function DisciplineTable({
         className={cn(
           "inline-flex min-w-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors",
           align === "right" ? "justify-end text-right" : "justify-start text-left",
-          isActive ? "text-blue-600" : "text-slate-400"
+          isActive ? "text-sort-active" : "text-muted-foreground"
         )}
         onClick={() => handleDetailSortToggle(sortKey)}
       >
@@ -712,9 +713,12 @@ export function DisciplineTable({
                     <td colSpan={4} className="px-4 py-4">
                       <div className="grid grid-cols-[minmax(12rem,16rem)_minmax(22rem,1fr)_minmax(14rem,18rem)] items-center gap-6">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="shrink-0 text-muted-foreground">
-                            {isExpanded ? "▼" : "▶"}
-                          </span>
+                          <ChevronRight
+                            className={cn(
+                              "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                              isExpanded && "rotate-90"
+                            )}
+                          />
                           <span className="truncate text-lg font-semibold">{item.name}</span>
                         </div>
 
@@ -724,12 +728,7 @@ export function DisciplineTable({
                               className="absolute inset-y-0 left-0 rounded"
                               style={{
                                 width: `${Math.min(item.actualPct, 100)}%`,
-                                backgroundColor:
-                                  item.status === "danger"
-                                    ? "#ef4444"
-                                    : item.status === "warning"
-                                      ? "#eab308"
-                                      : "#22c55e",
+                                backgroundColor: getStatusColor(item.status),
                                 opacity: 0.6,
                               }}
                             />
@@ -769,7 +768,10 @@ export function DisciplineTable({
                   </tr>
                   {isExpanded && (
                     <tr key={`${item.id}-detail`}>
-                      <td colSpan={4} className="bg-muted/20 px-4 py-2">
+                      <td
+                        colSpan={4}
+                        className="animate-in fade-in-0 slide-in-from-top-1 bg-muted/20 px-4 py-2 duration-200"
+                      >
                         {renderDesktopHoldingTable(item)}
                       </td>
                     </tr>
@@ -784,7 +786,7 @@ export function DisciplineTable({
       {/* Mobile: card layout */}
       <div className="md:hidden space-y-3">
         {displayedAllocation.length > 0 ? (
-          <div className="sticky top-0 z-10 -mb-1 flex h-7 items-center justify-between rounded-md border border-slate-200/80 bg-white/90 px-3 backdrop-blur-md">
+          <div className="sticky top-0 z-10 -mb-1 flex h-7 items-center justify-between rounded-md border border-border bg-background/90 px-3 backdrop-blur-md">
             {DISCIPLINE_DETAIL_SORT_LABELS.map((item, index) => (
               <div key={item.key} className={cn("min-w-0", index === 0 ? "flex-1" : "w-32")}>
                 {renderMobileSortButton({
@@ -810,7 +812,12 @@ export function DisciplineTable({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-medium truncate">{item.name}</span>
-                    <span className="text-muted-foreground text-sm">{isExpanded ? "▼" : "▶"}</span>
+                    <ChevronRight
+                      className={cn(
+                        "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                        isExpanded && "rotate-90"
+                      )}
+                    />
                   </div>
                   <span className="text-xs tabular-nums whitespace-nowrap text-right">
                     {formatPercent(item.actualPct)}% / {formatPercent(item.targetPct)}%
@@ -821,12 +828,7 @@ export function DisciplineTable({
                     className="absolute inset-y-0 left-0 rounded"
                     style={{
                       width: `${Math.min(item.actualPct, 100)}%`,
-                      backgroundColor:
-                        item.status === "danger"
-                          ? "#ef4444"
-                          : item.status === "warning"
-                            ? "#eab308"
-                            : "#22c55e",
+                      backgroundColor: getStatusColor(item.status),
                       opacity: 0.6,
                     }}
                   />
@@ -860,7 +862,7 @@ export function DisciplineTable({
                 </div>
               </div>
               {isExpanded && (
-                <div className="border-t bg-muted/20 px-3 py-2">
+                <div className="animate-in fade-in-0 slide-in-from-top-1 border-t bg-muted/20 px-3 py-2 duration-200">
                   {renderMobileHoldingCards(item)}
                 </div>
               )}

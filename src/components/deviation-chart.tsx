@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { AllocationItem } from "@/lib/utils/types";
 import { getClassColor } from "@/lib/visualization/chart-colors";
+import { STATUS_COLOR_VARS } from "@/lib/visualization/theme-colors";
 
 interface DeviationChartProps {
   allocation: AllocationItem[];
@@ -47,7 +48,7 @@ export function DeviationChart({ allocation }: DeviationChartProps) {
             tick={{ fontSize: 12 }}
           />
           <YAxis type="category" dataKey="name" tick={{ fontSize: 13 }} width={42} />
-          <ReferenceLine x={0} stroke="#d1d5db" />
+          <ReferenceLine x={0} stroke="var(--border)" />
           <Tooltip
             formatter={(value: number | undefined) => [
               formatPercent(Number(value ?? 0), true),
@@ -67,7 +68,13 @@ export function DeviationChart({ allocation }: DeviationChartProps) {
             {data.map((entry, index) => (
               <Cell
                 key={index}
-                fill={entry.deviation > 0 ? "#ef4444" : entry.deviation < 0 ? "#22c55e" : "#d1d5db"}
+                fill={
+                  entry.deviation > 0
+                    ? STATUS_COLOR_VARS.danger
+                    : entry.deviation < 0
+                      ? STATUS_COLOR_VARS.success
+                      : "var(--muted-foreground)"
+                }
               />
             ))}
           </Bar>

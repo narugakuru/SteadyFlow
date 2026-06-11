@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { getHeatmapColor } from "@/lib/visualization/theme-colors";
 import type { InsightsHeatmapHolding, Settings } from "@/lib/utils/types";
 
 interface InsightsHeatmapProps {
@@ -16,19 +17,6 @@ interface Rect {
   y: number;
   width: number;
   height: number;
-}
-
-const HEAT_COLORS = {
-  green: ["#c8ead7", "#95ddb9", "#5fc990"],
-  red: ["#f8ced1", "#f2a6ad", "#e77b86"],
-  neutral: "#dde3ea",
-} as const;
-
-function getHeatLevel(returnRate: number) {
-  const absRate = Math.abs(returnRate);
-  if (absRate >= 15) return 2;
-  if (absRate >= 5) return 1;
-  return 0;
 }
 
 function splitItems(items: InsightsHeatmapHolding[]) {
@@ -82,13 +70,6 @@ function layoutTreemap(
   ];
 }
 
-function getHeatColor(returnRate: number | null, colorMode: Settings["colorMode"]) {
-  if (returnRate === null || returnRate === 0) return HEAT_COLORS.neutral;
-  const level = getHeatLevel(returnRate);
-  const useRed = returnRate > 0 ? colorMode === "cn" : colorMode === "us";
-  return useRed ? HEAT_COLORS.red[level] : HEAT_COLORS.green[level];
-}
-
 export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
   const rects = useMemo(
     () =>
@@ -125,13 +106,13 @@ export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
           <div
             key={rect.item.id}
             title={title}
-            className="absolute overflow-hidden rounded-md border border-background p-2 text-slate-900"
+            className="absolute overflow-hidden rounded-md border border-background/80 p-2 text-foreground"
             style={{
               left: `${rect.x}%`,
               top: `${rect.y}%`,
               width: `${rect.width}%`,
               height: `${rect.height}%`,
-              backgroundColor: getHeatColor(rect.item.returnRate, colorMode),
+              backgroundColor: getHeatmapColor(rect.item.returnRate, colorMode),
             }}
           >
             {labelFits ? (
@@ -141,14 +122,14 @@ export function InsightsHeatmap({ holdings, colorMode }: InsightsHeatmapProps) {
                 </span>
                 {detailFits ? (
                   <>
-                    <span className="mt-1 truncate text-xs text-slate-700">
+                    <span className="mt-1 truncate text-xs text-foreground/80">
                       {rect.item.returnRate === null
                         ? "--"
                         : `${rect.item.returnRate > 0 ? "+" : ""}${formatPercent(
                             rect.item.returnRate
                           )}%`}
                     </span>
-                    <span className="mt-1 truncate text-[11px] text-slate-600">
+                    <span className="mt-1 truncate text-[11px] text-foreground/70">
                       ¥{formatAmount(rect.item.marketValueCny)}
                     </span>
                   </>

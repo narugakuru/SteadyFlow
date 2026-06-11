@@ -22,7 +22,7 @@ function AccountSortIcon({
   sortKey: AccountHoldingSortKey;
 }) {
   const isActive = sortState?.key === sortKey;
-  const className = cn("h-3 w-3", isActive ? "text-blue-600" : "text-slate-300");
+  const className = cn("h-3 w-3", isActive ? "text-sort-active" : "text-muted-foreground/50");
 
   if (!isActive) return <ArrowUpDown className={className} />;
 
@@ -53,7 +53,7 @@ function AccountSortableHeader({
       <button
         type="button"
         className={cn(
-          "flex w-full items-center gap-1 px-3 py-2 transition-colors hover:bg-slate-50",
+          "flex w-full items-center gap-1 px-3 py-2 transition-colors hover:bg-muted/60",
           align === "left" ? "justify-start" : "justify-end"
         )}
         onClick={() => onToggle(sortKey)}
@@ -61,7 +61,7 @@ function AccountSortableHeader({
         <span
           className={cn(
             "text-xs font-medium",
-            isActive ? "font-bold text-blue-600" : "text-slate-500"
+            isActive ? "font-bold text-sort-active" : "text-muted-foreground"
           )}
         >
           {label}

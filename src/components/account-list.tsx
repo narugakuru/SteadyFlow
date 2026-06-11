@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -551,7 +552,11 @@ export function AccountList({
                         )}
                       </div>
                     </div>
-                    <span className="text-xl text-muted-foreground">{isExpanded ? "⌃" : "›"}</span>
+                    <ChevronRight
+                      className={`size-5 text-muted-foreground transition-transform duration-200 ${
+                        isExpanded ? "rotate-90" : ""
+                      }`}
+                    />
                   </div>
                 </button>
                 {isExpanded ? <div className="border-t">{renderExpandedDetail(a)}</div> : null}

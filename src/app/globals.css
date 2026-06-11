@@ -22,6 +22,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --color-sort-active: var(--sort-active);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -51,9 +55,9 @@
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
-  --button-primary-bg: #000000;
-  --button-primary-hover: #27272a;
-  --button-primary-foreground: #ffffff;
+  --button-primary-bg: oklch(0 0 0);
+  --button-primary-hover: oklch(0.274 0.006 286);
+  --button-primary-foreground: oklch(1 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -67,6 +71,10 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  --status-success: oklch(0.62 0.17 145);
+  --status-warning: oklch(0.78 0.16 83);
+  --status-danger: oklch(0.58 0.22 27);
+  --sort-active: oklch(0.52 0.18 252);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -101,6 +109,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --status-success: oklch(0.72 0.16 146);
+  --status-warning: oklch(0.82 0.15 85);
+  --status-danger: oklch(0.72 0.18 24);
+  --sort-active: oklch(0.76 0.14 246);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

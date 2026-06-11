@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Holding, Account, CURRENCY_SYMBOLS } from "@/lib/utils/types";
 import { normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/utils";
 
 interface AssetClassViewProps {
   allocation: {
@@ -49,7 +51,12 @@ export function AssetClassView({
               onClick={() => setExpanded(isExpanded ? null : cls.name)}
             >
               <div className="flex items-center gap-2">
-                <span className="text-lg">{isExpanded ? "▼" : "▶"}</span>
+                <ChevronRight
+                  className={cn(
+                    "size-4 text-muted-foreground transition-transform duration-200",
+                    isExpanded && "rotate-90"
+                  )}
+                />
                 <span className="font-medium">{cls.name}</span>
               </div>
               <div className="text-right text-sm">

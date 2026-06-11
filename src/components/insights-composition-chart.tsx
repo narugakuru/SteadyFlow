@@ -4,18 +4,8 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { getCurrencySymbol } from "@/lib/utils/display-currency";
 import { formatAmount, formatPercent } from "@/lib/utils/format";
+import { COMPOSITION_CHART_COLORS } from "@/lib/visualization/theme-colors";
 import type { InsightsCompositionItem } from "@/lib/utils/types";
-
-const CHART_COLORS = [
-  "#5ecf8f",
-  "#5baaf7",
-  "#f6c15a",
-  "#f4867b",
-  "#a58af6",
-  "#48d0c5",
-  "#f5a6c8",
-  "#a8d76d",
-];
 
 interface InsightsCompositionChartProps {
   title: string;
@@ -73,7 +63,10 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
                   strokeWidth={3}
                 >
                   {items.map((item, index) => (
-                    <Cell key={item.id} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    <Cell
+                      key={item.id}
+                      fill={COMPOSITION_CHART_COLORS[index % COMPOSITION_CHART_COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip content={<CompositionTooltip />} />
@@ -94,7 +87,10 @@ export function InsightsCompositionChart({ title, items }: InsightsCompositionCh
               <div key={item.id} className="flex items-center gap-2 text-xs">
                 <span
                   className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                  style={{
+                    backgroundColor:
+                      COMPOSITION_CHART_COLORS[index % COMPOSITION_CHART_COLORS.length],
+                  }}
                 />
                 <span className="min-w-0 flex-1 truncate text-foreground">{item.name}</span>
                 <span className="shrink-0 text-muted-foreground">

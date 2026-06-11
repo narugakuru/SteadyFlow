@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { AssetClassSettings } from "@/components/asset-class-settings";
 import { DisciplineNotesFab } from "@/components/discipline-notes-fab";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { clearCurrentUserClientCache } from "@/lib/cache/provider";
@@ -84,6 +85,7 @@ export function AppShell({ children }: AppShellProps) {
         <div className="flex flex-1 flex-col justify-between px-3 py-4">
           {navList}
           <div className="space-y-3">
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="sm"
@@ -134,6 +136,7 @@ export function AppShell({ children }: AppShellProps) {
           <div className="flex h-[calc(100dvh-57px)] flex-col justify-between px-3 py-4">
             {navList}
             <div className="space-y-2">
+              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="sm"

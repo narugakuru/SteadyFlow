@@ -240,7 +240,7 @@ export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
 export function pnlColorClass(value: number, colorMode: "cn" | "us"): string {
   if (value === 0) return "text-muted-foreground";
   if (colorMode === "cn") {
-    return value > 0 ? "text-red-600" : "text-green-600";
+    return value > 0 ? "text-status-danger" : "text-status-success";
   }
-  return value > 0 ? "text-green-600" : "text-red-600";
+  return value > 0 ? "text-status-success" : "text-status-danger";
 }

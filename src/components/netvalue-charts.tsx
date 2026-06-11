@@ -6,10 +6,7 @@ import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/u
 import { formatAmount, formatNumber, formatPercent } from "@/lib/utils/format";
 import type { NetvalueChartResponse } from "@/lib/utils/types";
 import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/visualization/chart-colors";
-
-const NETVALUE_ASSET_LINE = "#168a56";
-const NETVALUE_ASSET_FILL = "#58c786";
-const NETVALUE_ASSET_DOT = "#0f7f4d";
+import { OVERVIEW_ASSET_COLORS } from "@/lib/visualization/theme-colors";
 
 interface NetvalueChartsProps {
   chart: NetvalueChartResponse;
@@ -57,16 +54,16 @@ export function NetvalueCharts({ chart }: NetvalueChartsProps) {
             <AreaChart data={trendData} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
               <defs>
                 <linearGradient id="netvalueAssetFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={NETVALUE_ASSET_FILL} stopOpacity={0.5} />
-                  <stop offset="65%" stopColor={NETVALUE_ASSET_FILL} stopOpacity={0.18} />
-                  <stop offset="100%" stopColor={NETVALUE_ASSET_FILL} stopOpacity={0.04} />
+                  <stop offset="0%" stopColor={OVERVIEW_ASSET_COLORS.fill} stopOpacity={0.5} />
+                  <stop offset="65%" stopColor={OVERVIEW_ASSET_COLORS.fill} stopOpacity={0.18} />
+                  <stop offset="100%" stopColor={OVERVIEW_ASSET_COLORS.fill} stopOpacity={0.04} />
                 </linearGradient>
               </defs>
               <XAxis
                 dataKey="date"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "rgba(107, 114, 128, 0.85)", fontSize: 11 }}
+                tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
                 minTickGap={28}
               />
               <YAxis
@@ -80,16 +77,16 @@ export function NetvalueCharts({ chart }: NetvalueChartsProps) {
                   "总资产",
                 ]}
                 labelFormatter={(label) => `日期: ${label}`}
-                cursor={{ stroke: "rgba(15,23,42,0.12)" }}
+                cursor={{ stroke: OVERVIEW_ASSET_COLORS.cursor }}
               />
               <Area
                 type="monotone"
                 dataKey="total"
-                stroke={NETVALUE_ASSET_LINE}
+                stroke={OVERVIEW_ASSET_COLORS.line}
                 strokeWidth={2.25}
                 fill="url(#netvalueAssetFill)"
                 dot={false}
-                activeDot={{ r: 4, strokeWidth: 0, fill: NETVALUE_ASSET_DOT }}
+                activeDot={{ r: 4, strokeWidth: 0, fill: OVERVIEW_ASSET_COLORS.dot }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -105,7 +102,7 @@ export function NetvalueCharts({ chart }: NetvalueChartsProps) {
                 dataKey="date"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "rgba(107, 114, 128, 0.85)", fontSize: 11 }}
+                tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
                 minTickGap={28}
               />
               <YAxis hide domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
@@ -115,7 +112,7 @@ export function NetvalueCharts({ chart }: NetvalueChartsProps) {
                   name ?? "",
                 ]}
                 labelFormatter={(label) => `日期: ${label}`}
-                cursor={{ stroke: "rgba(15,23,42,0.12)" }}
+                cursor={{ stroke: OVERVIEW_ASSET_COLORS.cursor }}
               />
               <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               {classNames.map((name) => (

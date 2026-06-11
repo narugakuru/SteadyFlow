@@ -4,9 +4,11 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 
 import { DataFreshness } from "@/components/data-freshness";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { NETVALUE_CHART_RANGE_ORDER } from "@/lib/services/netvalue-history-helpers";
 import { formatAmount, formatNumber } from "@/lib/utils/format";
+import { cn } from "@/lib/utils/utils";
+import { OVERVIEW_ASSET_COLORS } from "@/lib/visualization/theme-colors";
 import type { NetvalueChartRange, NetvalueChartResponse } from "@/lib/utils/types";
 
 const RANGE_LABELS: Record<NetvalueChartRange, string> = {
@@ -17,10 +19,6 @@ const RANGE_LABELS: Record<NetvalueChartRange, string> = {
   "3y": "3Y",
   all: "ALL",
 };
-
-const OVERVIEW_ASSET_LINE = "#168a56";
-const OVERVIEW_ASSET_FILL = "#58c786";
-const OVERVIEW_ASSET_DOT = "#0f7f4d";
 
 interface OverviewAssetTrendProps {
   chart?: NetvalueChartResponse;
@@ -88,13 +86,15 @@ export function OverviewAssetTrend({
         <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between md:p-7">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase text-muted-foreground">资产曲线</p>
-            <h1 className="mt-3 truncate text-4xl font-bold text-foreground md:text-5xl">
+            <h1 className="mt-3 truncate text-4xl font-bold leading-tight text-foreground md:text-5xl">
               {totalLabel}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-              <span className={pnlClassName}>{pnlLabel}</span>
-              <span className={pnlClassName}>{pnlPctLabel}</span>
-              <span className="text-muted-foreground">当前快照</span>
+            <div className="mt-2 flex flex-wrap items-baseline gap-2">
+              <span className={cn("text-base font-semibold md:text-lg", pnlClassName)}>
+                {pnlLabel}
+              </span>
+              <span className={cn("text-sm font-medium", pnlClassName)}>{pnlPctLabel}</span>
+              <span className="text-xs text-muted-foreground">当前快照</span>
             </div>
             <DataFreshness updatedAt={updatedAt} isFetching={isFetching} className="mt-2" />
           </div>
@@ -103,7 +103,9 @@ export function OverviewAssetTrend({
 
         <div className="absolute inset-x-0 bottom-0 top-32 md:top-28">
           {loading && !chart ? (
-            <LoadingSpinner text="资产曲线加载中..." className="h-full text-muted-foreground" />
+            <div className="flex h-full items-end px-5 pb-10">
+              <Skeleton className="h-[78%] w-full rounded-lg" />
+            </div>
           ) : error ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
               <p className="text-sm text-destructive">{error || "资产曲线加载失败"}</p>
@@ -116,16 +118,16 @@ export function OverviewAssetTrend({
               <AreaChart data={points} margin={{ top: 20, right: 0, bottom: 12, left: 0 }}>
                 <defs>
                   <linearGradient id="overviewAssetFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={OVERVIEW_ASSET_FILL} stopOpacity={0.5} />
-                    <stop offset="65%" stopColor={OVERVIEW_ASSET_FILL} stopOpacity={0.18} />
-                    <stop offset="100%" stopColor={OVERVIEW_ASSET_FILL} stopOpacity={0.04} />
+                    <stop offset="0%" stopColor={OVERVIEW_ASSET_COLORS.fill} stopOpacity={0.5} />
+                    <stop offset="65%" stopColor={OVERVIEW_ASSET_COLORS.fill} stopOpacity={0.18} />
+                    <stop offset="100%" stopColor={OVERVIEW_ASSET_COLORS.fill} stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="date"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "rgba(107, 114, 128, 0.85)", fontSize: 11 }}
+                  tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
                   minTickGap={28}
                 />
                 <YAxis
@@ -133,15 +135,18 @@ export function OverviewAssetTrend({
                   domain={["dataMin", "dataMax"]}
                   tickFormatter={(value) => `¥${formatNumber(Number(value) / 10000, 0)}万`}
                 />
-                <Tooltip content={<AssetTooltip />} cursor={{ stroke: "rgba(15,23,42,0.12)" }} />
+                <Tooltip
+                  content={<AssetTooltip />}
+                  cursor={{ stroke: OVERVIEW_ASSET_COLORS.cursor }}
+                />
                 <Area
                   type="monotone"
                   dataKey="total"
-                  stroke={OVERVIEW_ASSET_LINE}
+                  stroke={OVERVIEW_ASSET_COLORS.line}
                   strokeWidth={2}
                   fill="url(#overviewAssetFill)"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: OVERVIEW_ASSET_DOT }}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: OVERVIEW_ASSET_COLORS.dot }}
                 />
               </AreaChart>
             </ResponsiveContainer>
