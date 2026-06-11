@@ -110,6 +110,16 @@ function getQuoteSyncHint(allocation: AllocationData) {
   return `股价更新：${formatRelativeTime(allocation.quoteSync.lastSuccessAt)}`;
 }
 
+function formatSignedCurrency(symbol: string, value: number) {
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${symbol}${formatAmount(value)}`;
+}
+
+function formatSignedPercent(value: number | null) {
+  if (value === null || !Number.isFinite(value)) return "--";
+  return `${value > 0 ? "+" : ""}${formatPercent(value)}%`;
+}
+
 export default function Dashboard() {
   const [priceResult, setPriceResult] = useState<PriceUpdateResult | null>(null);
   const [resultOpen, setResultOpen] = useState(false);
@@ -264,19 +274,44 @@ export default function Dashboard() {
   const summarySymbol = getCurrencySymbol(summaryCurrency);
   const displayTotalAsset = convertFromCny(allocation.totalAssetCny, summaryCurrency, rates);
   const displayTotalPnl = convertFromCny(allocation.totalPnl, summaryCurrency, rates);
+  const displayUnrealizedPnl = convertFromCny(allocation.unrealizedPnl, summaryCurrency, rates);
+  const displayRealizedPnl = convertFromCny(allocation.realizedPnl, summaryCurrency, rates);
   const estimatedPrincipalCny = allocation.totalAssetCny - allocation.totalPnl;
+  const holdingCostCny = allocation.allocation
+    .filter((item) => item.name !== "现金")
+    .reduce((sum, item) => sum + item.totalCost, 0);
   const totalPnlPct =
     Number.isFinite(estimatedPrincipalCny) && estimatedPrincipalCny > 0
       ? (allocation.totalPnl / estimatedPrincipalCny) * 100
+      : null;
+  const unrealizedPnlPct =
+    Number.isFinite(holdingCostCny) && holdingCostCny > 0
+      ? (allocation.unrealizedPnl / holdingCostCny) * 100
+      : null;
+  const realizedPnlPct =
+    Number.isFinite(estimatedPrincipalCny) && estimatedPrincipalCny > 0
+      ? (allocation.realizedPnl / estimatedPrincipalCny) * 100
       : null;
   const trendError = trendQuery.error instanceof Error ? trendQuery.error.message : "";
   const performanceError =
     performanceQuery.error instanceof Error ? performanceQuery.error.message : "";
   const activeTrendQuery = trendView === "performance" ? performanceQuery : trendQuery;
   const activeTrendError = trendView === "performance" ? performanceError : trendError;
-  const totalPnlPrefix = displayTotalPnl > 0 ? "+" : "";
-  const totalPnlPctLabel =
-    totalPnlPct === null ? "--" : `${totalPnlPct > 0 ? "+" : ""}${formatPercent(totalPnlPct)}%`;
+  const totalPnlPctLabel = formatSignedPercent(totalPnlPct);
+  const pnlBreakdown = [
+    {
+      label: "持仓盈亏",
+      amountLabel: formatSignedCurrency(summarySymbol, displayUnrealizedPnl),
+      pctLabel: formatSignedPercent(unrealizedPnlPct),
+      className: pnlColorClass(displayUnrealizedPnl, allocation.settings.colorMode),
+    },
+    {
+      label: "了结盈亏",
+      amountLabel: formatSignedCurrency(summarySymbol, displayRealizedPnl),
+      pctLabel: formatSignedPercent(realizedPnlPct),
+      className: pnlColorClass(displayRealizedPnl, allocation.settings.colorMode),
+    },
+  ];
 
   return (
     <PageContainer className="space-y-6 py-4 md:py-6">
@@ -291,9 +326,10 @@ export default function Dashboard() {
         onViewChange={setTrendView}
         onRetry={() => void activeTrendQuery.refetch()}
         totalLabel={`${summarySymbol}${formatAmount(displayTotalAsset)}`}
-        pnlLabel={`${totalPnlPrefix}${summarySymbol}${formatAmount(displayTotalPnl)}`}
+        pnlLabel={formatSignedCurrency(summarySymbol, displayTotalPnl)}
         pnlPctLabel={totalPnlPctLabel}
         pnlClassName={pnlColorClass(displayTotalPnl, allocation.settings.colorMode)}
+        pnlBreakdown={pnlBreakdown}
         updatedAt={activeTrendQuery.dataUpdatedAt}
         isFetching={activeTrendQuery.isFetching}
         actions={

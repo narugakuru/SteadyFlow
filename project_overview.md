@@ -11,7 +11,7 @@
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
 - 核心页面已调整为左侧边栏应用外壳：总览、洞察、账户、活动、净值、管理（admin only）与设置入口；登录/注册不渲染应用外壳。
-- 视觉系统已补充语义色 token、light/dark/system 主题切换（next-themes）、页面级骨架屏与统一主按钮黑底白字配色；核心图表/纪律表/账户表颜色改为引用主题 token；总览与净值页支持“净值 / 收益率”切换，收益率视图基于 TWR 展示累计业绩曲线。
+- 视觉系统已补充语义色 token、light/dark/system 主题切换（next-themes）、页面级骨架屏与统一主按钮黑底白字配色；核心图表/纪律表/账户表颜色改为引用主题 token；总览与净值页支持“净值 / 收益率”切换，收益率视图基于 TWR 展示累计业绩曲线；总览净值视图在悬停左侧总资产/账户总盈亏数字时显示持仓盈亏与了结盈亏拆分浮层。
 - 独立“市场”和“股价更新”页面已下线，直接访问 `/market` 与 `/batch-update` 会重定向到总览；旧市场聚合 API 已移除，不再为市场页读取外部数据；报价 API、Dashboard 手动刷新、静默刷新与 Cron 刷新保留。
 - 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`7d/30d/90d -> day`，`1y -> week`，`3y/all -> month`），总览与净值图表默认 `30d`；`/api/netvalue/performance` 以净值快照市值序列和 `deposit/withdraw` 外部现金流实时计算累计 TWR，并支持 `performance.start_date` 业绩起算日设置。
 - 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）；账户/持仓/交易核心写操作支持乐观更新、失败快照回滚与 settled 后统一失效校准。
@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-11] 完成 `show-dashboard-pnl-breakdown-on-hover` 实装：移除常驻右侧盈亏拆分方案，保持总览左侧总资产/账户总盈亏原有简洁层级；悬停左侧资产数字或盈亏数字时显示持仓盈亏与了结盈亏金额/百分比浮层，颜色继续遵循 A股/美股设置。同步更新 `dashboard` 主 spec。
 - [2026-06-11] 修复收益率视图首屏渲染问题：主题切换按钮改为 SSR-safe mounted 判定，避免 next-themes 本地主题偏好导致 hydration mismatch；总览收益率图为可见百分比 Y 轴预留更大绘图区上边距，避免刻度与累计 TWR 标题/年化摘要重叠。同步更新 `ui-design-system` 与 `visualization-charts` 主 spec。
 - [2026-06-11] 完成 `add-twr-performance-curve` 实装：新增 TWR 收益率计算服务与 `/api/netvalue/performance`，以净值快照 `totalAssetCny` 作为市值序列、`deposit/withdraw` 作为外部现金流并按账户币种折算 CNY，支持 `performance.start_date` 业绩起算日；总览/净值页新增“净值 / 收益率”切换、0% 基准线收益率图、累计/年化摘要与 Tooltip 市值读数；客户端缓存新增 `netvalue-performance` 长时策略与相关写操作失效，同步新增 `performance-return-curve` 主 spec 并更新净值、图表、交易、缓存规格。
 - [2026-06-11] 完成 `refine-ui-visual-polish` 实装：新增语义色 token 与图表色 helper，接入 next-themes 的 light/dark/system 主题切换；纪律表/账户表/洞察图/净值图去除硬编码浅色与文本箭头，改用主题 token 与 lucide 展开图标；总览/洞察/账户/净值页改用结构骨架屏，净值空态升级为图标说明；总览“更新股价/交易/导出持仓”统一保持全局黑底白字主按钮配色。同步新增 `ui-design-system` 主 spec，并更新 `dashboard`、`mobile-responsive`、`loading-spinner`、`visualization-charts` 主 spec。

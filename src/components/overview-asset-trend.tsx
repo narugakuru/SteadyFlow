@@ -48,6 +48,12 @@ interface OverviewAssetTrendProps {
   pnlLabel: string;
   pnlPctLabel: string;
   pnlClassName: string;
+  pnlBreakdown?: Array<{
+    label: string;
+    amountLabel: string;
+    pctLabel: string;
+    className: string;
+  }>;
   actions?: React.ReactNode;
   updatedAt?: number;
   isFetching?: boolean;
@@ -115,6 +121,7 @@ export function OverviewAssetTrend({
   pnlLabel,
   pnlPctLabel,
   pnlClassName,
+  pnlBreakdown = [],
   actions,
   updatedAt,
   isFetching = false,
@@ -154,6 +161,7 @@ export function OverviewAssetTrend({
     view === "performance"
       ? "absolute inset-x-0 bottom-0 top-60 md:top-52"
       : "absolute inset-x-0 bottom-0 top-32 md:top-28";
+  const showPnlBreakdown = view === "netvalue" && pnlBreakdown.length > 0;
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -163,29 +171,56 @@ export function OverviewAssetTrend({
             <p className="text-xs font-medium uppercase text-muted-foreground">
               {view === "performance" ? "收益率曲线" : "资产曲线"}
             </p>
-            <h1 className="mt-3 truncate text-4xl font-bold leading-tight text-foreground md:text-5xl">
-              {headline}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-baseline gap-2">
-              <span
-                className={cn(
-                  "text-base font-semibold md:text-lg",
-                  view === "performance" ? "text-foreground" : pnlClassName
-                )}
-              >
-                {subLine.main}
-              </span>
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  view === "performance" ? "text-muted-foreground" : pnlClassName
-                )}
-              >
-                {subLine.detail}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {view === "performance" ? "累计 TWR" : "当前快照"}
-              </span>
+            <div
+              className={cn(
+                "group relative mt-3 inline-block max-w-full",
+                showPnlBreakdown && "cursor-default focus:outline-none"
+              )}
+              tabIndex={showPnlBreakdown ? 0 : undefined}
+            >
+              <h1 className="truncate text-4xl font-bold leading-tight text-foreground md:text-5xl">
+                {headline}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-baseline gap-2">
+                <span
+                  className={cn(
+                    "text-base font-semibold md:text-lg",
+                    view === "performance" ? "text-foreground" : pnlClassName
+                  )}
+                >
+                  {subLine.main}
+                </span>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    view === "performance" ? "text-muted-foreground" : pnlClassName
+                  )}
+                >
+                  {subLine.detail}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {view === "performance" ? "累计 TWR" : "当前快照"}
+                </span>
+              </div>
+              {showPnlBreakdown ? (
+                <div className="absolute left-0 top-full z-30 mt-3 hidden min-w-64 max-w-[min(20rem,calc(100vw-3rem))] rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl group-focus:block group-hover:block">
+                  <p className="mb-2 text-muted-foreground">盈亏拆分</p>
+                  <div className="grid gap-1.5">
+                    {pnlBreakdown.map((item) => (
+                      <div
+                        key={item.label}
+                        className="grid grid-cols-[auto_auto_auto] items-baseline gap-x-2"
+                      >
+                        <span className="text-muted-foreground">{item.label}</span>
+                        <span className={cn("font-medium tabular-nums", item.className)}>
+                          {item.amountLabel}
+                        </span>
+                        <span className={cn("tabular-nums", item.className)}>{item.pctLabel}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
             <DataFreshness updatedAt={updatedAt} isFetching={isFetching} className="mt-2" />
           </div>
