@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-11] 修复收益率视图首屏渲染问题：主题切换按钮改为 SSR-safe mounted 判定，避免 next-themes 本地主题偏好导致 hydration mismatch；总览收益率图为可见百分比 Y 轴预留更大绘图区上边距，避免刻度与累计 TWR 标题/年化摘要重叠。同步更新 `ui-design-system` 与 `visualization-charts` 主 spec。
 - [2026-06-11] 完成 `add-twr-performance-curve` 实装：新增 TWR 收益率计算服务与 `/api/netvalue/performance`，以净值快照 `totalAssetCny` 作为市值序列、`deposit/withdraw` 作为外部现金流并按账户币种折算 CNY，支持 `performance.start_date` 业绩起算日；总览/净值页新增“净值 / 收益率”切换、0% 基准线收益率图、累计/年化摘要与 Tooltip 市值读数；客户端缓存新增 `netvalue-performance` 长时策略与相关写操作失效，同步新增 `performance-return-curve` 主 spec 并更新净值、图表、交易、缓存规格。
 - [2026-06-11] 完成 `refine-ui-visual-polish` 实装：新增语义色 token 与图表色 helper，接入 next-themes 的 light/dark/system 主题切换；纪律表/账户表/洞察图/净值图去除硬编码浅色与文本箭头，改用主题 token 与 lucide 展开图标；总览/洞察/账户/净值页改用结构骨架屏，净值空态升级为图标说明；总览“更新股价/交易/导出持仓”统一保持全局黑底白字主按钮配色。同步新增 `ui-design-system` 主 spec，并更新 `dashboard`、`mobile-responsive`、`loading-spinner`、`visualization-charts` 主 spec。
 - [2026-06-10] 完成 `add-optimistic-mutation-update` 实装：`useMutationJson` 新增可选乐观更新生命周期，账户/持仓/交易写操作可即时更新本地缓存，失败后按快照回滚并复用全局失败通知，settled 后继续按统一失效映射校准服务端数据；新增乐观更新聚焦测试并同步 `client-cache-layer` 主 spec。

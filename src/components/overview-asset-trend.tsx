@@ -150,10 +150,14 @@ export function OverviewAssetTrend({
           main: pnlLabel,
           detail: pnlPctLabel,
         };
+  const chartContainerClassName =
+    view === "performance"
+      ? "absolute inset-x-0 bottom-0 top-60 md:top-52"
+      : "absolute inset-x-0 bottom-0 top-32 md:top-28";
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div className="relative min-h-[420px]">
+      <div className={cn("relative", view === "performance" ? "min-h-[500px]" : "min-h-[420px]")}>
         <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between md:p-7">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase text-muted-foreground">
@@ -204,7 +208,7 @@ export function OverviewAssetTrend({
           </div>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 top-32 md:top-28">
+        <div className={chartContainerClassName}>
           {loading && (view === "performance" ? !performance : !chart) ? (
             <div className="flex h-full items-end px-5 pb-10">
               <Skeleton className="h-[78%] w-full rounded-lg" />

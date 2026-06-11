@@ -32,6 +32,11 @@
 - **WHEN** 用户选择某个主题后刷新页面
 - **THEN** 页面恢复用户上次选择的主题
 
+#### Scenario: 主题切换不产生 hydration mismatch
+
+- **WHEN** 用户刷新应用或首次进入已启用主题切换的页面
+- **THEN** 主题切换按钮的 SSR 初始标记与客户端 hydration 初始标记保持一致，不因本地主题偏好导致 `data-variant` 或 class 不匹配
+
 ### Requirement: 排版刻度规范
 
 系统 SHALL 建立一套清晰的排版刻度并在业务页面统一使用，至少覆盖 display（总资产巨号）、h1/h2（页面与区块标题）、body（正文）、caption（辅助说明）几档。各档之间 MUST 有可辨识的层级过渡。

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -12,8 +13,13 @@ const THEME_OPTIONS = [
   { value: "system", label: "系统", icon: Monitor },
 ] as const;
 
+const subscribe = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
+  const mounted = useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
   const activeTheme = theme ?? "system";
 
   return (
@@ -26,7 +32,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     >
       {THEME_OPTIONS.map((option) => {
         const Icon = option.icon;
-        const active = activeTheme === option.value;
+        const active = mounted && activeTheme === option.value;
         return (
           <Button
             key={option.value}
