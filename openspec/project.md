@@ -2,7 +2,7 @@
 
 - 框架：Next.js 16 (App Router) + React 19 + TypeScript
 - 样式：Tailwind CSS 4 + shadcn/ui (Radix UI)，主按钮默认配色由共享 `Button` 组件与 `src/app/globals.css` 的 CSS 变量统一维护，基准为 Dashboard“更新股价”按钮
-- 图表：Recharts（净值图、总览资产曲线、洞察占比图）+ 自定义当前持仓热力图
+- 图表：Recharts（净值图、总览资产曲线、累计 TWR 收益率曲线、洞察占比图）+ 自定义当前持仓热力图
 - 数据库：SQLite (better-sqlite3) / PostgreSQL (Neon serverless) + Drizzle ORM（通过 DB_TYPE 环境变量切换）
 - 图标：lucide-react
 - Markdown 渲染：react-markdown（禁用原始 HTML 直出）
@@ -40,7 +40,7 @@ src/
 │       ├── insights/               # 洞察页服务端读模型
 │       ├── discipline-notes/       # 纪律笔记 CRUD
 │       ├── export/portfolio/       # 投资组合 JSON 导出（detail=full|decision）
-│       ├── netvalue/               # 净值（POST 当日 upsert；GET 兼容旧全量读取；子路由含 list/chart）
+│       ├── netvalue/               # 净值（POST 当日 upsert；GET 兼容旧全量读取；子路由含 list/chart/performance）
 │       └── cron/netvalue/          # 每日“先价后值”定时任务入口（CRON_SECRET 鉴权）
 ├── proxy.ts                       # 路由守卫（JWT + 管理员权限）
 ├── components/
@@ -48,7 +48,7 @@ src/
 │   ├── app-shell.tsx               # 全局左侧边栏/移动导航/设置入口应用外壳
 │   ├── page-container.tsx          # 共享页面内容容器（max-w-7xl）
 │   ├── session-provider.tsx        # SessionProvider 包装
-│   ├── overview-asset-trend.tsx    # 总览绿色填充资产曲线
+│   ├── overview-asset-trend.tsx    # 总览资产/收益率曲线（净值与 TWR 视图切换）
 │   ├── insights-composition-chart.tsx # 洞察占比图表
 │   ├── insights-heatmap.tsx        # 洞察当前持仓热力图
 │   ├── vix-chart-card.tsx          # 已下线市场页旧 VIX 图表组件（保留，当前未渲染）
@@ -62,7 +62,7 @@ src/
 │   ├── transaction-form.tsx        # 交易表单（共享组件，支持预填+内联新建持仓）
 │   ├── portfolio-chart.tsx          # 旧资产分布双环饼图（Dashboard 默认已移除）
 │   ├── deviation-chart.tsx          # 偏离度柱状图
-│   ├── netvalue-charts.tsx          # 净值走势图表（折线图+面积图）
+│   ├── netvalue-charts.tsx          # 净值走势图表与 TWR 收益率折线图
 │   ├── discipline-table.tsx        # 投资纪律表（含进度条+盈亏列）
 │   ├── discipline-notes-fab.tsx    # 全局悬浮纪律笔记入口 + 笔记弹窗
 │   ├── rebalance-panel.tsx         # 再平衡建议面板
@@ -89,6 +89,8 @@ src/
 │   │   ├── netvalue-service.ts     # 净值计算与写入服务（时区 + upsert；新快照仅写 allocation + rates）
 │   │   ├── netvalue-history-service.ts # 净值历史读取/聚合/回填服务（分页、chart range+grain、历史瘦身）
 │   │   ├── netvalue-history-helpers.ts # 净值历史分页、聚合与 dataJson 标准化辅助函数
+│   │   ├── performance-calculation.ts # TWR 收益率纯计算与起算日解析
+│   │   ├── performance-service.ts # TWR 收益率服务（净值市值点 + 外部现金流聚合）
 │   │   └── mutation-with-netvalue.ts # 写操作后自动触发净值刷新封装
 │   ├── utils/                      # 通用工具、类型与 hooks
 │   │   ├── utils.ts                # 工具函数
@@ -129,4 +131,4 @@ src/
 | exchangeRates      | 汇率           | currencyPair, rate                                                                                                                                                                                                                                                                                         |
 | netvalue           | 每日净值       | userId(FK, not null), date, totalAssetCny, dataJson（新结构仅保留 `allocation + rates`；旧结构允许带 `accounts`，由读取兼容层与回填任务清理）                                                                                                                                                              |
 | disciplineNotes    | 纪律笔记       | userId(FK, not null), title, quote, plan, content, createdAt, updatedAt                                                                                                                                                                                                                                    |
-| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`quote_api.twelvedata_key`、`quote_api.eodhd_key`、`quote_sync.*`、`cron.netvalue.cursor` 等键）                                                                                                                                                 |
+| settings           | 系统设置       | userId(FK, not null), key, value（含 `netvalue.timezone`、`performance.start_date`、`quote_api.twelvedata_key`、`quote_api.eodhd_key`、`quote_sync.*`、`cron.netvalue.cursor` 等键）                                                                                                                       |

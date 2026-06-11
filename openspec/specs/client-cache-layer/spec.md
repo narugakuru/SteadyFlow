@@ -142,7 +142,7 @@
 
 ### Requirement: 净值查询使用长时 stale 策略并保持写后失效
 
-系统 SHALL 为 `netvalue-list` 与 `netvalue-chart` 提供独立于全局默认值的缓存覆盖策略，统一使用 `staleTime=60m` 与现有 `persistTime=3d`。在缓存未过期时，系统 MUST 允许直接展示本地持久化结果；一旦发生会影响净值的写操作成功事件，系统 MUST 同时失效 `netvalue-list` 与 `netvalue-chart` 两类查询，并继续沿用现有跨标签页失效同步机制。
+系统 SHALL 为 `netvalue-list`、`netvalue-chart` 与 `netvalue-performance` 提供独立于全局默认值的缓存覆盖策略，统一使用 `staleTime=60m` 与现有 `persistTime=3d`。在缓存未过期时，系统 MUST 允许直接展示本地持久化结果；一旦发生会影响净值、收益率市值序列、外部现金流或业绩起算日的写操作成功事件，系统 MUST 同时失效 `netvalue-list`、`netvalue-chart` 与 `netvalue-performance` 查询，并继续沿用现有跨标签页失效同步机制。
 
 #### Scenario: 60 分钟内命中净值列表缓存
 
@@ -154,10 +154,20 @@
 - **WHEN** `netvalue-chart` 查询命中缓存且缓存年龄大于 60 分钟且小于 3 天
 - **THEN** 系统先展示缓存结果，并异步请求远端最新图表数据
 
+#### Scenario: 收益率曲线缓存使用长时策略
+
+- **WHEN** `netvalue-performance` 查询命中缓存且缓存年龄小于或等于 60 分钟
+- **THEN** 系统立即展示缓存结果，且不触发异步远端刷新
+
 #### Scenario: 净值相关写操作后统一失效
 
 - **WHEN** 用户完成会触发净值更新的账户、持仓、交易或股价刷新写操作
-- **THEN** 系统同时失效当前用户的 `netvalue-list` 与 `netvalue-chart` 查询，并向其他标签页广播相同的失效事件
+- **THEN** 系统同时失效当前用户的 `netvalue-list`、`netvalue-chart` 与 `netvalue-performance` 查询，并向其他标签页广播相同的失效事件
+
+#### Scenario: 业绩起算日设置后失效收益率
+
+- **WHEN** 用户保存 `performance.start_date`
+- **THEN** 系统失效当前用户的 `netvalue-performance` 查询
 
 ### Requirement: 低侵入数据新鲜度展示
 

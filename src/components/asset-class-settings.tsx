@@ -22,6 +22,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
     dangerThreshold: 5,
     colorMode: "cn",
     netvalueTimezone: "Asia/Shanghai",
+    performanceStartDate: "",
     twelveDataApiKey: "",
     eodhdApiKey: "",
   });
@@ -45,6 +46,7 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
         ...prev,
         ...settingsData,
         netvalueTimezone: settingsData.netvalueTimezone || "Asia/Shanghai",
+        performanceStartDate: settingsData.performanceStartDate || "",
         twelveDataApiKey: settingsData.twelveDataApiKey || "",
         eodhdApiKey: settingsData.eodhdApiKey || "",
       }));
@@ -288,6 +290,18 @@ export function AssetClassSettings({ open, onOpenChange, onSaved }: AssetClassSe
             </datalist>
             <p className="text-xs text-muted-foreground mt-2">
               用于计算“当日净值”日期和每日自动记录时间（本地凌晨 3:00）。
+            </p>
+          </div>
+
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium mb-3">业绩起算日</p>
+            <Input
+              type="date"
+              value={settings.performanceStartDate || ""}
+              onChange={(e) => setSettings((s) => ({ ...s, performanceStartDate: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              用于收益率曲线起算；留空时从最早净值快照开始，早于首条快照的日期会自动回退。
             </p>
           </div>
 

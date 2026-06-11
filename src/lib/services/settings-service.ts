@@ -9,6 +9,7 @@ export const SETTING_KEYS = {
   dangerThreshold: "danger_threshold",
   colorMode: "color_mode",
   netvalueTimezone: "netvalue.timezone",
+  performanceStartDate: "performance.start_date",
   twelveDataApiKey: "quote_api.twelvedata_key",
   eodhdApiKey: "quote_api.eodhd_key",
 } as const;
@@ -18,6 +19,7 @@ export interface PublicUserSettings {
   dangerThreshold: number;
   colorMode: "cn" | "us";
   netvalueTimezone: string;
+  performanceStartDate: string;
 }
 
 export async function readUserSettingsMap(userId: string) {
@@ -37,6 +39,7 @@ export function getPublicUserSettingsFromMap(
     netvalueTimezone: normalizeNetvalueTimeZone(
       settingMap.get(SETTING_KEYS.netvalueTimezone) ?? DEFAULT_NETVALUE_TIMEZONE
     ),
+    performanceStartDate: settingMap.get(SETTING_KEYS.performanceStartDate) ?? "",
   };
 }
 

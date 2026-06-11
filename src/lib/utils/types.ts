@@ -95,6 +95,7 @@ export interface Settings {
   dangerThreshold: number;
   colorMode: "cn" | "us";
   netvalueTimezone: string;
+  performanceStartDate?: string;
   twelveDataApiKey?: string;
   eodhdApiKey?: string;
 }
@@ -183,6 +184,24 @@ export interface NetvalueChartResponse {
   range: NetvalueChartRange;
   grain: NetvalueChartGrain;
   points: NetvalueChartPoint[];
+}
+
+export interface NetvaluePerformanceSeriesPoint {
+  date: string;
+  cumulativeTwr: number;
+  value: number;
+}
+
+export interface NetvaluePerformanceResponse {
+  range: NetvalueChartRange;
+  grain: NetvalueChartGrain;
+  startDate: string;
+  series: NetvaluePerformanceSeriesPoint[];
+  summary: {
+    cumulativeTwr: number;
+    annualizedTwr: number | null;
+    days: number;
+  };
 }
 
 export interface InsightsCompositionItem {

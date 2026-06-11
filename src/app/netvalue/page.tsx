@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AlertCircle, Clock3, List } from "lucide-react";
 
 import { DataFreshness } from "@/components/data-freshness";
-import { NetvalueCharts } from "@/components/netvalue-charts";
+import { NetvalueCharts, PerformanceLineChart } from "@/components/netvalue-charts";
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ import type {
   NetvalueChartRange,
   NetvalueChartResponse,
   NetvalueListResponse,
+  NetvaluePerformanceResponse,
 } from "@/lib/utils/types";
 
 const RANGE_LABELS: Record<NetvalueChartRange, string> = {
@@ -69,6 +70,7 @@ function NetvalueSkeleton() {
 export default function NetvaluePage() {
   const [page, setPage] = useState(1);
   const [range, setRange] = useState<NetvalueChartRange>("30d");
+  const [chartView, setChartView] = useState<"netvalue" | "performance">("netvalue");
   const chartGrain = getNetvalueChartGrain(range);
 
   const listQuery = useUserScopedQuery<NetvalueListResponse>({
@@ -89,6 +91,16 @@ export default function NetvaluePage() {
     },
   });
 
+  const performanceQuery = useUserScopedQuery<NetvaluePerformanceResponse>({
+    name: "netvalue-performance",
+    path: `/api/netvalue/performance?range=${range}&grain=${chartGrain}`,
+    params: {
+      range,
+      grain: chartGrain,
+    },
+    enabled: chartView === "performance",
+  });
+
   const loading =
     listQuery.sessionStatus === "loading" ||
     (listQuery.isLoading && !listQuery.data && chartQuery.isLoading && !chartQuery.data);
@@ -101,9 +113,12 @@ export default function NetvaluePage() {
   const total = listQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / DEFAULT_NETVALUE_PAGE_SIZE));
   const listError = listQuery.error instanceof Error ? listQuery.error.message : "";
-  const chartError = chartQuery.error instanceof Error ? chartQuery.error.message : "";
+  const activeChartQuery = chartView === "performance" ? performanceQuery : chartQuery;
+  const chartError = activeChartQuery.error instanceof Error ? activeChartQuery.error.message : "";
   const chart = chartQuery.data;
+  const performance = performanceQuery.data;
   const hasChartData = (chart?.points.length ?? 0) >= 2;
+  const hasPerformanceData = (performance?.series.length ?? 0) >= 2;
   const hasListData = records.length > 0;
   const pageLabel = `第 ${page} 页 / 共 ${totalPages} 页`;
 
@@ -116,22 +131,39 @@ export default function NetvaluePage() {
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={chartView === "netvalue" ? "default" : "outline"}
+              onClick={() => setChartView("netvalue")}
+            >
+              净值
+            </Button>
+            <Button
+              size="sm"
+              variant={chartView === "performance" ? "default" : "outline"}
+              onClick={() => setChartView("performance")}
+            >
+              收益率
+            </Button>
             {NETVALUE_CHART_RANGE_ORDER.map((option) => (
               <Button
                 key={option}
                 size="sm"
                 variant={option === range ? "default" : "outline"}
                 onClick={() => setRange(option)}
-                disabled={chartQuery.isFetching && option === range}
+                disabled={activeChartQuery.isFetching && option === range}
               >
                 {RANGE_LABELS[option]}
               </Button>
             ))}
           </div>
-          <DataFreshness updatedAt={chartQuery.dataUpdatedAt} isFetching={chartQuery.isFetching} />
+          <DataFreshness
+            updatedAt={activeChartQuery.dataUpdatedAt}
+            isFetching={activeChartQuery.isFetching}
+          />
         </div>
 
-        {chartQuery.isLoading && !chart ? (
+        {activeChartQuery.isLoading && !activeChartQuery.data ? (
           <Skeleton className="min-h-[240px] rounded-lg" />
         ) : chartError ? (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm">
@@ -140,10 +172,18 @@ export default function NetvaluePage() {
               {chartError || "图表加载失败"}
             </p>
             <div className="mt-3">
-              <Button variant="outline" size="sm" onClick={() => void chartQuery.refetch()}>
+              <Button variant="outline" size="sm" onClick={() => void activeChartQuery.refetch()}>
                 重试图表
               </Button>
             </div>
+          </div>
+        ) : chartView === "performance" && hasPerformanceData && performance ? (
+          <PerformanceLineChart performance={performance} />
+        ) : chartView === "performance" ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-4 py-10 text-center">
+            <Clock3 className="size-7 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium">暂无足够的收益率数据</p>
+            <p className="mt-1 text-xs text-muted-foreground">积累至少两条净值记录后显示收益率。</p>
           </div>
         ) : hasChartData && chart ? (
           <NetvalueCharts chart={chart} />

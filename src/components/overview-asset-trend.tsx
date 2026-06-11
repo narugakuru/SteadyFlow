@@ -1,15 +1,29 @@
 "use client";
 
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { DataFreshness } from "@/components/data-freshness";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NETVALUE_CHART_RANGE_ORDER } from "@/lib/services/netvalue-history-helpers";
-import { formatAmount, formatNumber } from "@/lib/utils/format";
+import { formatAmount, formatNumber, formatPercent } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/utils";
 import { OVERVIEW_ASSET_COLORS } from "@/lib/visualization/theme-colors";
-import type { NetvalueChartRange, NetvalueChartResponse } from "@/lib/utils/types";
+import type {
+  NetvalueChartRange,
+  NetvalueChartResponse,
+  NetvaluePerformanceResponse,
+} from "@/lib/utils/types";
 
 const RANGE_LABELS: Record<NetvalueChartRange, string> = {
   "7d": "7D",
@@ -22,10 +36,13 @@ const RANGE_LABELS: Record<NetvalueChartRange, string> = {
 
 interface OverviewAssetTrendProps {
   chart?: NetvalueChartResponse;
+  performance?: NetvaluePerformanceResponse;
   loading?: boolean;
   error?: string;
   range: NetvalueChartRange;
   onRangeChange: (range: NetvalueChartRange) => void;
+  view: "netvalue" | "performance";
+  onViewChange: (view: "netvalue" | "performance") => void;
   onRetry: () => void;
   totalLabel: string;
   pnlLabel: string;
@@ -38,6 +55,10 @@ interface OverviewAssetTrendProps {
 
 interface ChartTooltipPayload {
   value?: number | string;
+  payload?: {
+    cumulativeTwr?: number;
+    value?: number;
+  };
 }
 
 interface ChartTooltipProps {
@@ -58,12 +79,37 @@ function AssetTooltip({ active, payload, label }: ChartTooltipProps) {
   );
 }
 
+function formatTwrPercent(value: number) {
+  const percent = Number.isFinite(value) ? value * 100 : 0;
+  return `${percent > 0 ? "+" : ""}${formatPercent(percent)}%`;
+}
+
+function PerformanceTooltip({ active, payload, label }: ChartTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload;
+
+  return (
+    <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl">
+      <p className="text-muted-foreground">{label}</p>
+      <p className="mt-1 font-semibold">
+        累计 TWR {formatTwrPercent(Number(point?.cumulativeTwr ?? 0))}
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        组合市值 ¥{formatAmount(Number(point?.value ?? 0))}
+      </p>
+    </div>
+  );
+}
+
 export function OverviewAssetTrend({
   chart,
+  performance,
   loading = false,
   error = "",
   range,
   onRangeChange,
+  view,
+  onViewChange,
   onRetry,
   totalLabel,
   pnlLabel,
@@ -78,31 +124,88 @@ export function OverviewAssetTrend({
       date: point.date,
       total: point.totalAssetCny,
     })) ?? [];
+  const performancePoints =
+    performance?.series.map((point) => ({
+      date: point.date,
+      cumulativeTwr: point.cumulativeTwr,
+      value: point.value,
+    })) ?? [];
   const hasChart = points.length >= 2;
+  const hasPerformanceChart = performancePoints.length >= 2;
+  const performanceSummary = performance?.summary;
+  const headline =
+    view === "performance" && performanceSummary
+      ? formatTwrPercent(performanceSummary.cumulativeTwr)
+      : totalLabel;
+  const subLine =
+    view === "performance" && performanceSummary
+      ? {
+          main:
+            performanceSummary.annualizedTwr !== null
+              ? `年化 ${formatTwrPercent(performanceSummary.annualizedTwr)}`
+              : "年化 --",
+          detail: `${performanceSummary.days} 天`,
+        }
+      : {
+          main: pnlLabel,
+          detail: pnlPctLabel,
+        };
 
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative min-h-[420px]">
         <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between md:p-7">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase text-muted-foreground">资产曲线</p>
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              {view === "performance" ? "收益率曲线" : "资产曲线"}
+            </p>
             <h1 className="mt-3 truncate text-4xl font-bold leading-tight text-foreground md:text-5xl">
-              {totalLabel}
+              {headline}
             </h1>
             <div className="mt-2 flex flex-wrap items-baseline gap-2">
-              <span className={cn("text-base font-semibold md:text-lg", pnlClassName)}>
-                {pnlLabel}
+              <span
+                className={cn(
+                  "text-base font-semibold md:text-lg",
+                  view === "performance" ? "text-foreground" : pnlClassName
+                )}
+              >
+                {subLine.main}
               </span>
-              <span className={cn("text-sm font-medium", pnlClassName)}>{pnlPctLabel}</span>
-              <span className="text-xs text-muted-foreground">当前快照</span>
+              <span
+                className={cn(
+                  "text-sm font-medium",
+                  view === "performance" ? "text-muted-foreground" : pnlClassName
+                )}
+              >
+                {subLine.detail}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {view === "performance" ? "累计 TWR" : "当前快照"}
+              </span>
             </div>
             <DataFreshness updatedAt={updatedAt} isFetching={isFetching} className="mt-2" />
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant={view === "netvalue" ? "default" : "outline"}
+              onClick={() => onViewChange("netvalue")}
+            >
+              净值
+            </Button>
+            <Button
+              size="sm"
+              variant={view === "performance" ? "default" : "outline"}
+              onClick={() => onViewChange("performance")}
+            >
+              收益率
+            </Button>
+            {actions}
+          </div>
         </div>
 
         <div className="absolute inset-x-0 bottom-0 top-32 md:top-28">
-          {loading && !chart ? (
+          {loading && (view === "performance" ? !performance : !chart) ? (
             <div className="flex h-full items-end px-5 pb-10">
               <Skeleton className="h-[78%] w-full rounded-lg" />
             </div>
@@ -112,6 +215,45 @@ export function OverviewAssetTrend({
               <Button variant="outline" size="sm" onClick={onRetry}>
                 重试
               </Button>
+            </div>
+          ) : view === "performance" && hasPerformanceChart ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={performancePoints}
+                margin={{ top: 20, right: 8, bottom: 12, left: 8 }}
+              >
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
+                  minTickGap={28}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
+                  tickFormatter={(value) => formatTwrPercent(Number(value))}
+                  width={54}
+                />
+                <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="4 4" />
+                <Tooltip
+                  content={<PerformanceTooltip />}
+                  cursor={{ stroke: OVERVIEW_ASSET_COLORS.cursor }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumulativeTwr"
+                  stroke={OVERVIEW_ASSET_COLORS.line}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: OVERVIEW_ASSET_COLORS.dot }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : view === "performance" ? (
+            <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+              暂无足够收益率历史，积累至少两条净值记录后将显示收益率曲线。
             </div>
           ) : hasChart ? (
             <ResponsiveContainer width="100%" height="100%">

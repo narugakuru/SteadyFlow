@@ -40,6 +40,7 @@ import {
   type DisplayCurrencyMode,
   type Holding,
   type NetvalueChartResponse,
+  type NetvaluePerformanceResponse,
 } from "@/lib/utils/types";
 
 function DashboardSkeleton() {
@@ -115,6 +116,7 @@ export default function Dashboard() {
   const [txOpen, setTxOpen] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useDisplayCurrencyPreference();
   const [trendRange, setTrendRange] = useDashboardTrendRangePreference();
+  const [trendView, setTrendView] = useState<"netvalue" | "performance">("netvalue");
   const netvalueTriggeredRef = useRef(false);
   const silentQuoteTriggeredRef = useRef(false);
   const trendGrain = getNetvalueChartGrain(trendRange);
@@ -130,6 +132,15 @@ export default function Dashboard() {
       range: trendRange,
       grain: trendGrain,
     },
+  });
+  const performanceQuery = useUserScopedQuery<NetvaluePerformanceResponse>({
+    name: "netvalue-performance",
+    path: `/api/netvalue/performance?range=${trendRange}&grain=${trendGrain}`,
+    params: {
+      range: trendRange,
+      grain: trendGrain,
+    },
+    enabled: trendView === "performance",
   });
   const accountsQuery = useUserScopedQuery<Account[]>({
     name: "accounts",
@@ -221,6 +232,7 @@ export default function Dashboard() {
     await Promise.all([
       allocationQuery.refetch(),
       trendQuery.refetch(),
+      performanceQuery.refetch(),
       accountsQuery.refetch(),
       holdingsQuery.refetch(),
     ]);
@@ -258,6 +270,10 @@ export default function Dashboard() {
       ? (allocation.totalPnl / estimatedPrincipalCny) * 100
       : null;
   const trendError = trendQuery.error instanceof Error ? trendQuery.error.message : "";
+  const performanceError =
+    performanceQuery.error instanceof Error ? performanceQuery.error.message : "";
+  const activeTrendQuery = trendView === "performance" ? performanceQuery : trendQuery;
+  const activeTrendError = trendView === "performance" ? performanceError : trendError;
   const totalPnlPrefix = displayTotalPnl > 0 ? "+" : "";
   const totalPnlPctLabel =
     totalPnlPct === null ? "--" : `${totalPnlPct > 0 ? "+" : ""}${formatPercent(totalPnlPct)}%`;
@@ -266,17 +282,20 @@ export default function Dashboard() {
     <PageContainer className="space-y-6 py-4 md:py-6">
       <OverviewAssetTrend
         chart={trendQuery.data}
-        loading={trendQuery.isLoading}
-        error={trendError}
+        performance={performanceQuery.data}
+        loading={activeTrendQuery.isLoading}
+        error={activeTrendError}
         range={trendRange}
         onRangeChange={setTrendRange}
-        onRetry={() => void trendQuery.refetch()}
+        view={trendView}
+        onViewChange={setTrendView}
+        onRetry={() => void activeTrendQuery.refetch()}
         totalLabel={`${summarySymbol}${formatAmount(displayTotalAsset)}`}
         pnlLabel={`${totalPnlPrefix}${summarySymbol}${formatAmount(displayTotalPnl)}`}
         pnlPctLabel={totalPnlPctLabel}
         pnlClassName={pnlColorClass(displayTotalPnl, allocation.settings.colorMode)}
-        updatedAt={trendQuery.dataUpdatedAt}
-        isFetching={trendQuery.isFetching}
+        updatedAt={activeTrendQuery.dataUpdatedAt}
+        isFetching={activeTrendQuery.isFetching}
         actions={
           <>
             <Select

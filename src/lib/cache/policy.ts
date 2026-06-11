@@ -15,6 +15,7 @@ export type CacheQueryName =
   | "insights"
   | "netvalue-list"
   | "netvalue-chart"
+  | "netvalue-performance"
   | "market"
   | "admin-stats"
   | "asset-classes";
@@ -56,13 +57,21 @@ export const QUERY_POLICIES: Record<CacheQueryName, QueryPolicy> = {
   insights: BASE_POLICY,
   "netvalue-list": LONG_HISTORY_POLICY,
   "netvalue-chart": LONG_HISTORY_POLICY,
+  "netvalue-performance": LONG_HISTORY_POLICY,
   market: BASE_POLICY,
   "admin-stats": BASE_POLICY,
   "asset-classes": BASE_POLICY,
 };
 
 export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> = {
-  "accounts-write": ["accounts", "asset-allocation", "insights", "netvalue-list", "netvalue-chart"],
+  "accounts-write": [
+    "accounts",
+    "asset-allocation",
+    "insights",
+    "netvalue-list",
+    "netvalue-chart",
+    "netvalue-performance",
+  ],
   "holdings-write": [
     "holdings",
     "accounts",
@@ -70,6 +79,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "insights",
     "netvalue-list",
     "netvalue-chart",
+    "netvalue-performance",
     "transactions",
   ],
   "transactions-write": [
@@ -81,6 +91,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
+    "netvalue-performance",
   ],
   "batch-update-write": [
     "holdings",
@@ -90,6 +101,7 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
+    "netvalue-performance",
   ],
   "fetch-prices-write": [
     "holdings",
@@ -99,8 +111,9 @@ export const MUTATION_INVALIDATES: Record<CacheMutationName, CacheQueryName[]> =
     "exchange-rates",
     "netvalue-list",
     "netvalue-chart",
+    "netvalue-performance",
   ],
-  "settings-write": ["asset-allocation", "insights"],
+  "settings-write": ["asset-allocation", "insights", "netvalue-performance"],
 };
 
 type QueryParams = Record<string, string | number | boolean | null | undefined>;

@@ -11,6 +11,7 @@ import {
   SETTING_KEYS,
   upsertSetting,
 } from "@/lib/services/settings-service";
+import { isValidPerformanceStartDate } from "@/lib/services/performance-calculation";
 
 export async function GET() {
   const { userId, response } = await requireUser();
@@ -24,6 +25,7 @@ export async function GET() {
     dangerThreshold: parseFloat(result.get(SETTING_KEYS.dangerThreshold) ?? "15"),
     colorMode: result.get(SETTING_KEYS.colorMode) ?? "cn",
     netvalueTimezone: normalizeNetvalueTimeZone(result.get(SETTING_KEYS.netvalueTimezone)),
+    performanceStartDate: result.get(SETTING_KEYS.performanceStartDate) ?? "",
     twelveDataApiKey: result.get(SETTING_KEYS.twelveDataApiKey) ?? "",
     eodhdApiKey: result.get(SETTING_KEYS.eodhdApiKey) ?? "",
   });
@@ -44,6 +46,14 @@ export async function PUT(request: Request) {
 
   if (netvalueTimezone !== undefined && !isValidIanaTimeZone(String(netvalueTimezone).trim())) {
     return NextResponse.json({ error: "Invalid IANA timezone" }, { status: 400 });
+  }
+
+  if (
+    typeof body.performanceStartDate === "string" &&
+    body.performanceStartDate.trim() &&
+    !isValidPerformanceStartDate(body.performanceStartDate.trim())
+  ) {
+    return NextResponse.json({ error: "Invalid performance start date" }, { status: 400 });
   }
 
   await upsertSetting(userId, SETTING_KEYS.warningThreshold, String(warningThreshold));
@@ -79,11 +89,22 @@ export async function PUT(request: Request) {
     }
   }
 
+  if (typeof body.performanceStartDate === "string") {
+    const value = body.performanceStartDate.trim();
+    if (value) {
+      await upsertSetting(userId, SETTING_KEYS.performanceStartDate, value);
+    } else {
+      await deleteSetting(userId, SETTING_KEYS.performanceStartDate);
+    }
+  }
+
   return NextResponse.json({
     warningThreshold,
     dangerThreshold,
     colorMode: normalizedColorMode,
     netvalueTimezone: normalizedTimeZone,
+    performanceStartDate:
+      typeof body.performanceStartDate === "string" ? body.performanceStartDate.trim() : "",
     twelveDataApiKey: typeof body.twelveDataApiKey === "string" ? body.twelveDataApiKey.trim() : "",
     eodhdApiKey: typeof body.eodhdApiKey === "string" ? body.eodhdApiKey.trim() : "",
   });

@@ -1,15 +1,121 @@
 "use client";
 
-import { Area, AreaChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import { getDefaultAssetClassOrderIndex, normalizeAssetClassName } from "@/lib/utils/asset-class";
 import { formatAmount, formatNumber, formatPercent } from "@/lib/utils/format";
-import type { NetvalueChartResponse } from "@/lib/utils/types";
+import type { NetvalueChartResponse, NetvaluePerformanceResponse } from "@/lib/utils/types";
 import { CLASS_COLORS, FALLBACK_COLOR } from "@/lib/visualization/chart-colors";
 import { OVERVIEW_ASSET_COLORS } from "@/lib/visualization/theme-colors";
 
 interface NetvalueChartsProps {
   chart: NetvalueChartResponse;
+}
+
+interface PerformanceChartProps {
+  performance: NetvaluePerformanceResponse;
+  title?: string;
+}
+
+interface PerformanceTooltipProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{
+    payload?: {
+      cumulativeTwr?: number;
+      value?: number;
+    };
+  }>;
+  label?: string | number;
+}
+
+function formatTwrPercent(value: number) {
+  const percent = Number.isFinite(value) ? value * 100 : 0;
+  return `${percent > 0 ? "+" : ""}${formatPercent(percent)}%`;
+}
+
+export function PerformanceLineChart({ performance, title = "收益率曲线" }: PerformanceChartProps) {
+  if (performance.series.length < 2) return null;
+
+  const data = performance.series.map((point) => ({
+    date: point.date,
+    cumulativeTwr: point.cumulativeTwr,
+    value: point.value,
+  }));
+
+  const renderTooltip = ({ active, payload, label }: PerformanceTooltipProps) => {
+    if (!active || !payload?.length) return null;
+    const point = payload[0]?.payload;
+
+    return (
+      <div className="rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl">
+        <p className="text-muted-foreground">{label}</p>
+        <p className="mt-1 font-semibold">
+          累计 TWR {formatTwrPercent(Number(point?.cumulativeTwr ?? 0))}
+        </p>
+        <p className="mt-1 text-muted-foreground">
+          组合市值 ¥{formatAmount(Number(point?.value ?? 0))}
+        </p>
+      </div>
+    );
+  };
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold">{title}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            区间累计 {formatTwrPercent(performance.summary.cumulativeTwr)}
+            {performance.summary.annualizedTwr !== null
+              ? ` / 年化 ${formatTwrPercent(performance.summary.annualizedTwr)}`
+              : ""}
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">{performance.summary.days} 天</p>
+      </div>
+      <div className="h-[260px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ left: 0, right: 0, top: 8, bottom: 0 }}>
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
+              minTickGap={28}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: OVERVIEW_ASSET_COLORS.axis, fontSize: 11 }}
+              tickFormatter={(value) => formatTwrPercent(Number(value))}
+              width={54}
+            />
+            <ReferenceLine y={0} stroke="var(--border)" strokeDasharray="4 4" />
+            <Tooltip content={renderTooltip} cursor={{ stroke: OVERVIEW_ASSET_COLORS.cursor }} />
+            <Line
+              type="monotone"
+              dataKey="cumulativeTwr"
+              stroke={OVERVIEW_ASSET_COLORS.line}
+              strokeWidth={2.25}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0, fill: OVERVIEW_ASSET_COLORS.dot }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  );
 }
 
 export function NetvalueCharts({ chart }: NetvalueChartsProps) {
