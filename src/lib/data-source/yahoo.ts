@@ -5,7 +5,10 @@
  * 本地网络环境可能触发 Yahoo crumb 403，调用方应准备回退数据源。
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
 const YahooFinance = require("yahoo-finance2").default;
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
@@ -18,7 +21,50 @@ export interface YahooQuote {
   updatedAt: string;
 }
 
+type YahooPriceField = "regularMarketPrice" | "preMarketPrice" | "postMarketPrice";
+
+const PRICE_FIELD_META: Record<
+  YahooPriceField,
+  { change: string; changePercent: string; time: string }
+> = {
+  regularMarketPrice: {
+    change: "regularMarketChange",
+    changePercent: "regularMarketChangePercent",
+    time: "regularMarketTime",
+  },
+  preMarketPrice: {
+    change: "preMarketChange",
+    changePercent: "preMarketChangePercent",
+    time: "preMarketTime",
+  },
+  postMarketPrice: {
+    change: "postMarketChange",
+    changePercent: "postMarketChangePercent",
+    time: "postMarketTime",
+  },
+};
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const num = Number.parseFloat(value);
+    return Number.isFinite(num) ? num : null;
+  }
+  if (value && typeof value === "object" && "raw" in value) {
+    return toFiniteNumber((value as { raw?: unknown }).raw);
+  }
+  return null;
+}
+
+function toPositiveNumber(value: unknown): number | null {
+  const num = toFiniteNumber(value);
+  return num !== null && num > 0 ? num : null;
+}
+
 function toIsoDatetime(value: unknown): string {
+  if (value && typeof value === "object" && "raw" in value) {
+    return toIsoDatetime((value as { raw?: unknown }).raw);
+  }
   if (value instanceof Date) return value.toISOString();
   if (typeof value === "number" && Number.isFinite(value)) {
     const ms = value > 1_000_000_000_000 ? value : value * 1000;
@@ -31,16 +77,45 @@ function toIsoDatetime(value: unknown): string {
   return "";
 }
 
-function parseYahooQuote(q: Record<string, unknown>): YahooQuote | null {
-  if (!q.symbol || typeof q.regularMarketPrice !== "number") return null;
+function getMarketState(q: Record<string, unknown>) {
+  return typeof q.marketState === "string" ? q.marketState.toUpperCase() : "";
+}
+
+function getYahooPriceFieldOrder(q: Record<string, unknown>): YahooPriceField[] {
+  const state = getMarketState(q);
+  if (state === "PRE" || state === "PREPRE") return ["preMarketPrice"];
+  if (state === "POST" || state === "POSTPOST") return ["postMarketPrice"];
+  if (state === "REGULAR") return ["regularMarketPrice"];
+  if (state === "CLOSED") return ["postMarketPrice", "preMarketPrice"];
+  return ["postMarketPrice", "preMarketPrice", "regularMarketPrice"];
+}
+
+function selectYahooCurrentPrice(q: Record<string, unknown>) {
+  for (const field of getYahooPriceFieldOrder(q)) {
+    const price = toPositiveNumber(q[field]);
+    if (!price) continue;
+    const meta = PRICE_FIELD_META[field];
+    return {
+      price,
+      change: toFiniteNumber(q[meta.change]) ?? 0,
+      changePercent: toFiniteNumber(q[meta.changePercent]) ?? 0,
+      updatedAt: toIsoDatetime(q[meta.time]),
+    };
+  }
+  return null;
+}
+
+export function parseYahooQuote(q: Record<string, unknown>): YahooQuote | null {
+  if (!q.symbol) return null;
+  const currentPrice = selectYahooCurrentPrice(q);
+  if (!currentPrice) return null;
 
   return {
     symbol: String(q.symbol),
-    price: q.regularMarketPrice,
-    change: typeof q.regularMarketChange === "number" ? q.regularMarketChange : 0,
-    changePercent:
-      typeof q.regularMarketChangePercent === "number" ? q.regularMarketChangePercent : 0,
-    updatedAt: toIsoDatetime(q.regularMarketTime),
+    price: currentPrice.price,
+    change: currentPrice.change,
+    changePercent: currentPrice.changePercent,
+    updatedAt: currentPrice.updatedAt,
   };
 }
 

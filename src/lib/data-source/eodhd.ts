@@ -2,7 +2,7 @@ export interface EodhdQuote {
   symbol: string;
   price: number;
   updatedAt: string;
-  source: "realtime" | "previous_close";
+  source: "realtime";
 }
 
 export interface EodhdQuoteRequest {
@@ -101,38 +101,6 @@ async function fetchEodhdRealtimeBatch(
   }
 }
 
-async function fetchEodhdPreviousClose(apiKey: string, symbol: string): Promise<EodhdQuote | null> {
-  try {
-    const url = new URL(`https://eodhd.com/api/eod/${encodeURIComponent(symbol)}`);
-    url.searchParams.set("api_token", apiKey);
-    url.searchParams.set("fmt", "json");
-    url.searchParams.set("order", "d");
-    url.searchParams.set("limit", "1");
-
-    const res = await fetch(url.toString(), {
-      cache: "no-store",
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return null;
-
-    const data = (await res.json()) as unknown;
-    const first = Array.isArray(data) ? data[0] : data;
-    if (!first || typeof first !== "object") return null;
-    const row = first as Record<string, unknown>;
-    const price = toPositiveNumber(row.close) ?? toPositiveNumber(row.adjusted_close);
-    if (!price) return null;
-
-    return {
-      symbol,
-      price,
-      updatedAt: toIsoDatetime(row.date),
-      source: "previous_close",
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function fetchEodhdQuote(apiKey: string, symbol: string): Promise<EodhdQuote | null> {
   if (!apiKey) return null;
   const [result] = await fetchEodhdQuotesInBatches(apiKey, [{ requestId: symbol, symbol }], {
@@ -173,11 +141,10 @@ export async function fetchEodhdQuotesInBatches(
         continue;
       }
 
-      const previousClose = await fetchEodhdPreviousClose(apiKey, request.symbol);
       results.push({
         ...request,
-        quote: previousClose,
-        error: previousClose ? undefined : "无可用价格",
+        quote: null,
+        error: "未返回实时价格",
       });
     }
   }

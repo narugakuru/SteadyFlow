@@ -156,7 +156,7 @@ export interface UpdatedItem {
   oldPrice: number;
   newPrice: number;
   provider: string;
-  source: "realtime" | "previous_close";
+  source: "realtime";
 }
 
 export interface FailedItem {
@@ -248,7 +248,7 @@ async function applyQuoteToHolding(
   ticker: string,
   newPriceRaw: number,
   provider: string,
-  source: "realtime" | "previous_close",
+  source: "realtime",
   updated: UpdatedItem[]
 ) {
   const oldPrice = holding.price;

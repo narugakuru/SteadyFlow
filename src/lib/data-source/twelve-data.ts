@@ -2,7 +2,7 @@ export interface TwelveDataQuote {
   symbol: string;
   price: number;
   updatedAt: string;
-  source: "realtime" | "previous_close";
+  source: "realtime";
 }
 
 export interface TwelveDataRequest {
@@ -88,19 +88,23 @@ async function fetchTwelveDataQuoteAttempt(
       return { quote: null, error: message };
     }
 
-    const realtime = toPositiveNumber(data.close) ?? toPositiveNumber(data.price);
-    const previousClose = toPositiveNumber(data.previous_close);
-    const price = realtime ?? previousClose;
-    if (!price) {
-      return { quote: null, error: "未返回可用 price/close/previous_close" };
+    const realtime = toPositiveNumber(data.price) ?? toPositiveNumber(data.close);
+    if (!realtime) {
+      const previousClose = toPositiveNumber(data.previous_close);
+      return {
+        quote: null,
+        error: previousClose
+          ? "仅返回 previous_close，未返回实时 price/close"
+          : "未返回可用实时 price/close",
+      };
     }
 
     return {
       quote: {
         symbol: String(data.symbol ?? request.symbol),
-        price,
+        price: realtime,
         updatedAt: toIsoDatetime(data.datetime ?? data.timestamp),
-        source: realtime ? "realtime" : "previous_close",
+        source: "realtime",
       },
     };
   } catch {

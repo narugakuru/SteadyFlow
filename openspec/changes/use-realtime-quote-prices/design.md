@@ -14,7 +14,7 @@
 **Goals:**
 
 - 自动报价成功更新时必须来自实时/准实时字段，不主动写入上一交易日收盘价。
-- Yahoo Finance 按市场状态优先选择 `preMarketPrice`、`postMarketPrice` 或 `regularMarketPrice`。
+- Yahoo Finance 按市场状态选择 `preMarketPrice`、`postMarketPrice` 或 `regularMarketPrice`；盘前/盘后缺少对应扩展交易价格时进入回退，不使用常规收盘价顶替。
 - EODHD 回退仅接受 realtime 批量接口返回的当前价；Twelve Data 仅接受 `close` 或 `price` 当前字段。
 - 失败时保留旧持仓价格，并在失败原因中说明未返回实时价格。
 - 用轻量单元测试覆盖价格字段选择和前收拒绝逻辑。
@@ -36,7 +36,7 @@
 
 2. **Yahoo 使用市场状态选择当前价格字段。**
 
-   当 `marketState` 为 `PRE` 时优先 `preMarketPrice`，为 `POST` / `POSTPOST` 时优先 `postMarketPrice`，为 `REGULAR` 时优先 `regularMarketPrice`。若状态与字段不匹配，则按 `postMarketPrice`、`preMarketPrice`、`regularMarketPrice` 的顺序寻找可用当前价，仍不使用 `regularMarketPreviousClose`、`previousClose` 等前收字段。
+   当 `marketState` 为 `PRE` / `PREPRE` 时只接受 `preMarketPrice`，为 `POST` / `POSTPOST` 时只接受 `postMarketPrice`，为 `REGULAR` 时接受 `regularMarketPrice`，为 `CLOSED` 时只接受仍可用的 `postMarketPrice` / `preMarketPrice`。若状态未知，则按 `postMarketPrice`、`preMarketPrice`、`regularMarketPrice` 的顺序寻找可用正数价格。系统仍不使用 `regularMarketPreviousClose`、`previousClose` 等前收字段；盘前、盘后或 CLOSED 缺少对应当前价格时进入 EODHD 回退或失败结果。
 
    Alternative: 永远按 `regularMarketPrice`。实现简单，但盘前盘后仍会显示滞后价格。
 

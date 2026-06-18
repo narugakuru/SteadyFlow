@@ -35,6 +35,16 @@
 - **WHEN** Yahoo Finance 返回 `marketState=POST` 且同时包含 `postMarketPrice` 与 `regularMarketPrice`
 - **THEN** 系统使用 `postMarketPrice` 更新持仓，而不是使用常规交易时段收盘后的滞后价格
 
+#### Scenario: 美股盘前缺少扩展交易价格时进入回退
+
+- **WHEN** Yahoo Finance 返回 `marketState=PRE` 且只有 `regularMarketPrice`，没有可用的 `preMarketPrice`
+- **THEN** 系统 MUST NOT 使用 `regularMarketPrice` 更新持仓，并按 Yahoo 无可用当前价格进入 EODHD 回退或失败结果
+
+#### Scenario: 美股 CLOSED 状态缺少扩展交易价格时进入回退
+
+- **WHEN** Yahoo Finance 返回 `marketState=CLOSED` 且只有 `regularMarketPrice`，没有可用的 `postMarketPrice` 或 `preMarketPrice`
+- **THEN** 系统 MUST NOT 使用 `regularMarketPrice` 更新持仓，并按 Yahoo 无可用当前价格进入 EODHD 回退或失败结果
+
 #### Scenario: Yahoo quote 失败后使用 quoteSummary
 
 - **WHEN** yahoo-finance2 的 `quote()` 对美股 symbol 请求失败或遗漏该 symbol

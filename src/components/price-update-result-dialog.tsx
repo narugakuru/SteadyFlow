@@ -16,7 +16,7 @@ export interface PriceUpdatedItem {
   oldPrice: number;
   newPrice: number;
   provider: string;
-  source: "realtime" | "previous_close";
+  source: "realtime";
 }
 
 export interface PriceFailedItem {
@@ -73,7 +73,7 @@ export function PriceUpdateResultDialog({
               {updated.map((item) => (
                 <li key={`u-${item.id}`} className="px-3 py-2 font-mono">
                   [成功] {item.ticker} {item.name} 最新价 {formatPrice(item.newPrice)}（
-                  {item.provider}/{item.source === "realtime" ? "实时" : "昨收"}）
+                  {item.provider}/实时）
                 </li>
               ))}
               {failed.map((item) => (

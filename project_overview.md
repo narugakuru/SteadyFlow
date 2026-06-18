@@ -6,7 +6,7 @@
 
 个人投资组合管理 Web 工具，替代 Excel 管理多平台资产，覆盖总览、洞察、账户、持仓、交易/活动、净值与纪律提醒。
 
-## 当前状态（2026-06-10）
+## 当前状态（2026-06-18）
 
 - 阶段：多用户平台化版本已落地（Auth.js + 用户隔离 + 管理后台）。
 - 运行模式：`DB_TYPE=sqlite`（本地）或 `DB_TYPE=postgres`（Vercel + Neon）。
@@ -15,7 +15,7 @@
 - 独立“市场”和“股价更新”页面已下线，直接访问 `/market` 与 `/batch-update` 会重定向到总览；旧市场聚合 API 已移除，不再为市场页读取外部数据；报价 API、Dashboard 手动刷新、静默刷新与 Cron 刷新保留。
 - 净值页已升级为独立列表/图表读取：历史清单默认每页 `30` 条，图表走固定 `range -> grain` 聚合接口（`7d/30d/90d -> day`，`1y -> week`，`3y/all -> month`），总览与净值图表默认 `30d`；`/api/netvalue/performance` 以净值快照市值序列和 `deposit/withdraw` 外部现金流实时计算累计 TWR，并支持 `performance.start_date` 业绩起算日设置。
 - 客户端缓存架构已接入：全站采用 Query Cache + IndexedDB 持久化（缓存优先展示，默认 `staleTime=60s` 条件后台刷新，`persist=3d`；净值 `list/chart` 例外统一为 `60m`）；账户/持仓/交易核心写操作支持乐观更新、失败快照回滚与 settled 后统一失效校准。
-- 自动报价路由已升级：美股默认走 Yahoo Finance（yahoo-finance2，`quote` + `quoteSummary` 兜底）并以用户个人 EODHD key 兜底；港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份；用户只能使用自己在设置中保存的报价供应商密钥，系统不再使用全局 `EODHD_API_KEY` 回退；EODHD 回退按最多 10 个 symbol 一组使用 realtime 批量请求，Stooq 适配已移除。
+- 自动报价路由已升级：美股默认走 Yahoo Finance（yahoo-finance2，`quote` + `quoteSummary` 兜底）并按盘前/盘后/常规交易状态选择实时/准实时当前价，缺少当前价时以用户个人 EODHD key 兜底；港/A/北交所默认走腾讯简易行情接口，EODHD 次级回退，Twelve Data 最低权重可选备份；用户只能使用自己在设置中保存的报价供应商密钥，系统不再使用全局 `EODHD_API_KEY` 回退；EODHD 回退按最多 10 个 symbol 一组使用 realtime 批量请求且不再使用 EOD/历史收盘价补价，Twelve Data 也不再用 `previous_close` 作为成功报价，Stooq 适配已移除。
 - 已提供参数化投资组合 JSON 导出接口（`/api/export/portfolio?detail=full|decision`）：设置面板可导出全部数据，Dashboard 资产配置纪律区可导出精简决策快照。
 - 已落地“每日 Cron 保底 + Dashboard 静默兜底”的股价刷新策略，并在总资产卡片显示最近股价同步时间。
 - 净值快照持久化已瘦身：新写入 `netvalue.dataJson` 仅保留 `allocation + rates`；历史旧记录通过运行时维护与脚本回填兼容清理，SQLite 与 PostgreSQL 双模式均覆盖。
@@ -68,6 +68,7 @@ openspec/       # 需求规格与变更流程
 
 进展日志按照**新到旧（最新在前）**的顺序排版，且描述适当精简。
 
+- [2026-06-18] 完成 `use-realtime-quote-prices` 实装：美股 Yahoo 报价按 marketState 选择盘前/盘后/常规交易当前价，盘前/盘后缺少扩展价格时进入回退；EODHD 仅接受 realtime 批量结果，Twelve Data 拒绝 `previous_close`，自动报价成功结果不再返回昨收。同步更新 `auto-quote-fetch` 与 `yahoo-data-source` 主 spec。
 - [2026-06-11] 完成 `show-dashboard-pnl-breakdown-on-hover` 实装：移除常驻右侧盈亏拆分方案，保持总览左侧总资产/账户总盈亏原有简洁层级；悬停左侧资产数字或盈亏数字时显示持仓盈亏与了结盈亏金额/百分比浮层，颜色继续遵循 A股/美股设置。同步更新 `dashboard` 主 spec。
 - [2026-06-11] 修复收益率视图首屏渲染问题：主题切换按钮改为 SSR-safe mounted 判定，避免 next-themes 本地主题偏好导致 hydration mismatch；总览收益率图为可见百分比 Y 轴预留更大绘图区上边距，避免刻度与累计 TWR 标题/年化摘要重叠。同步更新 `ui-design-system` 与 `visualization-charts` 主 spec。
 - [2026-06-11] 完成 `add-twr-performance-curve` 实装：新增 TWR 收益率计算服务与 `/api/netvalue/performance`，以净值快照 `totalAssetCny` 作为市值序列、`deposit/withdraw` 作为外部现金流并按账户币种折算 CNY，支持 `performance.start_date` 业绩起算日；总览/净值页新增“净值 / 收益率”切换、0% 基准线收益率图、累计/年化摘要与 Tooltip 市值读数；客户端缓存新增 `netvalue-performance` 长时策略与相关写操作失效，同步新增 `performance-return-curve` 主 spec 并更新净值、图表、交易、缓存规格。

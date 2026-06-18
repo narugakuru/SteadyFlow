@@ -2,7 +2,7 @@
 
 ### Requirement: Yahoo Finance 数据获取封装
 
-系统 SHALL 提供 Yahoo Finance（yahoo-finance2）数据获取封装函数，支持通过 Yahoo 符号获取最新行情数据。当前用于美股 `.US` 持仓的第一优先级报价源；后续也可扩展到 A 股指数/个股（`.SS`/`.SZ`）、港股（`.HK`）等 Yahoo 覆盖市场。请求失败时 SHALL 返回 null 或空列表而非抛出异常，调用方 MUST 准备回退数据源。封装函数 MUST 优先调用 `quote()`；当 `quote()` 报错或遗漏部分 symbol 时，MUST 使用 `quoteSummary(symbol, { modules: ["price"] })` 对缺失 symbol 进行 Yahoo 内部兜底。封装函数 MUST 只从 Yahoo 当前行情字段解析价格；当 `marketState` 为 `PRE` 时 MUST 优先选择 `preMarketPrice`，为 `POST` 或 `POSTPOST` 时 MUST 优先选择 `postMarketPrice`，为 `REGULAR` 时 MUST 优先选择 `regularMarketPrice`。当市场状态与字段缺失不匹配时，系统 MUST 在 `postMarketPrice`、`preMarketPrice`、`regularMarketPrice` 中选择可用正数价格；系统 MUST NOT 使用 `regularMarketPreviousClose`、`previousClose` 或其他上一交易日收盘字段作为成功报价。
+系统 SHALL 提供 Yahoo Finance（yahoo-finance2）数据获取封装函数，支持通过 Yahoo 符号获取最新行情数据。当前用于美股 `.US` 持仓的第一优先级报价源；后续也可扩展到 A 股指数/个股（`.SS`/`.SZ`）、港股（`.HK`）等 Yahoo 覆盖市场。请求失败时 SHALL 返回 null 或空列表而非抛出异常，调用方 MUST 准备回退数据源。封装函数 MUST 优先调用 `quote()`；当 `quote()` 报错或遗漏部分 symbol 时，MUST 使用 `quoteSummary(symbol, { modules: ["price"] })` 对缺失 symbol 进行 Yahoo 内部兜底。封装函数 MUST 只从 Yahoo 当前行情字段解析价格；当 `marketState` 为 `PRE` 或 `PREPRE` 时 MUST 只接受 `preMarketPrice`，为 `POST` 或 `POSTPOST` 时 MUST 只接受 `postMarketPrice`，为 `REGULAR` 时 MUST 接受 `regularMarketPrice`，为 `CLOSED` 时 MUST 只接受可用的 `postMarketPrice` 或 `preMarketPrice`。当市场状态未知时，系统 MUST 在 `postMarketPrice`、`preMarketPrice`、`regularMarketPrice` 中选择可用正数价格；系统 MUST NOT 使用 `regularMarketPreviousClose`、`previousClose` 或其他上一交易日收盘字段作为成功报价，且在盘前/盘后/CLOSED 缺少对应当前价格时 MUST 返回 null 或空列表。
 
 #### Scenario: 成功获取美股个股数据
 
@@ -38,6 +38,16 @@
 
 - **WHEN** Yahoo 返回 `marketState=POST`、`postMarketPrice=103`、`regularMarketPrice=100`
 - **THEN** 封装函数返回 price=103
+
+#### Scenario: 盘前缺少 preMarketPrice 时不使用 regularMarketPrice
+
+- **WHEN** Yahoo 返回 `marketState=PRE`、`regularMarketPrice=100`，但没有可用的 `preMarketPrice`
+- **THEN** 封装函数返回 null 或空列表，使调用方进入回退数据源
+
+#### Scenario: CLOSED 状态缺少扩展交易价格时不使用 regularMarketPrice
+
+- **WHEN** Yahoo 返回 `marketState=CLOSED`、`regularMarketPrice=100`，但没有可用的 `postMarketPrice` 或 `preMarketPrice`
+- **THEN** 封装函数返回 null 或空列表，使调用方进入回退数据源
 
 #### Scenario: 仅有前收字段时不返回报价
 
