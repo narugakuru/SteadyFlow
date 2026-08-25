@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { accounts, transactions } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
 import { roundForStorage } from "@/lib/utils/format";
 import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
@@ -83,7 +83,16 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   return runMutationWithNetvalue(userId, async () => {
-    // Manually delete transactions (cascade handles holdings)
+    const transferGroups = await db
+      .select({ transferGroupId: transactions.transferGroupId })
+      .from(transactions)
+      .where(eq(transactions.accountId, numId));
+    const groupIds = transferGroups
+      .map((row: { transferGroupId: string | null }) => row.transferGroupId)
+      .filter((groupId: string | null): groupId is string => !!groupId);
+    if (groupIds.length > 0) {
+      await db.delete(transactions).where(inArray(transactions.transferGroupId, groupIds));
+    }
     await db.delete(transactions).where(eq(transactions.accountId, numId));
 
     const [result] = await db

@@ -57,6 +57,13 @@
       "when": 1781097347305,
       "tag": "0007_large_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1787647134729,
+      "tag": "0008_clammy_hydra",
+      "breakpoints": true
     }
   ]
 }

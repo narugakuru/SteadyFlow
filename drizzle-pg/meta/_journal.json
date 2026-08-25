@@ -57,6 +57,13 @@
       "when": 1781097356086,
       "tag": "0007_even_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787647135568,
+      "tag": "0008_real_maria_hill",
+      "breakpoints": true
     }
   ]
 }

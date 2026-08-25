@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
 import { fromDbBool } from "@/lib/utils/utils";
 import { roundForStorage } from "@/lib/utils/format";
+import { reverseAccountTransferDelta } from "@/lib/utils/account-transfer";
 import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +23,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       accountId: transactions.accountId,
       holdingId: transactions.holdingId,
       type: transactions.type,
+      transferGroupId: transactions.transferGroupId,
+      counterpartyAccountId: transactions.counterpartyAccountId,
       date: transactions.date,
       amount: transactions.amount,
       realizedPnl: transactions.realizedPnl,
@@ -73,6 +76,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       accountId: transactions.accountId,
       holdingId: transactions.holdingId,
       type: transactions.type,
+      transferGroupId: transactions.transferGroupId,
       realizedPnl: transactions.realizedPnl,
       cashDelta: transactions.cashDelta,
       principalDelta: transactions.principalDelta,
@@ -90,6 +94,68 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   if (!existing) {
     return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+  }
+
+  if (existing.transferGroupId) {
+    const transferRows = await db
+      .select({
+        id: transactions.id,
+        accountId: transactions.accountId,
+        cashDelta: transactions.cashDelta,
+        principalDelta: transactions.principalDelta,
+        accountCashBalance: accounts.cashBalance,
+        accountPrincipal: accounts.principal,
+      })
+      .from(transactions)
+      .innerJoin(accounts, eq(transactions.accountId, accounts.id))
+      .where(
+        and(eq(transactions.transferGroupId, existing.transferGroupId), eq(accounts.userId, userId))
+      );
+
+    if (transferRows.length !== 2) {
+      return NextResponse.json({ error: "互转关联记录不完整，无法回滚" }, { status: 409 });
+    }
+
+    const transferNow = new Date().toISOString();
+    return runMutationWithNetvalue(userId, async () => {
+      if (isPostgres) {
+        const ops = transferRows.map((row: (typeof transferRows)[number]) =>
+          db
+            .update(accounts)
+            .set({
+              cashBalance: reverseAccountTransferDelta(row.accountCashBalance, row.cashDelta),
+              principal: reverseAccountTransferDelta(row.accountPrincipal, row.principalDelta),
+              updatedAt: transferNow,
+            })
+            .where(eq(accounts.id, row.accountId))
+        );
+        ops.push(
+          db.delete(transactions).where(eq(transactions.transferGroupId, existing.transferGroupId))
+        );
+        await db.batch(ops);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.transaction(async (tx: any) => {
+          for (const row of transferRows) {
+            await tx
+              .update(accounts)
+              .set({
+                cashBalance: reverseAccountTransferDelta(row.accountCashBalance, row.cashDelta),
+                principal: reverseAccountTransferDelta(row.accountPrincipal, row.principalDelta),
+                updatedAt: transferNow,
+              })
+              .where(eq(accounts.id, row.accountId));
+          }
+          await tx
+            .delete(transactions)
+            .where(eq(transactions.transferGroupId, existing.transferGroupId));
+        });
+      }
+      return NextResponse.json({
+        success: true,
+        deletedTransactionIds: transferRows.map((r: (typeof transferRows)[number]) => r.id),
+      });
+    });
   }
 
   const now = new Date().toISOString();

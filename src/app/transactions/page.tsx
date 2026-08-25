@@ -57,6 +57,8 @@ const TX_TYPE_LABELS: Record<string, string> = {
   deposit: "现金存入",
   withdraw: "现金取出",
   fee: "费用扣除",
+  transfer_out: "转出",
+  transfer_in: "转入",
 };
 
 const TX_TYPE_COLORS: Record<string, string> = {
@@ -66,6 +68,8 @@ const TX_TYPE_COLORS: Record<string, string> = {
   deposit: "bg-status-success/15 text-foreground",
   withdraw: "bg-status-danger/15 text-foreground",
   fee: "bg-status-danger/15 text-foreground",
+  transfer_out: "bg-status-warning/15 text-foreground",
+  transfer_in: "bg-chart-1/15 text-foreground",
 };
 
 function normalizeCurrencyCode(value: string | undefined): CurrencyCode {
@@ -195,6 +199,7 @@ function TransactionsContent() {
               <SelectItem value="deposit">现金存入</SelectItem>
               <SelectItem value="withdraw">现金取出</SelectItem>
               <SelectItem value="fee">费用扣除</SelectItem>
+              <SelectItem value="transfer">账户互转</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -252,7 +257,12 @@ function TransactionsContent() {
                   <tr key={tx.id} className="border-t hover:bg-accent/30 transition-colors">
                     <td className="p-3 whitespace-nowrap">{tx.accountName}</td>
                     <td className="p-3 whitespace-nowrap">
-                      {tx.holdingName ? (
+                      {tx.counterpartyAccountName ? (
+                        <span className="text-muted-foreground">
+                          {tx.type === "transfer_out" ? "转至" : "来自"}{" "}
+                          {tx.counterpartyAccountName}
+                        </span>
+                      ) : tx.holdingName ? (
                         <Link
                           href={`/accounts?accountId=${tx.accountId}`}
                           className="hover:underline text-muted-foreground hover:text-foreground"
@@ -331,7 +341,9 @@ function TransactionsContent() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>确认删除</AlertDialogTitle>
                             <AlertDialogDescription>
-                              删除此交易记录？注意：删除不会回滚对持仓和账户现金的修改；若该交易计入了结盈亏，会同步回退累计值。
+                              {tx.transferGroupId
+                                ? "删除后会同时移除两侧互转流水，并回滚两个账户的现金和原始资金。"
+                                : "删除后会按该交易记录的副作用回滚账户现金、原始资金、持仓与累计盈亏。"}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

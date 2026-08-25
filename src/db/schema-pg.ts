@@ -199,28 +199,36 @@ export const netvalue = pgTable(
   })
 );
 
-export const transactions = pgTable("transactions", {
-  id: serial("id").primaryKey(),
-  accountId: integer("account_id")
-    .notNull()
-    .references(() => accounts.id, { onDelete: "cascade" }),
-  holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
-  type: varchar("type", { length: 20 }).notNull(),
-  date: text("date").notNull(),
-  amount: doublePrecision("amount").notNull(),
-  realizedPnl: doublePrecision("realized_pnl").notNull().default(0),
-  cashDelta: doublePrecision("cash_delta").notNull().default(0),
-  principalDelta: doublePrecision("principal_delta").notNull().default(0),
-  holdingSharesDelta: doublePrecision("holding_shares_delta").notNull().default(0),
-  holdingCostDelta: doublePrecision("holding_cost_delta").notNull().default(0),
-  holdingMarketValueDelta: doublePrecision("holding_market_value_delta").notNull().default(0),
-  shares: doublePrecision("shares"),
-  price: doublePrecision("price"),
-  fee: doublePrecision("fee").notNull().default(0),
-  affectCash: integer("affect_cash").notNull().default(1),
-  affectHolding: integer("affect_holding").notNull().default(1),
-  note: text("note"),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`now()`),
-});
+export const transactions = pgTable(
+  "transactions",
+  {
+    id: serial("id").primaryKey(),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
+    type: varchar("type", { length: 20 }).notNull(),
+    transferGroupId: text("transfer_group_id"),
+    counterpartyAccountId: integer("counterparty_account_id"),
+    date: text("date").notNull(),
+    amount: doublePrecision("amount").notNull(),
+    realizedPnl: doublePrecision("realized_pnl").notNull().default(0),
+    cashDelta: doublePrecision("cash_delta").notNull().default(0),
+    principalDelta: doublePrecision("principal_delta").notNull().default(0),
+    holdingSharesDelta: doublePrecision("holding_shares_delta").notNull().default(0),
+    holdingCostDelta: doublePrecision("holding_cost_delta").notNull().default(0),
+    holdingMarketValueDelta: doublePrecision("holding_market_value_delta").notNull().default(0),
+    shares: doublePrecision("shares"),
+    price: doublePrecision("price"),
+    fee: doublePrecision("fee").notNull().default(0),
+    affectCash: integer("affect_cash").notNull().default(1),
+    affectHolding: integer("affect_holding").notNull().default(1),
+    note: text("note"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => ({
+    transferGroupIdx: index("transactions_transfer_group_idx").on(table.transferGroupId),
+  })
+);

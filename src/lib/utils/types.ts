@@ -61,7 +61,17 @@ export interface Transaction {
   id: number;
   accountId: number;
   holdingId: number | null;
-  type: "buy" | "sell" | "dividend" | "deposit" | "withdraw" | "fee";
+  type:
+    | "buy"
+    | "sell"
+    | "dividend"
+    | "deposit"
+    | "withdraw"
+    | "fee"
+    | "transfer_out"
+    | "transfer_in";
+  transferGroupId: string | null;
+  counterpartyAccountId: number | null;
   date: string;
   amount: number;
   realizedPnl: number;
@@ -81,6 +91,7 @@ export interface Transaction {
   accountName?: string;
   accountCurrency?: string;
   holdingName?: string;
+  counterpartyAccountName?: string | null;
 }
 
 export interface AssetClass {

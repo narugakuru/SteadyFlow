@@ -46,8 +46,10 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const [type, setType] = useState<string>("buy");
   const [accountId, setAccountId] = useState<string>("");
+  const [toAccountId, setToAccountId] = useState<string>("");
   const [holdingId, setHoldingId] = useState<string>("");
   const [amount, setAmount] = useState("");
+  const [toAmount, setToAmount] = useState("");
   const [txShares, setTxShares] = useState("");
   const [txPrice, setTxPrice] = useState("");
   const [fee, setFee] = useState("");
@@ -94,8 +96,10 @@ export function TransactionForm({
 
       setType(nextType);
       setAccountId(nextAccountId);
+      setToAccountId("");
       setHoldingId(nextHoldingId);
       setAmount("");
+      setToAmount("");
       setTxShares("");
       setTxPrice(nextTxPrice);
       setFee("");
@@ -136,11 +140,15 @@ export function TransactionForm({
   const needsHolding = type === "buy" || type === "sell";
   const optionalHolding = type === "dividend";
   const isFeeTransaction = type === "fee";
+  const isTransfer = type === "transfer";
   const accountHoldings = localHoldings.filter((h) => h.accountId === Number(accountId));
   const selectedHolding = localHoldings.find((h) => h.id === Number(holdingId));
   const isSharesMode = selectedHolding?.valuationMode === "shares";
 
   const account = accounts.find((a) => a.id === Number(accountId));
+  const toAccount = accounts.find((a) => a.id === Number(toAccountId));
+  const isSameCurrencyTransfer =
+    isTransfer && account && toAccount && account.currency === toAccount.currency;
   const sym = account ? CURRENCY_SYMBOLS[account.currency] : "¥";
 
   // Auto-calculate amount for shares mode
@@ -152,6 +160,32 @@ export function TransactionForm({
   const handleSubmit = async () => {
     setSaving(true);
     setError("");
+
+    if (isTransfer) {
+      try {
+        await mutation.mutateAsync({
+          path: "/api/transfers",
+          method: "POST",
+          mutationName: "transactions-write",
+          body: {
+            fromAccountId: Number(accountId),
+            toAccountId: Number(toAccountId),
+            fromAmount: parseFloat(amount) || 0,
+            toAmount: isSameCurrencyTransfer ? parseFloat(amount) || 0 : parseFloat(toAmount) || 0,
+            date,
+            note: note || null,
+          },
+        });
+        setSaving(false);
+        onOpenChange(false);
+        onSaved();
+        return;
+      } catch (err) {
+        setError(err instanceof Error ? err.message || "互转失败" : "互转失败");
+        setSaving(false);
+        return;
+      }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload: Record<string, any> = {
@@ -198,14 +232,20 @@ export function TransactionForm({
   };
 
   const canSubmit =
-    accountId &&
-    date &&
-    ((needsHolding &&
-      holdingId &&
-      holdingId !== "none" &&
-      (isSharesMode ? txShares && txPrice : amount)) ||
-      (optionalHolding && amount) ||
-      (!needsHolding && !optionalHolding && amount));
+    (isTransfer
+      ? accountId &&
+        toAccountId &&
+        accountId !== toAccountId &&
+        amount &&
+        (isSameCurrencyTransfer || toAmount)
+      : accountId &&
+        date &&
+        ((needsHolding &&
+          holdingId &&
+          holdingId !== "none" &&
+          (isSharesMode ? txShares && txPrice : amount)) ||
+          (optionalHolding && amount) ||
+          (!needsHolding && !optionalHolding && amount))) && date;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -238,18 +278,20 @@ export function TransactionForm({
                 <SelectItem value="deposit">现金存入</SelectItem>
                 <SelectItem value="withdraw">现金取出</SelectItem>
                 <SelectItem value="fee">费用扣除</SelectItem>
+                <SelectItem value="transfer">账户互转</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label>账户</Label>
+            <Label>{isTransfer ? "转出账户" : "账户"}</Label>
             <Select
               value={accountId}
               onValueChange={(v) => {
                 setAccountId(v);
                 setHoldingId("");
                 setTxPrice("");
+                if (v === toAccountId) setToAccountId("");
               }}
             >
               <SelectTrigger>
@@ -265,7 +307,27 @@ export function TransactionForm({
             </Select>
           </div>
 
-          {accountId && !isFeeTransaction && (
+          {isTransfer && (
+            <div>
+              <Label>转入账户</Label>
+              <Select value={toAccountId} onValueChange={setToAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择转入账户" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts
+                    .filter((a) => String(a.id) !== accountId)
+                    .map((a) => (
+                      <SelectItem key={a.id} value={String(a.id)}>
+                        {a.name} ({a.currency})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {accountId && !isFeeTransaction && !isTransfer && (
             <div className="flex items-center justify-between pl-1">
               <Label htmlFor="affect-cash" className="cursor-pointer text-sm text-muted-foreground">
                 影响账户现金
@@ -273,7 +335,7 @@ export function TransactionForm({
               <Switch id="affect-cash" checked={affectCash} onCheckedChange={setAffectCash} />
             </div>
           )}
-          {accountId && !isFeeTransaction && !affectCash && (
+          {accountId && !isFeeTransaction && !isTransfer && !affectCash && (
             <p className="text-xs text-muted-foreground pl-1">
               不扣减/增加账户现金（适用于录入已有持仓）
             </p>
@@ -444,7 +506,38 @@ export function TransactionForm({
             </div>
           )}
 
-          {isSharesMode && needsHolding ? (
+          {isTransfer ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label>转出金额 ({account?.currency ?? "--"})</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label>到账金额 ({toAccount?.currency ?? "--"})</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={isSameCurrencyTransfer ? amount : toAmount}
+                  onChange={(e) => setToAmount(e.target.value)}
+                  placeholder="0"
+                  disabled={!!isSameCurrencyTransfer}
+                />
+              </div>
+              {account && toAccount && !isSameCurrencyTransfer && (
+                <p className="text-xs text-muted-foreground md:col-span-2">
+                  请填写兑换后实际进入 {toAccount.name} 的金额。
+                </p>
+              )}
+            </div>
+          ) : isSharesMode && needsHolding ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -485,7 +578,7 @@ export function TransactionForm({
             </div>
           )}
 
-          {!isFeeTransaction && (
+          {!isFeeTransaction && !isTransfer && (
             <div>
               <Label>手续费 ({sym})（选填）</Label>
               <Input

@@ -198,30 +198,47 @@ export const netvalue = sqliteTable(
   })
 );
 
-export const transactions = sqliteTable("transactions", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  accountId: integer("account_id")
-    .notNull()
-    .references(() => accounts.id, { onDelete: "cascade" }),
-  holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
-  type: text("type", {
-    enum: ["buy", "sell", "dividend", "deposit", "withdraw", "fee"],
-  }).notNull(),
-  date: text("date").notNull(),
-  amount: real("amount").notNull(),
-  realizedPnl: real("realized_pnl").notNull().default(0),
-  cashDelta: real("cash_delta").notNull().default(0),
-  principalDelta: real("principal_delta").notNull().default(0),
-  holdingSharesDelta: real("holding_shares_delta").notNull().default(0),
-  holdingCostDelta: real("holding_cost_delta").notNull().default(0),
-  holdingMarketValueDelta: real("holding_market_value_delta").notNull().default(0),
-  shares: real("shares"),
-  price: real("price"),
-  fee: real("fee").notNull().default(0),
-  affectCash: integer("affect_cash").notNull().default(1),
-  affectHolding: integer("affect_holding").notNull().default(1),
-  note: text("note"),
-  createdAt: text("created_at")
-    .notNull()
-    .default(sql`(datetime('now'))`),
-});
+export const transactions = sqliteTable(
+  "transactions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    accountId: integer("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    holdingId: integer("holding_id").references(() => holdings.id, { onDelete: "set null" }),
+    type: text("type", {
+      enum: [
+        "buy",
+        "sell",
+        "dividend",
+        "deposit",
+        "withdraw",
+        "fee",
+        "transfer_out",
+        "transfer_in",
+      ],
+    }).notNull(),
+    transferGroupId: text("transfer_group_id"),
+    counterpartyAccountId: integer("counterparty_account_id"),
+    date: text("date").notNull(),
+    amount: real("amount").notNull(),
+    realizedPnl: real("realized_pnl").notNull().default(0),
+    cashDelta: real("cash_delta").notNull().default(0),
+    principalDelta: real("principal_delta").notNull().default(0),
+    holdingSharesDelta: real("holding_shares_delta").notNull().default(0),
+    holdingCostDelta: real("holding_cost_delta").notNull().default(0),
+    holdingMarketValueDelta: real("holding_market_value_delta").notNull().default(0),
+    shares: real("shares"),
+    price: real("price"),
+    fee: real("fee").notNull().default(0),
+    affectCash: integer("affect_cash").notNull().default(1),
+    affectHolding: integer("affect_holding").notNull().default(1),
+    note: text("note"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`(datetime('now'))`),
+  },
+  (table) => ({
+    transferGroupIdx: index("transactions_transfer_group_idx").on(table.transferGroupId),
+  })
+);

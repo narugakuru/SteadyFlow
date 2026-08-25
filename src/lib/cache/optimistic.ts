@@ -483,6 +483,8 @@ function calculateTransactionPlan(
       accountId,
       holdingId,
       type,
+      transferGroupId: null,
+      counterpartyAccountId: null,
       date: String(body.date ?? new Date().toISOString().split("T")[0]),
       amount,
       realizedPnl,
@@ -500,6 +502,7 @@ function calculateTransactionPlan(
       accountName: account?.name,
       accountCurrency: account?.currency,
       holdingName: holding?.name,
+      counterpartyAccountName: null,
     },
     accountDelta: {
       cashBalance: cashDelta,

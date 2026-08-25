@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 import { db, isPostgres } from "@/db";
 import { transactions, holdings, accounts } from "@/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 import { requireUser } from "@/lib/auth/auth-utils";
 import { fromDbBool, toDbBool } from "@/lib/utils/utils";
 import { roundForStorage } from "@/lib/utils/format";
 import { calculateFeeRealizedPnl } from "@/lib/utils/account-principal";
 import { runMutationWithNetvalue } from "@/lib/services/mutation-with-netvalue";
 
-type TransactionType = "buy" | "sell" | "dividend" | "deposit" | "withdraw" | "fee";
+type TransactionType =
+  | "buy"
+  | "sell"
+  | "dividend"
+  | "deposit"
+  | "withdraw"
+  | "fee"
+  | "transfer_out"
+  | "transfer_in";
 
 const VALID_TRANSACTION_TYPES: TransactionType[] = [
   "buy",
@@ -17,6 +25,8 @@ const VALID_TRANSACTION_TYPES: TransactionType[] = [
   "deposit",
   "withdraw",
   "fee",
+  "transfer_out",
+  "transfer_in",
 ];
 
 export async function GET(request: Request) {
@@ -31,7 +41,11 @@ export async function GET(request: Request) {
 
   const conditions = [eq(accounts.userId, userId)];
   if (accountId) conditions.push(eq(transactions.accountId, Number(accountId)));
-  if (type && VALID_TRANSACTION_TYPES.includes(type as TransactionType)) {
+  if (type === "transfer") {
+    conditions.push(
+      or(eq(transactions.type, "transfer_out"), eq(transactions.type, "transfer_in"))!
+    );
+  } else if (type && VALID_TRANSACTION_TYPES.includes(type as TransactionType)) {
     conditions.push(eq(transactions.type, type as TransactionType));
   }
 
@@ -41,6 +55,8 @@ export async function GET(request: Request) {
       accountId: transactions.accountId,
       holdingId: transactions.holdingId,
       type: transactions.type,
+      transferGroupId: transactions.transferGroupId,
+      counterpartyAccountId: transactions.counterpartyAccountId,
       date: transactions.date,
       amount: transactions.amount,
       realizedPnl: transactions.realizedPnl,
@@ -66,8 +82,18 @@ export async function GET(request: Request) {
     .where(and(...conditions))
     .orderBy(desc(transactions.date), desc(transactions.id));
 
+  const userAccounts = await db
+    .select({ id: accounts.id, name: accounts.name })
+    .from(accounts)
+    .where(eq(accounts.userId, userId));
+  const accountNames = new Map<number, string>(
+    userAccounts.map((account: { id: number; name: string }) => [account.id, account.name])
+  );
   const result = rows.map((r: (typeof rows)[number]) => ({
     ...r,
+    counterpartyAccountName: r.counterpartyAccountId
+      ? (accountNames.get(r.counterpartyAccountId) ?? null)
+      : null,
     affectCash: fromDbBool(r.affectCash),
     affectHolding: fromDbBool(r.affectHolding),
   }));
@@ -102,7 +128,11 @@ export async function POST(request: Request) {
   } = body;
 
   const txType = type as TransactionType;
-  if (!VALID_TRANSACTION_TYPES.includes(txType)) {
+  if (
+    !VALID_TRANSACTION_TYPES.includes(txType) ||
+    txType === "transfer_out" ||
+    txType === "transfer_in"
+  ) {
     return NextResponse.json({ error: "Invalid transaction type" }, { status: 400 });
   }
 
